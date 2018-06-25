@@ -57,6 +57,39 @@ def dataset_exists(id, index_suffix):
         else: r.raise_for_status()
     return False if total == 0 else True
 
+def get_dataset(id, index_suffix):
+    """Query for existence of dataset by ID."""
+
+    # es_url and es_index
+    es_url = app.conf.GRQ_ES_URL
+    es_index = "grq_*_{}".format(index_suffix.lower())
+
+    # query
+    query = {
+        "query":{
+            "bool":{
+                "must":[
+                    { "term":{ "_id": id } },
+                ]
+            }
+        },
+        "fields": [],
+    }
+
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+    return result
 
 def query_es(query, es_index):
     """Query ES."""
@@ -216,6 +249,7 @@ def query_aoi_acquisitions(starttime, endtime, platform):
                 }
             }
         }
+        print(query)
         acqs = [i['fields']['partial'][0] for i in query_es(query, es_index)]
         logger.info("Found {} acqs for {}: {}".format(len(acqs), aoi['id'],
                     json.dumps([i['id'] for i in acqs], indent=2)))
@@ -267,8 +301,13 @@ def resolve_source(ctx):
 
     # route resolver and return url and queue
     if ctx['dataset'] == "acquisition-S1-IW_SLC":
-        if dataset_exists(ctx['identifier'], settings['ACQ_TO_DSET_MAP'][ctx['dataset']]):
-            raise DatasetExists("Dataset {} already exists.".format(ctx['identifier']))
+        result = get_dataset(ctx['identifier'], settings['ACQ_TO_DSET_MAP'][ctx['dataset']])
+        total = result['hits']['total']
+        print("Total dataset found : %s" %total)
+
+        if total > 0:
+            #raise DatasetExists("Dataset {} already exists.".format(ctx['identifier']))
+            print("dataset exists")
         url, queue = resolve_s1_slc(ctx['identifier'], ctx['download_url'], ctx['project'])
     else:
         raise NotImplementedError("Unknown acquisition dataset: {}".format(ctx['dataset']))
@@ -306,7 +345,10 @@ def resolve_aoi_acqs(ctx_file):
     aois = []
     for id in sorted(acq_info):
         acq = acq_info[id]
+        print("\n\nPrinting Acq : %s" %id)
+        print(acq)
         acq['spyddder_extract_version'] = ctx['spyddder_extract_version']
+        acq['standard_product_version'] = ctx['standard_product_version']
         acq['project'] = ctx['project']
         acq['identifier'] = acq['metadata']['identifier']
         acq['download_url'] = acq['metadata']['download_url']
@@ -363,3 +405,9 @@ def extract_job(spyddder_extract_version, queue, localize_url, file, prod_name,
     print("job: {}".format(json.dumps(job, indent=2)))
 
     return job
+
+def standard_product_job(standard_product_version, queue):
+    # set job type and disk space reqs
+    job_type = "job-standard-process:{}".format(standard_product_version)
+    
+    
