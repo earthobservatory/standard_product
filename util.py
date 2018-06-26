@@ -76,6 +76,8 @@ def get_dataset(id, index_suffix):
         "fields": [],
     }
 
+    print(query)
+
     if es_url.endswith('/'):
         search_url = '%s%s/_search' % (es_url, es_index)
     else:
@@ -89,6 +91,7 @@ def get_dataset(id, index_suffix):
         r.raise_for_status()
 
     result = r.json()
+    print(result['hits']['total'])
     return result
 
 def query_es(query, es_index):
@@ -331,7 +334,7 @@ def resolve_aoi_acqs(ctx_file):
     with open(ctx_file) as f:
         ctx = json.load(f)
 
-    SFL = os.path.join(os.environ['HOME'], 'ariamh', 'interferogram', 'sentinel', 'S1StandardProduct.sf.xml')
+    SFL = os.path.join(os.environ['HOME'], 'standard_product', 'aoi_acquisition_localizer_standard_product.sf.xml')
     # get acq_info
     acq_info = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'])
 
@@ -407,8 +410,26 @@ def extract_job(spyddder_extract_version, queue, localize_url, file, prod_name,
 
     return job
 
-def standard_product_job(standard_product_version, queue):
+def standard_product_job(standard_product_version, queue, prod_name,
+                prod_date, priority, aoi, wuid=None, job_num=None):
     # set job type and disk space reqs
-    job_type = "job-standard-process:{}".format(standard_product_version)
+    job_type = "job-standard-product:{}".format(standard_product_version)
     
+    # resolve hysds job
+    params = {
+        "singlesceneOnly": True,
+        "preReferencePairDirection": "",
+        "postReferencePairDirection": "",
+        "minMatch": 2,
+        "covth": 0.95,
+        "preciseOrbitOnly": True,
+        "range_looks": 7,
+	"azimuth_looks": 19,
+	"filter_strength": 0.5
+    }
+
+    job = resolve_hysds_job(job_type, queue, priority=priority, params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
+
+    return job
+        
     
