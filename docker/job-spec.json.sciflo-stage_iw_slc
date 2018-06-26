@@ -14,7 +14,7 @@
   ],
   "params" : [
     {
-      "name": "dataset_tag",
+      "name": "dataset",
       "destination": "context"
     },
     {
@@ -22,63 +22,35 @@
       "destination": "context"
     },
     {
-      "name": "singlesceneOnly",
+      "name": "identifier",
       "destination": "context"
     },
     {
-      "name": "preReferencePairDirection",
+      "name": "download_url",
       "destination": "context"
     },
     {
-      "name": "postReferencePairDirection",
+      "name": "dataset_type",
       "destination": "context"
     },
     {
-      "name": "temporalBaseline",
+      "name": "archive_filename",
       "destination": "context"
     },
     {
-      "name": "minMatch",
+      "name": "spyddder_extract_version",
       "destination": "context"
     },
     { 
-      "name": "covth",
+      "name": "standard_product_version",
       "destination": "context"
     },
     {
-      "name": "auto_bbox",
+      "name": "aoi",
       "destination": "context"
     },
     {
-      "name": "precise_orbit_only",
-      "destination": "context"
-    },
-    {
-      "name": "azimuth_looks",
-      "destination": "context"
-    },
-    {
-      "name": "range_looks",
-      "destination": "context"
-    },
-    { 
-      "name": "filter_strength",
-      "destination": "context"
-    },
-    {
-      "name": "dem_type",
-      "destination": "context"
-    },
-    {
-      "name": "query",
-      "destination": "context"
-    },
-    {
-      "name": "name",
-      "destination": "context"
-    },
-    {
-      "name": "username",
+      "name": "job_priority",
       "destination": "context"
     }
   ]
