@@ -331,6 +331,7 @@ def resolve_aoi_acqs(ctx_file):
     with open(ctx_file) as f:
         ctx = json.load(f)
 
+    SFL = os.path.join(os.environ['HOME'], 'ariamh', 'interferogram', 'sentinel', 'S1StandardProduct.sf.xml')
     # get acq_info
     acq_info = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'])
 
