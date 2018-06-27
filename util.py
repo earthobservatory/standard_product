@@ -140,13 +140,35 @@ class DatasetExists(Exception):
     pass
 
 
-def resolve_source(ctx):
+
+def resolve_source():
     """Resolve best URL from acquisition."""
 
+
     # get settings
+
+    context_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_context.json')
+    with open(context_file) as f:
+        ctx = json.load(f)
+
+
     settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.json')
     with open(settings_file) as f:
         settings = json.load(f)
+    
+
+    # build args
+    spyddder_extract_versions = []
+    standard_product_versions = []
+    queues = []
+    urls = []
+    archive_filenames = []
+    identifiers = []
+    prod_dates = []
+    priorities = []
+    aois = []
+
+
 
     # ensure acquisition
     if ctx['dataset_type'] != "acquisition":
@@ -161,7 +183,23 @@ def resolve_source(ctx):
         if total > 0:
             #raise DatasetExists("Dataset {} already exists.".format(ctx['identifier']))
             print("dataset exists")
-        url, queue = resolve_s1_slc(ctx['identifier'], ctx['download_url'], ctx['project'])
+        else:
+            url, queue = resolve_s1_slc(ctx['identifier'], ctx['download_url'], ctx['project'])
+
+
+            spyddder_extract_versions.append(ctx['spyddder_extract_version'])
+            spyddder_extract_versions.append(ctx['spyddder_extract_version'])
+            queues.append(queue)
+            urls.append(url)
+            archive_filenames.append(ctx['archive_filename'])
+            identifiers.append(ctx['identifier'])
+            prod_dates.append(time.strftime('%Y-%m-%d' ))
+            priorities.append( ctx.get('job_priority', 0))
+            aois.append(ctx.get('aoi', 'no_aoi'))
+            
+            return ( spyddder_extract_versions, spyddder_extract_versions, queues, urls, archive_filenames,
+             identifiers, prod_dates, priorities, aois )
+
     else:
         raise NotImplementedError("Unknown acquisition dataset: {}".format(ctx['dataset']))
 
@@ -171,6 +209,7 @@ def resolve_source(ctx):
 
 
 def resolve_source_from_ctx_file(ctx_file):
+
     """Resolve best URL from acquisition."""
 
     with open(ctx_file) as f:
