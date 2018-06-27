@@ -22,78 +22,6 @@ logger.addFilter(LogFilter())
 BASE_PATH = os.path.dirname(__file__)
 
 
-def dataset_exists(id, index_suffix):
-    """Query for existence of dataset by ID."""
-
-    # es_url and es_index
-    es_url = app.conf.GRQ_ES_URL
-    es_index = "grq_*_{}".format(index_suffix.lower())
-    
-    # query
-    query = {
-        "query":{
-            "bool":{
-                "must":[
-                    { "term":{ "_id": id } },
-                ]
-            }
-        },
-        "fields": [],
-    }
-
-    if es_url.endswith('/'):
-        search_url = '%s%s/_search' % (es_url, es_index)
-    else:
-        search_url = '%s/%s/_search' % (es_url, es_index)
-    r = requests.post(search_url, data=json.dumps(query))
-    if r.status_code == 200:
-        result = r.json()
-        total = result['hits']['total']
-    else:
-        print("Failed to query %s:\n%s" % (es_url, r.text))
-        print("query: %s" % json.dumps(query, indent=2))
-        print("returned: %s" % r.text)
-        if r.status_code == 404: total = 0
-        else: r.raise_for_status()
-    return False if total == 0 else True
-
-def get_dataset(id, index_suffix):
-    """Query for existence of dataset by ID."""
-
-    # es_url and es_index
-    es_url = app.conf.GRQ_ES_URL
-    es_index = "grq_*_{}".format(index_suffix.lower())
-
-    # query
-    query = {
-        "query":{
-            "bool":{
-                "must":[
-                    { "term":{ "_id": id } },
-                ]
-            }
-        },
-        "fields": [],
-    }
-
-    print(query)
-
-    if es_url.endswith('/'):
-        search_url = '%s%s/_search' % (es_url, es_index)
-    else:
-        search_url = '%s/%s/_search' % (es_url, es_index)
-    r = requests.post(search_url, data=json.dumps(query))
-
-    if r.status_code != 200:
-        print("Failed to query %s:\n%s" % (es_url, r.text))
-        print("query: %s" % json.dumps(query, indent=2))
-        print("returned: %s" % r.text)
-        r.raise_for_status()
-
-    result = r.json()
-    print(result['hits']['total'])
-    return result
-
 def query_es(query, es_index):
     """Query ES."""
 
@@ -289,44 +217,6 @@ class DatasetExists(Exception):
     """Exception class for existing dataset."""
     pass
 
-
-def resolve_source(ctx):
-    """Resolve best URL from acquisition."""
-
-    # get settings
-    settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.json')
-    with open(settings_file) as f:
-        settings = json.load(f)
-
-    # ensure acquisition
-    if ctx['dataset_type'] != "acquisition":
-        raise RuntimeError("Invalid dataset type: {}".format(ctx['dataset_type']))
-
-    # route resolver and return url and queue
-    if ctx['dataset'] == "acquisition-S1-IW_SLC":
-        result = get_dataset(ctx['identifier'], settings['ACQ_TO_DSET_MAP'][ctx['dataset']])
-        total = result['hits']['total']
-        print("Total dataset found : %s" %total)
-
-        if total > 0:
-            #raise DatasetExists("Dataset {} already exists.".format(ctx['identifier']))
-            print("dataset exists")
-        url, queue = resolve_s1_slc(ctx['identifier'], ctx['download_url'], ctx['project'])
-    else:
-        raise NotImplementedError("Unknown acquisition dataset: {}".format(ctx['dataset']))
-
-    return ( ctx['spyddder_extract_version'], queue, url, ctx['archive_filename'], 
-             ctx['identifier'], time.strftime('%Y-%m-%d' ), ctx.get('job_priority', 0),
-             ctx.get('aoi', 'no_aoi') )
-
-
-def resolve_source_from_ctx_file(ctx_file):
-    """Resolve best URL from acquisition."""
-
-    with open(ctx_file) as f:
-        return resolve_source(json.load(f))
-
-
 def resolve_aoi_acqs(ctx_file):
     """Resolve best URL from acquisitions from AOIs."""
 
@@ -359,56 +249,37 @@ def resolve_aoi_acqs(ctx_file):
         acq['archive_filename'] = acq['metadata']['archive_filename']
         acq['aoi'] = acq['aoi']
         acq['job_priority'] = acq['priority']
-        try:
-            ( spyddder_extract_version, queue, url, archive_filename, 
-              identifier, prod_date, priority, aoi ) = resolve_source(acq)
-        except DatasetExists, e:
-            logger.warning(e)
-            logger.warning("Skipping {}".format(acq['identifier']))
-            continue
-        spyddder_extract_versions.append(spyddder_extract_version)
-        queues.append(queue)
-        urls.append(url)
-        archive_filenames.append(archive_filename)
-        identifiers.append(identifier)
-        prod_dates.append(prod_date)
-        priorities.append(priority)
-        aois.append(aoi)
-    return ( spyddder_extract_versions, queues, urls, archive_filenames,
-             identifiers, prod_dates, priorities, aois )
 
+        job_type = "sciflo_stage_iw_slc:{}".format(ctx['stage_iw_slc_version'])
 
-def extract_job(spyddder_extract_version, queue, localize_url, file, prod_name,
-                prod_date, priority, aoi, wuid=None, job_num=None):
-    """Map function for spyddder-man extract job."""
-
-    if wuid is None or job_num is None:
-        raise RuntimeError("Need to specify workunit id and job num.")
-
-    # set job type and disk space reqs
-    job_type = "job-spyddder-extract:{}".format(spyddder_extract_version)
-
-    # resolve hysds job
-    params = {
-        "localize_url": localize_url,
-        "file": file,
-        "prod_name": prod_name,
-        "prod_date": prod_date,
-        "aoi": aoi,
-    }
-    job = resolve_hysds_job(job_type, queue, priority=priority, params=params, 
-                            job_name="%s-%s-%s" % (job_type, aoi, prod_name))
-
-    # save to archive_filename if it doesn't match url basename
-    if os.path.basename(localize_url) != file:
-        job['payload']['localize_urls'][0]['local_path'] = file
-
-    # add workflow info
-    job['payload']['_sciflo_wuid'] = wuid
-    job['payload']['_sciflo_job_num'] = job_num
-    print("job: {}".format(json.dumps(job, indent=2)))
-
-    return job
+        params = {
+        "dataset" : acq['dataset'],
+        "project" : acq['project'],
+        "identifier" : acq['identifier'],
+        "download_url" : acq['download_url'],
+        "dataset_type" : acq['dataset_type'],
+	"archive_filename" : acq['archive_filename'],
+	"spyddder_extract_version" : acq['spyddder_extract_version'],
+	"standard_product_version" : acq['standard_product_version'],
+	"aoi" : acq['aoi'],
+	"job_priority" : acq['job_priority']
+        }
 
         
+        job = resolve_hysds_job(job_type, queue, priority=acq['priority'], params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
+
+        job_id = submit_hysds_job(job)
+
+
+def main():
+    """Run S1 create interferogram sciflo."""
+
+    # read in _context.json
+    context_file = os.path.abspath("_context.json")
+    if not os.path.exists(context_file):
+        raise(RuntimeError("Context file doesn't exist."))
     
+    resolve_aoi_acqs(context_file)
+
+if __name__ == "__main__":
+    sys.exit(main())
