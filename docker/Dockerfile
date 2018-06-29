@@ -34,7 +34,7 @@ RUN set -ex \
 
 RUN set -ex \
  && sudo chown -R ops:ops /home/ops/standard_product \
- && mv /home/ops/ariamh/spyddder-man /home/ops/verdi/ops/
+ && mv /home/ops/standard_product/spyddder-man /home/ops/verdi/ops/
 
 
 
