@@ -12,6 +12,8 @@
     "dwr-job_worker-small",
     "urgent-response-job_worker-small"
   ],
+  "soft_time_limit": 86400,
+  "time_limit": 87000, 
   "params" : [
     {
       "name": "dataset",
