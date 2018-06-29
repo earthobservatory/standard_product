@@ -31,5 +31,12 @@ RUN set -ex \
  && chmod -R 755 /data \
  && chown -R ops:ops /data
 
+
+RUN set -ex \
+ && sudo chown -R ops:ops /home/ops/standard_product \
+ && mv /home/ops/ariamh/spyddder-man /home/ops/verdi/ops/
+
+
+
 WORKDIR /home/ops
 CMD ["/bin/bash", "--login"]

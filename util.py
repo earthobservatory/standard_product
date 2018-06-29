@@ -167,6 +167,7 @@ def resolve_source():
     prod_dates = []
     priorities = []
     aois = []
+    ds_exists = False
 
 
 
@@ -183,29 +184,28 @@ def resolve_source():
         if total > 0:
             #raise DatasetExists("Dataset {} already exists.".format(ctx['identifier']))
             print("dataset exists")
+            ds_exists = True
         else:
+            ds_exists = False
             url, queue = resolve_s1_slc(ctx['identifier'], ctx['download_url'], ctx['project'])
-
-
-            spyddder_extract_versions.append(ctx['spyddder_extract_version'])
-            spyddder_extract_versions.append(ctx['spyddder_extract_version'])
             queues.append(queue)
-            urls.append(url)
-            archive_filenames.append(ctx['archive_filename'])
-            identifiers.append(ctx['identifier'])
-            prod_dates.append(time.strftime('%Y-%m-%d' ))
-            priorities.append( ctx.get('job_priority', 0))
-            aois.append(ctx.get('aoi', 'no_aoi'))
-            
-            return ( spyddder_extract_versions, spyddder_extract_versions, queues, urls, archive_filenames,
-             identifiers, prod_dates, priorities, aois )
+            urls.append(url
 
+        spyddder_extract_versions.append(ctx['spyddder_extract_version'])
+        spyddder_extract_versions.append(ctx['spyddder_extract_version'])
+        archive_filenames.append(ctx['archive_filename'])
+        identifiers.append(ctx['identifier'])
+        prod_dates.append(time.strftime('%Y-%m-%d' ))
+        priorities.append( ctx.get('job_priority', 0))
+        aois.append(ctx.get('aoi', 'no_aoi'))
+            
     else:
         raise NotImplementedError("Unknown acquisition dataset: {}".format(ctx['dataset']))
 
-    return ( ctx['spyddder_extract_version'], queue, url, ctx['archive_filename'], 
-             ctx['identifier'], time.strftime('%Y-%m-%d' ), ctx.get('job_priority', 0),
-             ctx.get('aoi', 'no_aoi') )
+
+    return ( ds_exists, spyddder_extract_versions, spyddder_extract_versions, queues, urls, archive_filenames,
+             identifiers, prod_dates, priorities, aois )
+
 
 
 def resolve_source_from_ctx_file(ctx_file):
