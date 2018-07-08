@@ -189,7 +189,7 @@ def resolve_source():
             ds_exists = False
             url, queue = resolve_s1_slc(ctx['identifier'], ctx['download_url'], ctx['project'])
             queues.append(queue)
-            urls.append(url
+            urls.append(url)
 
         spyddder_extract_versions.append(ctx['spyddder_extract_version'])
         spyddder_extract_versions.append(ctx['spyddder_extract_version'])
@@ -216,7 +216,7 @@ def resolve_source_from_ctx_file(ctx_file):
         return resolve_source(json.load(f))
 
 
-def extract_job(spyddder_extract_version, queue, localize_url, file, prod_name,
+def extract_job(ds_exists, spyddder_extract_version, queue, localize_url, file, prod_name,
                 prod_date, priority, aoi, wuid=None, job_num=None):
     """Map function for spyddder-man extract job."""
 
