@@ -1,5 +1,5 @@
 {
-  "command": "/home/ops/standard_product/sciflow_stage_iw_slc.sh",
+  "command": "/home/ops/standard_product/sciflo_stage_iw_slc.sh",
   "imported_worker_files": {
     "/home/ops/.netrc": ["/home/ops/.netrc"],
     "/home/ops/.aws": ["/home/ops/.aws", "ro"],
