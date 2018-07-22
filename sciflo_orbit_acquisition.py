@@ -56,7 +56,7 @@ def extract_error(sfl_json):
 
 
 def main():
-    """Run S1 create interferogram sciflo."""
+    """Run Orbit to Acquisition sciflo."""
 
     # read in _context.json
     context_file = os.path.abspath("_context.json")
@@ -66,7 +66,7 @@ def main():
         context = json.load(f)
 
     # get workflow
-    SFL = os.path.join(os.environ['HOME'], 'ariamh', 'interferogram', 'sentinel', 'S1StandardProduct.sf.xml')
+    SFL = os.path.join(os.environ['HOME'], 'verdi', 'ops', 'standard_product', 'orbit_acquisition_enumerator_standard_product.sf.xml')
 
     # build sciflo args
     sfl_args = ["context_file=%s" % context_file]
