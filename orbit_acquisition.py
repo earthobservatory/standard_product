@@ -123,6 +123,60 @@ def query_aois(starttime, endtime):
     logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
     return hits
 
+def get_query(acq):
+    query = {
+    	"query": {
+    	    "filtered": {
+      		"filter": {
+        	    "and": [
+          		{
+            		    "term": {
+              			"system_version.raw": "v1.1"
+            		    }
+          		}, 
+          		{
+            		    "ids": {
+              			"values": [acq['identifier']]
+            		    }
+          		}, 
+          		{
+            		    "geo_shape": {
+              			"location": {
+                		    "shape": acq['metadata']['location']
+              			}
+            		    }
+          		}
+        	    ]
+      		}, 
+      		"query": {
+        	    "bool": {
+          		"must": [
+            		    {
+              			"term": {
+                		    "dataset.raw": "S1-IW_SLC"
+              			}
+            		    }
+          		]
+        	    }
+      		}
+    	    }
+  	}, 
+  	"partial_fields": {
+    	    "partial": {
+      		"exclude": "city"
+    	    }
+  	}
+    }
+
+    
+    return query
+
+def get_dem_type(acq):
+    dem_type = "SRTM+v3"
+    if acq['city'] is not None and len(acq['city'])>0:
+	if acq['city'][0]['country_name'] is not None and acq['city'][0]['country_name'].lower() == "united states":
+	    dem_type="Ned1"
+    return dem_type
 
 def query_aoi_acquisitions(starttime, endtime, platform):
     """Query ES for active AOIs that intersect starttime and endtime and 
@@ -176,11 +230,11 @@ def query_aoi_acquisitions(starttime, endtime, platform):
             },
             "partial_fields" : {
                 "partial" : {
-                    "include" : [ "id", "dataset_type", "dataset", "metadata" ]
+                    "include" : [ "id", "dataset_type", "dataset", "metadata", "city", "continent" ]
                 }
             }
         }
-        print(query)
+        #print(query)
         acqs = [i['fields']['partial'][0] for i in query_es(query, es_index)]
         logger.info("Found {} acqs for {}: {}".format(len(acqs), aoi['id'],
                     json.dumps([i['id'] for i in acqs], indent=2)))
@@ -217,6 +271,12 @@ class DatasetExists(Exception):
     """Exception class for existing dataset."""
     pass
 
+def get_temporal_baseline(ctx):
+    temporalBaseline = 24
+    if 'temporalBaseline' in ctx:
+	temporalBaseline = int(ctx['temporalBaseline'])
+    return temporalBaseline
+
 def resolve_aoi_acqs(ctx_file):
     """Resolve best URL from acquisitions from AOIs."""
 
@@ -237,10 +297,14 @@ def resolve_aoi_acqs(ctx_file):
     prod_dates = []
     priorities = []
     aois = []
+    temporalBaseline = get_temporal_baseline(ctx)
+    queue = ctx['queue']
+    singlesceneOnly = True
+    precise_orbit_only = True
     for id in sorted(acq_info):
         acq = acq_info[id]
-        print("\n\nPrinting Acq : %s" %id)
-        print(acq)
+        logging.info("\n\nPrinting Acq : %s" %id)
+        #print(acq)
         acq['spyddder_extract_version'] = ctx['spyddder_extract_version']
         acq['standard_product_version'] = ctx['standard_product_version']
         acq['project'] = ctx['project']
@@ -251,7 +315,8 @@ def resolve_aoi_acqs(ctx_file):
         acq['job_priority'] = acq['priority']
 
         job_type = "sciflo_stage_iw_slc:{}".format(ctx['stage_iw_slc_version'])
-
+	preReferencePairDirection = "backward"
+	postReferencePairDirection = "backward"
         params = {
         "dataset" : acq['dataset'],
         "project" : acq['project'],
@@ -264,11 +329,20 @@ def resolve_aoi_acqs(ctx_file):
 	"aoi" : acq['aoi'],
 	"job_priority" : acq['job_priority']
         }
+        logging.info("acq identifier : %s " %acq['identifier'])
+	logging.info("acq location : %s " %acq['metadata']['location'])
+        logging.info("acq continent : %s " %acq['continent'])
+	logging.info("acq city : %s " %acq['city'])
+	dem_type = get_dem_type(acq)
+	query = get_query(acq)
+        logging.info("dem_type : %s" %dem_type)
+	logging.info("query : %s" %query)
+	
+        return "standard_product", True, query, acq['aoi'], dem_type, acq['spyddder_extract_version'], acq['standard_product_version'], queue, acq['priority'], preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only
 
-        
-        job = resolve_hysds_job(job_type, queue, priority=acq['priority'], params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
+        #job = resolve_hysds_job(job_type, queue, priority=acq['priority'], params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
 
-        job_id = submit_hysds_job(job)
+        #job_id = submit_hysds_job(job)
 
 
 def main():

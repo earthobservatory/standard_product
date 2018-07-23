@@ -18,7 +18,7 @@ export PATH=$BASE_PATH:$TROPMAP_HOME:$GMT_HOME/bin:$PATH
 source $HOME/verdi/bin/activate
 
 echo "##########################################" 1>&2
-echo -n "Running S1 create interferogram sciflo: " 1>&2
+echo -n "Running Orbit to Acquisitions sciflo: " 1>&2
 date 1>&2
 /usr/bin/python $BASE_PATH/sciflo_orbit_acquisition.py > sciflo_orbit_acquisition.log 2>&1
 STATUS=$?
