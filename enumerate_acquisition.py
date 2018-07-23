@@ -499,7 +499,7 @@ def get_pair_direction(pd):
 
 def get_topsapp_cfgs_standard_product(project, auto_bbox, query, aoi, dem_type, spyddder_extract_version, standard_product_version,
 				      queue, priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline=72, 
-				      singlesceneOnly=True, precise_orbit_only, id_tmpl=IFG_ID_TMPL, minMatch=2, covth=.95):
+				      singlesceneOnly=True, precise_orbit_only=True, id_tmpl=IFG_ID_TMPL, minMatch=2, covth=.95):
 
     """Return all possible topsApp configurations."""
 

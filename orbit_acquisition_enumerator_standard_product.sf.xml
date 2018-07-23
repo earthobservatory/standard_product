@@ -9,7 +9,7 @@
       <context_file>_context.json</context_file>
     </sf:inputs>
     <sf:outputs>
-      <datasets from="@#submit"/>
+      <datasets from="@#enumerate"/>
     </sf:outputs>
 
     <sf:processes>
