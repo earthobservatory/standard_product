@@ -21,6 +21,13 @@
         <sf:outputs>
 	  <project/>
           <auto_bbox/>
+	  <bbox/>
+	  <dataset/>
+	  <identifier/>
+	  <download_url/>
+	  <dataset_type/>
+	  <ipf/>
+	  <archive_filename/>
           <query/>
           <aoi/>
           <dem_type/>
@@ -46,6 +53,13 @@
         <sf:inputs>
 	  <project from="@#previous"/>
           <auto_bbox from="@#previous"/>
+	  <bbox from="@#previous"/>
+          <dataset from="@#previous"/>
+          <identifier from="@#previous"/>
+          <download_url from="@#previous"/>
+          <dataset_type from="@#previous"/>
+	  <ipf from="@#previous"/>
+          <archive_filename from="@#previous"/>
           <query from="@#previous"/>
           <aoi from="@#previous"/>
           <dem_type from="@#previous"/>

@@ -21,7 +21,6 @@ logger.addFilter(LogFilter())
 
 BASE_PATH = os.path.dirname(__file__)
 
-
 def query_es(query, es_index):
     """Query ES."""
 
@@ -276,6 +275,34 @@ def get_temporal_baseline(ctx):
     if 'temporalBaseline' in ctx:
 	temporalBaseline = int(ctx['temporalBaseline'])
     return temporalBaseline
+   
+
+def resolve_s1_slc(identifier, download_url, project):
+    """Resolve S1 SLC using ASF datapool (ASF or NGAP). Fallback to ESA."""
+
+    # determine best url and corresponding queue
+    vertex_url = "https://datapool.asf.alaska.edu/SLC/SA/{}.zip".format(identifier)
+    r = requests.head(vertex_url, allow_redirects=True)
+    if r.status_code == 403:
+        url = r.url
+        queue = "{}-job_worker-small".format(project)
+    elif r.status_code == 404:
+        url = download_url
+        queue = "factotum-job_worker-scihub_throttled"
+    else:
+        raise RuntimeError("Got status code {} from {}: {}".format(r.status_code, vertex_url, r.url))
+    return url, queue
+
+
+class DatasetExists(Exception):
+    """Exception class for existing dataset."""
+    pass
+
+def get_temporal_baseline(ctx):
+    temporalBaseline = 24
+    if 'temporalBaseline' in ctx:
+	temporalBaseline = int(ctx['temporalBaseline'])
+    return temporalBaseline
 
 def resolve_aoi_acqs(ctx_file):
     """Resolve best URL from acquisitions from AOIs."""
@@ -301,44 +328,53 @@ def resolve_aoi_acqs(ctx_file):
     queue = ctx['queue']
     singlesceneOnly = True
     precise_orbit_only = True
+    spyddder_extract_version= ctx['spyddder_extract_version']
+    standard_product_version= ctx['standard_product_version']
+    project = "standard_product"
+
     for id in sorted(acq_info):
         acq = acq_info[id]
         logging.info("\n\nPrinting Acq : %s" %id)
         #print(acq)
-        acq['spyddder_extract_version'] = ctx['spyddder_extract_version']
-        acq['standard_product_version'] = ctx['standard_product_version']
-        acq['project'] = ctx['project']
-        acq['identifier'] = acq['metadata']['identifier']
-        acq['download_url'] = acq['metadata']['download_url']
-        acq['archive_filename'] = acq['metadata']['archive_filename']
-        acq['aoi'] = acq['aoi']
-        acq['job_priority'] = acq['priority']
 
         job_type = "sciflo_stage_iw_slc:{}".format(ctx['stage_iw_slc_version'])
 	preReferencePairDirection = "backward"
 	postReferencePairDirection = "backward"
+        '''
         params = {
-        "dataset" : acq['dataset'],
-        "project" : acq['project'],
-        "identifier" : acq['identifier'],
-        "download_url" : acq['download_url'],
-        "dataset_type" : acq['dataset_type'],
-	"archive_filename" : acq['archive_filename'],
-	"spyddder_extract_version" : acq['spyddder_extract_version'],
-	"standard_product_version" : acq['standard_product_version'],
-	"aoi" : acq['aoi'],
-	"job_priority" : acq['job_priority']
+        "dataset= acq['dataset'],
+        "project= acq['project'],
+        "identifier= acq['identifier'],
+        "download_url= acq['download_url'],
+        "dataset_type= acq['dataset_type'],
+	"archive_filename= acq['archive_filename'],
+	"spyddder_extract_version= acq['spyddder_extract_version'],
+	"standard_product_version= acq['standard_product_version'],
+	"aoi= acq['aoi'],
+	"job_priority= acq['job_priority']
         }
-        logging.info("acq identifier : %s " %acq['identifier'])
-	logging.info("acq location : %s " %acq['metadata']['location'])
-        logging.info("acq continent : %s " %acq['continent'])
-	logging.info("acq city : %s " %acq['city'])
+	'''
+	dataset= acq['dataset']
+        identifier= acq['metadata']['identifier']
+        download_url= acq['metadata']['download_url']
+        dataset_type= acq['dataset_type']
+        archive_filename= acq['metadata']['archive_filename']
+        aoi= acq['aoi'],
+        bbox = acq['metadata']['bbox']
+        job_priority= acq['priority']
+	ipf = acq['metadata']['processing_version']
 	dem_type = get_dem_type(acq)
-	query = get_query(acq)
+        query = get_query(acq)
+
+
+        logging.info("acq identifier : %s " %identifier)
+	logging.info("acq city : %s " %acq['city'])
         logging.info("dem_type : %s" %dem_type)
 	logging.info("query : %s" %query)
+	logging.info("bbox : %s" %bbox)
+        logging.info("ipf : %s" %ipf)
 	
-        return "standard_product", True, query, acq['aoi'], dem_type, acq['spyddder_extract_version'], acq['standard_product_version'], queue, acq['priority'], preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only
+        return project, True, bbox, dataset, identifier, download_url, dataset_type, ipf, archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version, queue, job_priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only
 
         #job = resolve_hysds_job(job_type, queue, priority=acq['priority'], params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
 
