@@ -1,0 +1,44 @@
+{     
+  "submission_type": "iteration",
+  "label": "S1 Standard Product",
+  "allowed_accounts": [ "ops" ],
+  "params" : [ 
+    {
+      "name": "workflow",
+      "from": "value",
+      "value": "orbit_acquisition_enumerator_standard_product.sf.xml"
+    },
+    { 
+      "name": "project",
+      "from": "value",
+      "value": "standard_product"
+    },
+    { 
+      "name": "dataset_version",
+      "from": "value",
+      "value": "v2.0.0"
+    },
+    {
+      "name": "spyddder_extract_version",
+      "from": "submitter",
+      "type": "jobspec_version",
+      "version_regex": "job-spyddder-extract",
+      "placeholder": "spyddder-man extract job version"
+    },
+    {
+      "name": "starttime",
+      "from": "dataset_jpath:_source.starttime",
+      "type": "text"
+    },
+    {
+      "name": "endtime",
+      "from": "dataset_jpath:_source.endtime",
+      "type": "text"
+    },
+    {
+      "name": "platform",
+      "from": "dataset_jpath:_source.metadata.platform",
+      "type": "text"
+    }
+  ]
+}

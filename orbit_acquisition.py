@@ -407,11 +407,13 @@ def resolve_aoi_acqs(ctx_file):
 	logging.info("bbox : %s" %bbox)
         logging.info("ipf : %s" %ipf)
 	
-        return project, True, bbox, dataset, identifier, download_url, dataset_type, ipf, archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version, queue, job_priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only
+        #return project, True, bbox, dataset, identifier, download_url, dataset_type, ipf, archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version, queue, job_priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only
 
         #job = resolve_hysds_job(job_type, queue, priority=acq['priority'], params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
 
         #job_id = submit_hysds_job(job)
+
+    return [[] for i in range(21)]
 
 
 def main():

@@ -1,0 +1,41 @@
+{
+  "command":"/home/ops/verdi/ops/spyddder-man/run_sciflo.sh",
+  "imported_worker_files": {
+    "/home/ops/.netrc": "/home/ops/.netrc",
+    "/home/ops/.aws": "/home/ops/.aws",
+    "/home/ops/verdi/ops/spyddder-man/settings.json": "/home/ops/verdi/ops/spyddder-man/settings.json"
+  },
+  "soft_time_limit": 240,
+  "time_limit": 300,
+  "recommended-queues": [ "system-jobs-queue" ],
+  "params" : [
+    {
+      "name": "workflow",
+      "destination": "positional"
+    },
+    {
+        "name": "project",
+        "destination": "context"
+    },
+    {
+        "name": "dataset_version",
+        "destination": "context"
+    },
+    {
+      "name": "spyddder_extract_version",
+      "destination": "context"
+    },
+    {
+        "name": "starttime",
+        "destination": "context"
+    },
+    {
+        "name": "endtime",
+        "destination": "context"
+    },
+    {
+        "name": "platform",
+        "destination": "context"
+    }
+  ]
+}

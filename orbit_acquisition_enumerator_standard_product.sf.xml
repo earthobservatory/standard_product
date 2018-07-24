@@ -9,7 +9,8 @@
       <context_file>_context.json</context_file>
     </sf:inputs>
     <sf:outputs>
-      <datasets from="@#enumerate"/>
+      <!--<datasets from="@#enumerate"/>-->
+      <project from="@#resolve_source"/>
     </sf:outputs>
 
     <sf:processes>
@@ -49,6 +50,7 @@
         </sf:operator>
       </sf:process>
       
+<!--
       <sf:process id="enumerate">
         <sf:inputs>
 	  <project from="@#previous"/>
@@ -105,6 +107,7 @@
           </sf:op>
         </sf:operator>
       </sf:process>
+-->
 
     </sf:processes>
   </sf:flow>

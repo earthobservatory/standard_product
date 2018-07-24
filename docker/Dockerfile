@@ -1,4 +1,4 @@
-FROM hysds/pge-base
+FROM hysds/pge-isce_giant
 
 MAINTAINER mkarim "Mohammed.R.Karim@jpl.nasa.gov"
 LABEL description="standard_product"
