@@ -21,13 +21,15 @@ logger.addFilter(LogFilter())
 
 BASE_PATH = os.path.dirname(__file__)
 
-def query_es(query, es_index):
+def query_es(query, es_index=None):
     """Query ES."""
 
     es_url = app.conf.GRQ_ES_URL
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
-    url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
-    #logger.info("url: {}".format(url))
+    url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
+    if es_index:
+        url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
+    logger.info("url: {}".format(url))
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
@@ -42,6 +44,7 @@ def query_es(query, es_index):
         if len(res['hits']['hits']) == 0: break
         hits.extend(res['hits']['hits'])
     return hits
+
 
 
 def query_aois(starttime, endtime):
@@ -68,45 +71,75 @@ def query_aois(starttime, endtime):
                                             "gte": starttime
                                         }
                                     }
+                                },
+				{
+                                    "match": {
+					    "dataset_type": "area_of_interest"
+                                        }
                                 }
                             ]
                         }
                     },
-                    {
-                        "filtered": {
-                            "query": {
-                                "range": {
-                                    "starttime": {
-                                        "lte": endtime
-                                    }
-                                }
-                            },
-                            "filter": {
-                                "missing": {
-                                    "field": "endtime"
-                                }
-                            }
-                        }
-                    },
-                    {
-                        "filtered": {
-                            "query": {
-                                "range": {
-                                    "endtime": {
-                                        "gte": starttime
-                                    }
-                                }
-                            },
-                            "filter": {
-                                "missing": {
-                                    "field": "starttime"
-                                }
-                            }
-                        }
+        {
+        "filtered": {
+            "query": {
+
+              "bool": {
+                "must": [
+                  {
+                    "match": {
+                      "dataset_type": "area_of_interest"
+                      }
+                  },
+                  {
+                    "range": {
+                      "starttime": {
+                        "lte": endtime
+                      }
                     }
+                  }
                 ]
+              }
+            },
+            "filter": {
+              "missing": {
+                "field": "endtime"
+              }
             }
+          }
         },
+        {
+        "filtered": {
+            "query": {
+
+              "bool": {
+                "must": [
+                  {
+                    "match": {
+                      "dataset_type": "area_of_interest"
+                      }
+                  },
+                  {
+                    "range": {
+                      "endtime": {
+                        "gte": starttime
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "filter": {
+              "missing": {
+                "field": "starttime"
+              }
+            }
+          }
+        }
+          
+      ]
+    }
+  },
         "partial_fields" : {
             "partial" : {
                 "include" : [ "id", "starttime", "endtime", "location", 
@@ -116,7 +149,7 @@ def query_aois(starttime, endtime):
     }
 
     # filter inactive
-    hits = [i['fields']['partial'][0] for i in query_es(query, es_index) 
+    hits = [i['fields']['partial'][0] for i in query_es(query) 
             if 'inactive' not in i['fields']['partial'][0].get('metadata', {}).get('user_tags', [])]
     #logger.info("hits: {}".format(json.dumps(hits, indent=2)))
     logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
