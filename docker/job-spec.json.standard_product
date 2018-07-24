@@ -1,9 +1,9 @@
 {
-  "command":"/home/ops/verdi/ops/spyddder-man/run_sciflo.sh",
+  "command":"/home/ops/verdi/ops/standard_product/run_sciflo.sh",
   "imported_worker_files": {
     "/home/ops/.netrc": "/home/ops/.netrc",
     "/home/ops/.aws": "/home/ops/.aws",
-    "/home/ops/verdi/ops/spyddder-man/settings.json": "/home/ops/verdi/ops/spyddder-man/settings.json"
+    "/home/ops/verdi/ops/standard_product/settings.json": "/home/ops/verdi/ops/standard_product/settings.json"
   },
   "soft_time_limit": 240,
   "time_limit": 300,
