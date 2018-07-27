@@ -203,6 +203,94 @@ def get_query(acq):
     
     return query
 
+def get_query(acq):
+    query = {
+    	"query": {
+    	    "filtered": {
+      		"filter": {
+        	    "and": [
+          		{
+            		    "geo_shape": {
+              			"location": {
+                		    "shape": acq['metadata']['location']
+              			}
+            		    }
+          		}
+        	    ]
+      		}, 
+      		"query": {
+        	    "bool": {
+          		"must": [
+            		    {
+              			"term": {
+                		    "dataset.raw": "acquisition-S1-IW_SLC"
+              			}
+            		    }
+          		]
+        	    }
+      		}
+    	    }
+  	}, 
+  	"partial_fields": {
+    	    "partial": {
+      		"exclude": "city"
+    	    }
+  	}
+    }
+
+    
+    return query
+
+def get_query2(acq):
+    query = {
+    	"query": {
+    	    "filtered": {
+      		"filter": {
+        	    "and": [
+          		{
+            		    "term": {
+              			"system_version.raw": "v1.1"
+            		    }
+          		}, 
+          		{
+            		    "ids": {
+              			"values": [acq['identifier']]
+            		    }
+          		}, 
+          		{
+            		    "geo_shape": {
+              			"location": {
+                		    "shape": acq['metadata']['location']
+              			}
+            		    }
+          		}
+        	    ]
+      		}, 
+      		"query": {
+        	    "bool": {
+          		"must": [
+            		    {
+              			"term": {
+                		    "dataset.raw": "S1-IW_SLC"
+              			}
+            		    }
+          		]
+        	    }
+      		}
+    	    }
+  	}, 
+  	"partial_fields": {
+    	    "partial": {
+      		"exclude": "city"
+    	    }
+  	}
+    }
+
+    
+    return query
+
+
+
 def get_dem_type(acq):
     dem_type = "SRTM+v3"
     if acq['city'] is not None and len(acq['city'])>0:
@@ -407,13 +495,11 @@ def resolve_aoi_acqs(ctx_file):
 	logging.info("bbox : %s" %bbox)
         logging.info("ipf : %s" %ipf)
 	
-        #return project, True, bbox, dataset, identifier, download_url, dataset_type, ipf, archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version, queue, job_priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only
+        return project, True, bbox, dataset, identifier, download_url, dataset_type, ipf, archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version, queue, job_priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only
 
         #job = resolve_hysds_job(job_type, queue, priority=acq['priority'], params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
 
         #job_id = submit_hysds_job(job)
-
-    return [[] for i in range(21)]
 
 
 def main():
