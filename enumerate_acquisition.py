@@ -9,8 +9,14 @@ from itertools import product, chain
 from datetime import datetime, timedelta
 import numpy as np
 from osgeo import ogr, osr
+from hysds.celery import app
+#import util
+
+'''
 from requests.packages.urllib3.exceptions import (InsecureRequestWarning,
                                                   InsecurePlatformWarning)
+'''
+
 from pprint import pformat
 
 import isce
@@ -29,7 +35,7 @@ class LogFilter(logging.Filter):
         if not hasattr(record, 'id'): record.id = '--'
         return True
 
-logger = logging.getLogger('enumerate_topsapp_cfgs')
+logger = logging.getLogger('enumerate_acquisations')
 logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
@@ -85,7 +91,89 @@ def get_overlap(loc1, loc2):
         return intersection_area/area1
     else:
         return intersection_area/area2
+
+def get_acquisition_data(id):
+    es_url = app.conf.GRQ_ES_URL
+    es_index = "grq_*_*acquisition*"
+    query = {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "term": {
+                "_id": id
+              }
+            }
+          ]
+        }
+      },
+      "partial_fields": {
+        "partial": {
+          "include": [
+            "id",
+            "dataset_type",
+            "dataset",
+            "metadata",
+            "city",
+            "continent"
+          ]
+        }
+      }
+    }
+
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+    print(result['hits']['total'])
+    return result['hits']['hits']
     
+def get_overlapping_acq_query(acq):
+    query = {
+    	"query": {
+    	    "filtered": {
+      		"filter": {
+        	    "and": [
+          		{
+            		    "geo_shape": {
+              			"location": {
+                		    "shape": acq['metadata']['location']
+              			}
+            		    }
+          		}
+        	    ]
+      		}, 
+      		"query": {
+        	    "bool": {
+          		"must": [
+            		    {
+              			"term": {
+                		    "dataset.raw": "acquisition-S1-IW_SLC"
+              			}
+            		    }
+          		]
+        	    }
+      		}
+    	    }
+  	}, 
+  	"partial_fields": {
+    	    "partial": {
+      		"exclude": "city"
+    	    }
+  	}
+    }
+
+    
+    return query
 
 def get_union_geometry(ids, footprints):
     """Return polygon of union of SLC footprints."""
@@ -497,7 +585,95 @@ def get_pair_direction(pd):
     else: raise RuntimeError("Invalid pair direction %s." % pd)
 
 
-def get_topsapp_cfgs_standard_product(project, auto_bbox, query, aoi, dem_type, spyddder_extract_version, standard_product_version,
+def enumerate_acquisitions(acq_array):
+    print("acq_array length : %s" %acq_array)
+    for acq_info in acq_array:
+        id = acq_info["acq_id"]
+
+        acq_data = get_acquisition_data(id)[0]['fields']['partial'][0]
+        #print(acq_data)
+	enumerate_acq(acq_data)
+
+def enumerate_acq(acq):
+
+    print("acq_location : %s" %acq['metadata']['location'])
+    print("bbox : %s" %acq['metadata']['bbox'])
+    query = get_overlapping_acq_query(acq)
+    print(query)
+
+    # get bbox from query
+    coords = None
+    bbox = [-90., 90., -180., 180.]
+    if 'and' in query.get('query', {}).get('filtered', {}).get('filter', {}):
+        filts = query['query']['filtered']['filter']['and']
+ 	print("filtered : %s" %filts)
+    elif 'geo_shape' in query.get('query', {}).get('filtered', {}).get('filter', {}):
+        filts = [ { "geo_shape": query['query']['filtered']['filter']['geo_shape'] } ]
+	print("geoshaped : %s" %filts)
+    else: filts = []
+    for filt in filts:
+        if 'geo_shape' in filt:
+	    coords = filt['geo_shape']['location']['shape']['coordinates']
+            roi = {
+                'type': 'Polygon',
+                'coordinates': coords,
+            }
+            logger.info("query filter ROI: %s" % json.dumps(roi))
+            roi_geom = ogr.CreateGeometryFromJson(json.dumps(roi))
+            roi_x_min, roi_x_max, roi_y_min, roi_y_max = roi_geom.GetEnvelope()
+            bbox = [ roi_y_min, roi_y_max, roi_x_min, roi_x_max ]
+            logger.info("query filter bbox: %s" % bbox)
+	    print("query filter bbox: %s" % bbox)
+            break
+
+     # query docs
+    uu = UU()
+    logger.info("rest_url: {}".format(uu.rest_url))
+    logger.info("dav_url: {}".format(uu.dav_url))
+    logger.info("version: {}".format(uu.version))
+    logger.info("grq_index_prefix: {}".format(uu.grq_index_prefix))
+    print("rest_url: {}".format(uu.rest_url))
+    print("dav_url: {}".format(uu.dav_url))
+    print("version: {}".format(uu.version))
+    print("grq_index_prefix: {}".format(uu.grq_index_prefix))
+    # get normalized rest url
+    rest_url = uu.rest_url[:-1] if uu.rest_url.endswith('/') else uu.rest_url
+
+    # get index name and url
+    url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, uu.grq_index_prefix)
+    logger.info("idx: {}".format(uu.grq_index_prefix))
+    logger.info("url: {}".format(url))
+    print("idx: {}".format(uu.grq_index_prefix))
+    print("url: {}".format(url))
+    # query hits
+    query.update({
+        "partial_fields" : {
+            "partial" : {
+                "exclude" : "city",
+            }
+        }
+    })
+    logger.info("query: {}".format(json.dumps(query, indent=2)))
+    print("query: {}".format(json.dumps(query, indent=2)))
+    r = requests.post(url, data=json.dumps(query))
+    r.raise_for_status()
+    scan_result = r.json()
+    count = scan_result['hits']['total']
+    print("count : %s" %count)
+    scroll_id = scan_result['_scroll_id']
+    ref_hits = []
+    while True:
+        r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        res = r.json()
+        scroll_id = res['_scroll_id']
+        if len(res['hits']['hits']) == 0: break
+        ref_hits.extend(res['hits']['hits'])
+
+	break
+
+
+def get_topsapp_cfgs_standard_product(project, auto_bbox, bbox, dataset, identifier, download_url, dataset_type, ipf, 
+				      archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version,
 				      queue, priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline=72, 
 				      singlesceneOnly=True, precise_orbit_only=True, id_tmpl=IFG_ID_TMPL, minMatch=2, covth=.95):
 
@@ -938,7 +1114,7 @@ def get_topsapp_cfgs_standard_product(project, auto_bbox, query, aoi, dem_type, 
 				'''
     ifg_hash = hashlib.md5(json.dumps([
                                     id_tmpl,
-                                    stitched_args[-1],
+                                    #stitched_args[-1],
                                     master_zip_urls[-1],
                                     master_orbit_urls[-1],
                                     slave_zip_urls[-1],
