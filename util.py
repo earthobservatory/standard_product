@@ -69,11 +69,11 @@ def get_dataset(id, index_suffix):
         "query":{
             "bool":{
                 "must":[
-                    { "term":{ "_id": id } },
+                    { "term":{ "_id": id } }
                 ]
             }
         },
-        "fields": [],
+        "fields": []
     }
 
     print(query)
@@ -93,6 +93,51 @@ def get_dataset(id, index_suffix):
     result = r.json()
     print(result['hits']['total'])
     return result
+
+def get_acquisition_data(id):
+    es_index = "grq_*_*acquisition*"
+    query = {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "term": {
+                "_id": id
+              }
+            }
+          ]
+        }
+      },
+      "partial_fields": {
+        "partial": {
+          "include": [
+            "id",
+            "dataset_type",
+            "dataset",
+            "metadata",
+            "city",
+            "continent"
+          ]
+        }
+      }
+    }
+
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+    print(result['hits']['total'])
+    return result
+
 
 def query_es(query, es_index):
     """Query ES."""
@@ -269,5 +314,3 @@ def standard_product_job(standard_product_version, queue, prod_name,
     job = resolve_hysds_job(job_type, queue, priority=priority, params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
 
     return job
-        
-    
