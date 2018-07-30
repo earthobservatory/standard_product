@@ -20,11 +20,11 @@
       "destination": "context"
     },
     {
-      "name": "master_slcs",
+      "name": "master_acquisitions",
       "destination": "context"
     },
     {
-      "name": "slave_slcs",
+      "name": "slave_acquisitions",
       "destination": "context"
     },
     {

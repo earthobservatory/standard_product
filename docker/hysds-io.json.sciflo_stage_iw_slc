@@ -11,11 +11,11 @@
       "enumerables": ["aria", "grfn", "mem", "urgent-response", "dwr"]
     },
     { 
-      "name": "master_slcs",
+      "name": "master_acquisitions",
       "from": "submitter"
     },
     { 
-      "name": "slave_slcs",
+      "name": "slave_acquisitions",
       "from": "submitter"
     },
     { 
