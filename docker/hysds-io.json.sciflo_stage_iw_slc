@@ -3,11 +3,6 @@
   "recommended-queues" : [ "grfn-job_worker-large" ],
   "allowed_accounts": [ "ops" ],
   "params" : [
-    { 
-      "name": "dataset",
-      "from": "submitter",
-      "type": "text"
-    },
     {
       "name": "project",
       "from": "submitter",
@@ -16,19 +11,11 @@
       "enumerables": ["aria", "grfn", "mem", "urgent-response", "dwr"]
     },
     { 
-      "name": "identifier",
+      "name": "master_slcs",
       "from": "submitter"
     },
     { 
-      "name": "download_url",
-      "from": "submitter"
-    },
-    { 
-      "name": "dataset_type",
-      "from": "submitter"
-    },
-    { 
-      "name": "archive_filename",
+      "name": "slave_slcs",
       "from": "submitter"
     },
     { 
@@ -37,10 +24,6 @@
     },
     { 
       "name": "standard_product_version",
-      "from": "submitter"
-    },
-    { 
-      "name": "aoi",
       "from": "submitter"
     },
     { 

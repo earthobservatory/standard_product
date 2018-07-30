@@ -16,27 +16,15 @@
   "time_limit": 87000, 
   "params" : [
     {
-      "name": "dataset",
-      "destination": "context"
-    },
-    {
       "name": "project",
       "destination": "context"
     },
     {
-      "name": "identifier",
+      "name": "master_slcs",
       "destination": "context"
     },
     {
-      "name": "download_url",
-      "destination": "context"
-    },
-    {
-      "name": "dataset_type",
-      "destination": "context"
-    },
-    {
-      "name": "archive_filename",
+      "name": "slave_slcs",
       "destination": "context"
     },
     {
@@ -45,10 +33,6 @@
     },
     { 
       "name": "standard_product_version",
-      "destination": "context"
-    },
-    {
-      "name": "aoi",
       "destination": "context"
     },
     {
