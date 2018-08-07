@@ -20,7 +20,8 @@ logger.addFilter(LogFilter())
 
 
 BASE_PATH = os.path.dirname(__file__)
-
+MOZART_ES_ENDPOINT = "MOZART"
+GRQ_ES_ENDPOINT = "GRQ"
 
 def dataset_exists(id, index_suffix):
     """Query for existence of dataset by ID."""
@@ -94,7 +95,91 @@ def get_dataset(id, index_suffix):
     print(result['hits']['total'])
     return result
 
+
+def query_es(endpoint, doc_id):
+    """
+    This function queries ES
+    :param endpoint: the value specifies which ES endpoint to send query
+     can be MOZART or GRQ
+    :param doc_id: id of product or job
+    :return: result from elasticsearch
+    """
+    es_url, es_index = None, None
+    if endpoint == GRQ_ES_ENDPOINT:
+        es_url = app.conf["GRQ_ES_URL"]
+        es_index = "grq"
+    if endpoint == MOZART_ES_ENDPOINT:
+        es_url = app.conf['JOBS_ES_URL']
+        es_index = "job_status-current"
+
+    query = {
+        "query": {
+            "bool": {
+                "must": [
+                    {"term": {"_id": doc_id}} # add job status:
+                ]
+            }
+        }
+    }
+
+    ES = elasticsearch.Elasticsearch(es_url)
+    result = ES.search(index=es_index, body=query)
+
+    if len(result["hits"]["hits"]) == 0:
+        raise ValueError("Couldn't find record with ID: %s, at ES: %s"%(doc_id, es_url))
+        return
+
+    LOGGER.debug("Got: {0}".format(json.dumps(result)))
+    return result
+
+def check_ES_status(doc_id):
+    """
+    There is a latency in the update of ES job status after
+    celery signals job completion.
+    To handle that case, we much poll ES (after sciflo returns status after blocking)
+    until the job status is correctly reflected.
+    :param doc_id: ID of the Job ES doc
+    :return: True  if the ES has updated job status within 5 minutes
+            otherwise raise a run time error
+    """
+    es_url = app.conf['JOBS_ES_URL']
+    es_index = "job_status-current"
+    query = {
+        "_source": [
+                   "status"
+               ],
+        "query": {
+            "bool": {
+                "must": [
+                    {"term": {"_id": doc_id}}
+                ]
+            }
+        }
+    }
+
+    ES = elasticsearch.Elasticsearch(es_url)
+    result = ES.search(index=es_index, body=query)
+
+    sleep_seconds = 2
+    timeout_seconds = 300
+    # poll ES until job status changes from "job-started" or for the job doc to show up. The poll will timeout soon after 5 mins.
+
+    while len(result["hits"]["hits"]) == 0: #or str(result["hits"]["hits"][0]["_source"]["status"]) == "job-started":
+        if sleep_seconds >= timeout_seconds:
+            if len(result["hits"]["hits"]) == 0:
+                raise RuntimeError("ES taking too long to index job with id %s."%doc_id)
+            else:
+                raise RuntimeError("ES taking too long to update status of job with id %s."%doc_id)
+        time.sleep(sleep_seconds)
+        result = ES.search(index=es_index, body=query)
+        sleep_seconds = sleep_seconds * 2
+
+    logging.info("Job status updated on ES to %s"%str(result["hits"]["hits"][0]["_source"]["status"]))
+    return True
+
+
 def get_acquisition_data(id):
+    es_url = app.conf.GRQ_ES_URL
     es_index = "grq_*_*acquisition*"
     query = {
       "query": {
@@ -122,6 +207,9 @@ def get_acquisition_data(id):
       }
     }
 
+
+    print(query)
+
     if es_url.endswith('/'):
         search_url = '%s%s/_search' % (es_url, es_index)
     else:
@@ -136,7 +224,7 @@ def get_acquisition_data(id):
 
     result = r.json()
     print(result['hits']['total'])
-    return result
+    return result['hits']['hits']
 
 
 def query_es(query, es_index):
