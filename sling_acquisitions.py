@@ -87,12 +87,13 @@ def check_slc_status(acq_id, index_suffix):
 
     return False
 
-def resolve_source():
+#def resolve_source():
+def resolve_source(master_acqs, slave_acqs):
     """Resolve best URL from acquisition."""
 
 
     # get settings
-
+    '''
     context_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_context_sling.json')
     with open(context_file) as f:
         ctx = json.load(f)
@@ -115,7 +116,7 @@ def resolve_source():
     identifiers = []
     prod_dates = []
     priorities = []
-
+    '''
 
     slc_info = {}
     
@@ -157,15 +158,30 @@ def resolve_source():
 	    slc_info[slc_id]=SLC(slc_id, download_url, 0)
             logger.info(download_url)
 
+    sling(slc_info)
 
+def sling(slc_info):
+    '''
+	This function checks if any SLC that has not been ingested yet and sling them.
+    '''
+    i = 0
+    sleep_seconds = 30
     # slc_info has now all the SLC's status. Now submit the Sling job for the one's whose status = 0 and update the slc_info with job id
     for slc_id in slc_info.keys():
+        i = i+1
+
 	if not slc_info[slc_id].ds_status:
 	    download_url = slc_info[slc_id].download_url
 	    print ("Submitting sling job for %s" %download_url)
 	    job_id = submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, prod_date, priority, aoi)
+	    if i==1:
+                job_id = "b618cbb0-0682-4885-95c7-2d78c81b0452"
+ 
 	    slc_info[slc_id].job_id = job_id
-	    job_status, new_job_id  = get_job_status(job_id)
+	    #job_status, new_job_id  = get_job_status(job_id)
+	    if i==1:
+		job_id = "b618cbb0-0682-4885-95c7-2d78c81b0452"
+	    slc_info[slc_id].job_id = job_id
 	    slc_info[slc_id].job_id = new_job_id
 	    slc_info[slc_id].job_id = job_status
 
@@ -220,9 +236,11 @@ def resolve_source():
 
     # At this point, we have all the slc downloaded and we are ready to submit a create standard product job
     
+    submit_create_ifg_job()
 
         
-	
+def submit_create_ifg_job():
+    pass	
 
 
 def check_all_job_completed(slc_info):
@@ -273,7 +291,9 @@ def submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, p
 def main():
     master_acqs = ["acquisition-S1A_IW_SLC__1SDV_20180702T135953_20180702T140020_022616_027345_3578"]
     slave_acqs = ["acquisition-S1B_IW_SLC__1SDV_20180720T015751_20180720T015819_011888_015E1C_3C64"]
-    resolve_aquisition_status(master_acqs, slave_acqs)
+    resolve_source(master_acqs, slave_acqs)
+
+    
 
 if __name__ == "__main__":
     main()

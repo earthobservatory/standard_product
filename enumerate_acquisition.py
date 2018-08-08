@@ -139,38 +139,36 @@ def get_acquisition_data(id):
     
 def get_overlapping_acq_query(acq):
     query = {
-    	"query": {
-    	    "filtered": {
-      		"filter": {
-        	    "and": [
-          		{
-            		    "geo_shape": {
-              			"location": {
-                		    "shape": acq['metadata']['location']
-              			}
-            		    }
-          		}
-        	    ]
-      		}, 
-      		"query": {
-        	    "bool": {
-          		"must": [
-            		    {
-              			"term": {
-                		    "dataset.raw": "acquisition-S1-IW_SLC"
-              			}
-            		    }
-          		]
-        	    }
-      		}
-    	    }
-  	}, 
-  	"partial_fields": {
-    	    "partial": {
-      		"exclude": "city"
-    	    }
-  	}
-    }
+            "query": {
+                "filtered": {
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {
+                                    "term": {
+					"dataset.raw": "acquisition-S1-IW_SLC"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "filter": {
+                        "geo_shape": {  
+                            "location": {
+				 "shape": acq['metadata']['location']
+                            }
+                        }
+                    }
+                }
+            },
+            "partial_fields" : {
+                "partial" : {
+			"exclude": "city"
+                }
+            }
+        }
+
+
 
     
     return query
@@ -467,23 +465,30 @@ def dedup_reprocessed_slcs(sorted_hits, slc_metadata, ssth=3.):
     logger.info("Running dedup of duplicate/reprocessed SLCs.")
     for track in sorted_hits:
         logger.info("track: %s" % track)
+	#print("track: %s" % track)
         for day_dt in sorted(sorted_hits[track]):
             logger.info("-" * 80)
             logger.info("day_dt: %s" % day_dt.isoformat())
+	    #print("day_dt: %s" % day_dt.isoformat())
             dedup_slcs = dict()
             last_id = None
             last_sensing_start = None
             for id in sorted(sorted_hits[track][day_dt]):
+		#print("id : %s" %id)
                 md = slc_metadata[id]
+		#print("md : %s" %md)
                 sensing_start = datetime.strptime(
                     md['sensingStart'][:-1] if md['sensingStart'].endswith('Z') else md['sensingStart'], 
                     "%Y-%m-%dT%H:%M:%S.%f"
                 )
-                if 'postProcessingStop' not in md: continue
+                if 'postProcessingStop' not in md: 
+		    #print('postProcessingStop not found')
+		    continue
                 post_processing_stop = datetime.strptime(
                     md['postProcessingStop'][:-1] if md['postProcessingStop'].endswith('Z') else md['postProcessingStop'],
                     "%Y-%m-%dT%H:%M:%S.%f"
                 )
+		print("post_processing_stop : %s" %post_processing_stop)
                 version = md['version']
                 logger.info("+" * 80)
                 logger.info("id: %s" % id)
@@ -527,6 +532,7 @@ def group_frames_by_track_date(frames):
     for h in frames: 
         if h['_id'] in hits: continue
         fields = h['fields']['partial'][0]
+        print("h['_id'] : %s" %h['_id'])
 
         # get product url; prefer S3
         prod_url = fields['urls'][0]
@@ -535,15 +541,18 @@ def group_frames_by_track_date(frames):
                 if u.startswith('s3://'):
                     prod_url = u
                     break
-
+        print("prod_url : %s" %prod_url)
         hits[h['_id']] = "%s/%s" % (prod_url, fields['metadata']['archive_filename'])
         match = SLC_RE.search(h['_id'])
+        #print("match : %s" %match)
         if not match:
             raise RuntimeError("Failed to recognize SLC ID %s." % h['_id'])
         day_dt = datetime(int(match.group('start_year')),
                           int(match.group('start_month')),
                           int(match.group('start_day')),
                           0, 0, 0)
+        #print("day_dt : %s " %day_dt)
+
         bisect.insort(grouped.setdefault(fields['metadata']['trackNumber'], {}) \
                              .setdefault(day_dt, []), h['_id'])
         slc_start_dt = datetime(int(match.group('start_year')),
@@ -552,15 +561,22 @@ def group_frames_by_track_date(frames):
                                 int(match.group('start_hour')),
                                 int(match.group('start_min')),
                                 int(match.group('start_sec')))
+        #print("slc_start_dt : %s" %slc_start_dt)
+
         slc_end_dt = datetime(int(match.group('end_year')),
                               int(match.group('end_month')),
                               int(match.group('end_day')),
                               int(match.group('end_hour')),
                               int(match.group('end_min')),
                               int(match.group('end_sec')))
+
+	#print("slc_end_dt : %s" %slc_end_dt)
         dates[h['_id']] = [ slc_start_dt, slc_end_dt ]
         footprints[h['_id']] = fields['location']
         metadata[h['_id']] = fields['metadata']
+	#break
+    #print("grouped : %s" %grouped)
+    print("grouped keys : %s" %grouped.keys())
     return {
         "hits": hits,
         "grouped": grouped,
@@ -595,21 +611,24 @@ def enumerate_acquisitions(acq_array):
 	enumerate_acq(acq_data)
 
 def enumerate_acq(acq):
+    sso = True
+    minMatch = 2
+    covth = 1.0
 
-    print("acq_location : %s" %acq['metadata']['location'])
+    logger.info("acq_location : %s" %acq['metadata']['location'])
     print("bbox : %s" %acq['metadata']['bbox'])
     query = get_overlapping_acq_query(acq)
-    print(query)
+    logger.info("overlapping query : %s" %query)
 
     # get bbox from query
     coords = None
     bbox = [-90., 90., -180., 180.]
     if 'and' in query.get('query', {}).get('filtered', {}).get('filter', {}):
         filts = query['query']['filtered']['filter']['and']
- 	print("filtered : %s" %filts)
+ 	#print("filtered : %s" %filts)
     elif 'geo_shape' in query.get('query', {}).get('filtered', {}).get('filter', {}):
         filts = [ { "geo_shape": query['query']['filtered']['filter']['geo_shape'] } ]
-	print("geoshaped : %s" %filts)
+	#print("geoshaped : %s" %filts)
     else: filts = []
     for filt in filts:
         if 'geo_shape' in filt:
@@ -623,7 +642,7 @@ def enumerate_acq(acq):
             roi_x_min, roi_x_max, roi_y_min, roi_y_max = roi_geom.GetEnvelope()
             bbox = [ roi_y_min, roi_y_max, roi_x_min, roi_x_max ]
             logger.info("query filter bbox: %s" % bbox)
-	    print("query filter bbox: %s" % bbox)
+	    #print("query filter bbox: %s" % bbox)
             break
 
      # query docs
@@ -654,7 +673,7 @@ def enumerate_acq(acq):
         }
     })
     logger.info("query: {}".format(json.dumps(query, indent=2)))
-    print("query: {}".format(json.dumps(query, indent=2)))
+    #print("query: {}".format(json.dumps(query, indent=2)))
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
@@ -669,7 +688,252 @@ def enumerate_acq(acq):
         if len(res['hits']['hits']) == 0: break
         ref_hits.extend(res['hits']['hits'])
 
-	break
+    # extract reference ids
+    ref_ids = { h['_id']: True for h in ref_hits }
+    logger.info("ref_ids: {}".format(json.dumps(ref_ids, indent=2)))
+    logger.info("ref_hits count: {}".format(len(ref_hits)))
+
+    print("ref_ids: {}".format(json.dumps(ref_ids, indent=2)))
+    print("ref_hits count: {}".format(len(ref_hits)))
+
+    # group ref hits by track and date
+    grouped_refs = group_frames_by_track_date(ref_hits)
+
+    # dedup any reprocessed reference SLCs
+    #dedup_reprocessed_slcs(grouped_refs['grouped'], grouped_refs['metadata'])
+    '''
+    logger.info("ref hits: {}".format(json.dumps(grouped_refs['hits'], indent=2)))
+    logger.info("ref sorted_hits: {}".format(pformat(grouped_refs['grouped'])))
+    logger.info("ref slc_dates: {}".format(pformat(grouped_refs['dates'])))
+    logger.info("ref slc_footprints: {}".format(json.dumps(grouped_refs['footprints'], indent=2)))
+    '''
+    # build list reference scenes
+    ref_scenes = []
+    for track in grouped_refs['grouped']:
+        logger.info("track: %s" % track)
+        for ref_dt in grouped_refs['grouped'][track]:
+            logger.info("reference date: %s" % ref_dt.isoformat())
+            if sso:
+		logger.info("SSO")
+                for ref_id in grouped_refs['grouped'][track][ref_dt]:
+                    ref_scenes.append({ 'id': [ ref_id ],
+                                        'track': track,
+                                        'date': ref_dt,
+                                        'location': grouped_refs['footprints'][ref_id],
+                                        'pre_matches': None,
+                                        'post_matches': None })
+            else:
+                union_poly = get_union_geometry(grouped_refs['grouped'][track][ref_dt],
+                                                grouped_refs['footprints'])
+                if len(union_poly['coordinates']) > 1:
+                    logger.warn("Stitching %s will result in a disjoint geometry." % grouped_refs['grouped'][track][ref_dt])
+                    logger.warn("Skipping.")
+                else:
+                    ref_scenes.append({ 'id': grouped_refs['grouped'][track][ref_dt],
+                                        'track': track,
+                                        'date': ref_dt,
+                                        'location': union_poly,
+                                        'pre_matches': None,
+                                        'post_matches': None })
+
+
+    logger.info("ref_scenes : %s" %ref_scenes)
+    
+    pre_search=True
+    post_search = True
+    temporalBaseline = 72
+
+     # find reference scene matches
+    for ref_scene in ref_scenes:
+        logger.info("#" * 80)
+        logger.info("ref id: %s" % ref_scene['id'])
+        logger.info("ref date: %s" % ref_scene['date'])
+        if pre_search:
+            logger.info("*" * 80)
+            pre_matches = group_frames_by_track_date(
+                              get_pair_hits(rest_url, ref_scene, 'pre',
+                                            temporal_baseline=temporalBaseline,
+                                            min_match=minMatch, covth=covth)
+                          )
+            dedup_reprocessed_slcs(pre_matches['grouped'], pre_matches['metadata'])
+            ref_scene['pre_matches'] = pre_matches
+        if post_search:
+            logger.info("*" * 80)
+            post_matches = group_frames_by_track_date(
+                               get_pair_hits(rest_url, ref_scene, 'post',
+                                             temporal_baseline=temporalBaseline,
+                                             min_match=minMatch, covth=covth)
+                           )
+            dedup_reprocessed_slcs(post_matches['grouped'], post_matches['metadata'])
+            ref_scene['post_matches'] = post_matches
+
+    logger.info("ref_scenes: {}".format(pformat(ref_scenes)))
+    logger.info("ref_scenes count: {}".format(len(ref_scenes)))
+    
+      #submit jobs
+    project="standard_product"
+    auto_bbox=True
+    pre_ref_pd="both"
+    precise_orbit_only = True
+    projects = []
+    stitched_args = []
+    ifg_ids = []
+    master_zip_urls = []
+    master_orbit_urls = []
+    slave_zip_urls = []
+    slave_orbit_urls = []
+    swathnums = [1, 2, 3]
+    bboxes = []
+    auto_bboxes = []
+    orbit_dict = {}
+    bboxes.append(bbox)
+    auto_bboxes.append(auto_bbox)
+    projects.append(project)
+
+    for ref_scene in ref_scenes:
+        ref_ids = ref_scene['id']
+        track = ref_scene['track']
+        ref_dts = []
+        for i in ref_ids: ref_dts.extend(grouped_refs['dates'][i])
+        logger.info("ref_ids: %s" % ref_ids)
+        logger.info("ref_dts: %s" % ref_dts)
+            
+        # set orbit urls and cache for reference dates
+        ref_dt_orb = "%s_%s" % (ref_dts[0].isoformat(), ref_dts[-1].isoformat())
+        if ref_dt_orb not in orbit_dict:
+            match = SLC_RE.search(ref_ids[0])
+            if not match:
+                raise RuntimeError("Failed to recognize SLC ID %s." % ref_ids[0])
+            mission = match.group('mission')
+            orbit_dict[ref_dt_orb] = fetch("%s.0" % ref_dts[0].isoformat(),
+                                           "%s.0" % ref_dts[-1].isoformat(),
+                                           mission=mission, dry_run=True)
+            if orbit_dict[ref_dt_orb] is None:
+                raise RuntimeError("Failed to query for an orbit URL for track {} {} {}.".format(track,
+                                   ref_dts[0], ref_dts[-1]))
+
+        # generate jobs for pre-reference pairs
+        if ref_scene['pre_matches'] is not None:
+            if track in ref_scene['pre_matches']['grouped']:
+                matched_days = ref_scene['pre_matches']['grouped'][track]
+                for matched_day, matched_ids in matched_days.iteritems():
+                    matched_dts = []
+                    for i in matched_ids: matched_dts.extend(ref_scene['pre_matches']['dates'][i])
+                    #logger.info("pre_matches matched_ids: %s" % matched_ids)
+                    #logger.info("pre_matches matched_dts: %s" % matched_dts)
+                    all_dts = list(chain(ref_dts, matched_dts))
+                    all_dts.sort()
+
+                    # set orbit urls and cache for matched dates
+                    matched_dt_orb = "%s_%s" % (matched_dts[0].isoformat(), matched_dts[-1].isoformat())
+                    if matched_dt_orb not in orbit_dict:
+                        match = SLC_RE.search(matched_ids[0])
+                        if not match:
+                            raise RuntimeError("Failed to recognize SLC ID %s." % matched_ids[0])
+                        mission = match.group('mission')
+                        orbit_dict[matched_dt_orb] = fetch("%s.0" % matched_dts[0].isoformat(),
+                                                           "%s.0" % matched_dts[-1].isoformat(),
+                                                           mission=mission, dry_run=True)
+                        if orbit_dict[matched_dt_orb] is None:
+                            raise RuntimeError("Failed to query for an orbit URL for track {} {} {}.".format(track,
+                                               matched_dts[0], matched_dts[-1]))
+
+                    # get orbit type
+                    orbit_type = 'poeorb'
+                    for o in [orbit_dict[ref_dt_orb], orbit_dict[matched_dt_orb]]:
+                        if RESORB_RE.search(o):
+                            orbit_type = 'resorb'
+                            break
+
+                    # filter if we expect only precise orbits
+                    if precise_orbit_only and orbit_type == 'resorb':
+                        logger.info("Precise orbit required. Filtering job configured with restituted orbit.")
+                    else:
+                        # create jobs for backwards pair
+                        if pre_ref_pd in ('backward', 'both'):
+                            ifg_master_dt = all_dts[-1]
+                            ifg_slave_dt = all_dts[0]
+                            for swathnum in [1, 2, 3]:
+                                stitched_args.append(False if len(ref_ids) == 1 or len(matched_ids) == 1 else True)
+                                master_zip_urls.append([grouped_refs['hits'][i] for i in ref_ids])
+                                master_orbit_urls.append(orbit_dict[ref_dt_orb])
+                                slave_zip_urls.append([ref_scene['pre_matches']['hits'][i] for i in matched_ids])
+                                slave_orbit_urls.append(orbit_dict[matched_dt_orb])
+				'''
+                                #swathnums.append(swathnum)
+                                #bboxes.append(bbox)
+                                #auto_bboxes.append(auto_bbox)
+                                #projects.append(project)
+                                ifg_hash = hashlib.md5(json.dumps([
+                                    id_tmpl,
+                                    stitched_args[-1],
+                                    master_zip_urls[-1],
+                                    master_orbit_urls[-1],
+                                    slave_zip_urls[-1],
+                                    slave_orbit_urls[-1],
+                                    swathnums[-1],
+                                    #bboxes[-1],
+                                    #auto_bboxes[-1],
+                                    projects[-1],
+                                    context['azimuth_looks'],
+                                    context['range_looks'],
+                                    context['filter_strength'],
+                                    context.get('dem_type', 'SRTM+v3'),
+                                ])).hexdigest()
+                                ifg_ids.append(id_tmpl.format('M', len(ref_ids), len(matched_ids),
+                                                              track, ifg_master_dt,
+                                                              ifg_slave_dt, swathnum,
+                                                              orbit_type, ifg_hash[0:4]))
+                            	'''
+                        # create jobs for forward pair
+                        if pre_ref_pd in ('forward', 'both'):
+                            ifg_master_dt = all_dts[0]
+                            ifg_slave_dt = all_dts[-1]
+                            for swathnum in [1, 2, 3]:
+                                stitched_args.append(False if len(ref_ids) == 1 or len(matched_ids) == 1 else True)
+                                master_zip_urls.append([ref_scene['pre_matches']['hits'][i] for i in matched_ids])
+                                master_orbit_urls.append(orbit_dict[matched_dt_orb])
+                                slave_zip_urls.append([grouped_refs['hits'][i] for i in ref_ids])
+                                slave_orbit_urls.append(orbit_dict[ref_dt_orb])
+ 				'''
+                                #swathnums.append(swathnum)
+                                #bboxes.append(bbox)
+                                #auto_bboxes.append(auto_bbox)
+                                #projects.append(project)
+                                ifg_hash = hashlib.md5(json.dumps([
+                                    id_tmpl,
+                                    stitched_args[-1],
+                                    master_zip_urls[-1],
+                                    master_orbit_urls[-1],
+                                    slave_zip_urls[-1],
+                                    slave_orbit_urls[-1],
+                                    swathnums[-1],
+                                    #bboxes[-1],
+                                    #auto_bboxes[-1],
+                                    projects[-1],
+                                    context['azimuth_looks'],
+                                    context['range_looks'],
+                                    context['filter_strength'],
+                                    context.get('dem_type', 'SRTM+v3'),
+                                ])).hexdigest()
+                                ifg_ids.append(id_tmpl.format('S', len(matched_ids), len(ref_ids),
+                                                              track, ifg_master_dt,
+                                                              ifg_slave_dt, swathnum,
+                                                              orbit_type, ifg_hash[0:4]))
+
+
+
+
+
+				'''
+
+    logger.info("printing master_zip : %s" %master_zip_urls)
+    logger.info("printing slave_zip : %s" %slave_zip_urls)
+    logger.info("printing master_orbit : %s" %master_orbit_urls)
+    logger.info("printing slave_orbit : %s" %slave_orbit_urls)
+
+    return master_zip_urls, slave_zip_urls, master_orbit_urls, slave_orbit_urls
+
 
 
 def get_topsapp_cfgs_standard_product(project, auto_bbox, bbox, dataset, identifier, download_url, dataset_type, ipf, 
@@ -688,7 +952,6 @@ def get_topsapp_cfgs_standard_product(project, auto_bbox, bbox, dataset, identif
     filter_strength = 0.5
     if dem_type is None:
 	dem_type = 'SRTM+v3'
-
 
     logging.info("project: %s" % project)
     logging.info("singleceneOnly: %s" % sso)
@@ -1134,7 +1397,12 @@ def get_topsapp_cfgs_standard_product(project, auto_bbox, bbox, dataset, identif
                                                               ifg_slave_dt, "123",
                                                               orbit_type, ifg_hash[0:4], "standard_product")
 
-                
+    logger.info("MASTER_ZIP_URL : %s" %master_zip_urls)
+    logger.info("SLAVE_ZIP_URL : %s" %slave_zip_urls)
+    logger.info("MASTER_orbit_URL : %s" %master_orbit_urls)
+    logger.info("SLAVE_orbit_URL : %s" %slave_orbit_urls)
+    
+            
     return ( projects[0], dedup_urls(stitched_args)[0], auto_bboxes[0], ifg_id, dedup_urls(master_zip_urls)[0],
              dedup_urls(master_orbit_urls)[0], dedup_urls(slave_zip_urls)[0], dedup_urls(slave_orbit_urls)[0], swathnums,
              bboxes )
