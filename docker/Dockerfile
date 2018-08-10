@@ -22,6 +22,8 @@ RUN set -ex && \
 # copy packages
 COPY . /home/ops/verdi/ops/standard_product
 
+RUN pip install shapely
+
 # as ops user
 USER ops
 
