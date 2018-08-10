@@ -250,13 +250,13 @@ def is_within(geojson1, geojson2):
     return p1.within(p2)
 
 
-def find_slave_match(master_acq, slave_acqs):
+def find_overlap_match(master_acq, slave_acqs):
     #logger.info("\n\nmaster info : %s : %s : %s :%s" %(master_acq.tracknumber, master_acq.orbitnumber, master_acq.pv, master_acq.acq_id))
     #logger.info("slave info : ")
     master_loc = master_acq.location["coordinates"]
 
     #logger.info("\n\nmaster_loc : %s" %master_loc)
-    overlapped_slaves = {}
+    overlapped_matches = {}
     for slave in slave_acqs:
         slave_loc = slave.location["coordinates"]
         #logger.info("\n\nslave_loc : %s" %slave_loc)
@@ -264,10 +264,10 @@ def find_slave_match(master_acq, slave_acqs):
         logger.info("is_overlap : %s" %is_over)
         logger.info("overlap area : %s" %overlap)
         if is_over:
-            overlapped_slaves[slave.acq_id] = slave.location
+            overlapped_matches[slave.acq_id] = slave.location
             logger.info("Overlapped slave : %s" %slave.acq_id)
 
-    return overlapped_slaves
+    return overlapped_matches
 
 def get_union_geometry(acq_dict):
     """Return polygon of union of acquisition footprints."""
@@ -398,15 +398,74 @@ def switch_references(master_acq, slaves):
  
     for slave in salves:
 	query = get_overlapping_masters_query(master_acq, slave)
-	find_match(slave, query, master)
+	find_match(slave, query, False, master)
 
 
-def find_match(ref, query, must_acq=None):
+def find_match(ref_acq, query, switch, must_acq=None):
     matched_acqs = process_query(query)
     
 
+    grouped_matched = group_acqs_by_orbitnumber(matched_acqs)
+    matched_ids = grouped_matched["acq_info"].keys()
+    
+    if must_acq is not None:
+	logger.info(grouped_matched["grouped"])
+	is must_acq.acq_id not in matched_ids:
+	    logger.info("ERROR : master acq : %s not in matched acq list of the slave : "%must_acq.acq_id)
+	else:
+	    logger.info("ERROR : master acq : %s in matched acq list of the slave : "%must_acq.acq_id)
+	
+    
+    #logger.info(grouped_slaves["acq_info"].keys())
+    #logger.info(type(grouped_slaves["acq_info"]))
+    #logger.info(grouped_slaves["grouped"])
+    slc_count = 0
+    pv_count = 0
+    orbit_count =0
+    track_count = 0
+    for track in grouped_matched["grouped"]:
+	track_count = track_count+1
+	#logger.info("\n\n\nTRACK : %s" %track)
+	for orbitnumber in grouped_matched["grouped"][track]:
+ 	    orbit_count= orbit_count+1
+	    #logger.info("OrbitNumber : %s" %orbitnumber)
+	    for pv in grouped_slaves["grouped"][track][orbitnumber]:
+		#logger.info("\tpv : %s" %pv)
+	 	pv_count = pv_count +1
+                matched_acq_ids=grouped_matched["grouped"][track][orbitnumber][pv]
+		matched_acqs = []
+		for acq in matched_acq_ids:
+		    slc_count=slc_count+1
+		    #logger.info("]\t\t%s" %type(acq[0]))
+		    if acq[0].strip() in grouped_matched["acq_info"].keys():
+	            	acq_info =grouped_matched["acq_info"][acq[0].strip()]
+		    	matched_acqs.append(acq_info) 
+		    else:
+			logger.info("Key does not exists" %acq[0].strip())   
+		overlapped_matches = find_overlap_match(ref_acq, matched_acqs)
+		if len(overlapped_matches)>0:
+		    logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
+		    union_loc = get_union_geometry(overlapped_matches)
+		    logger.info("union loc : %s" %union_loc)
 
+		    is_ref_truncated = ref_truncated(master_acq, overlapped_matches, covth=.99)
+		    is_covered = is_within(master_acq.location["coordinates"], union_loc["coordinates"])
+		    is_overlapped, overlap = is_overlap(master_acq.location["coordinates"], union_loc["coordinates"])
+		    logger.info("is_ref_truncated : %s" %is_ref_truncated)
+		    logger.info("is_within : %s" %is_covered)
+		    logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
+        	    #logger.info("overlap area : %s" %overlap)
+        	    if is_covered: # and overlap >=covth:
+			logger.info("we have found a match :" )
+		    else:
+			logger.info("we have NOT found a match. So switching slaves...")
+			slaves = []
+			for slave_id in overlapped_matches.keys():
+			    slaves.append(grouped_slaves["acq_info"][slave_id]
+                        switch_references(master_acq, slaves)
 
+		else:
+		    logger.info("No Overlapped Acq for track: %s orbit_number: %s process version: %s" %(track, orbitnumber, pv))
 
 def process_query(query):
 
@@ -499,13 +558,13 @@ def enumerate_acquisations_standard_product(acq_id):
 		    	slave_acqs.append(acq_info) 
 		    else:
 			logger.info("Key does not exists" %acq.strp())   
-		overlapped_slaves = find_slave_match(master_acq, slave_acqs)
-		if len(overlapped_slaves)>0:
+		overlapped_matches = find_overlap_match(master_acq, slave_acqs)
+		if len(overlapped_matches)>0:
 		    logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
-		    union_loc = get_union_geometry(overlapped_slaves)
+		    union_loc = get_union_geometry(overlapped_matches)
 		    logger.info("union loc : %s" %union_loc)
 
-		    is_ref_truncated = ref_truncated(master_acq, overlapped_slaves, covth=.99)
+		    is_ref_truncated = ref_truncated(master_acq, overlapped_matches, covth=.99)
 		    is_covered = is_within(master_acq.location["coordinates"], union_loc["coordinates"])
 		    is_overlapped, overlap = is_overlap(master_acq.location["coordinates"], union_loc["coordinates"])
 		    logger.info("is_ref_truncated : %s" %is_ref_truncated)
@@ -517,7 +576,7 @@ def enumerate_acquisations_standard_product(acq_id):
 		    else:
 			logger.info("we have NOT found a match. So switching slaves...")
 			slaves = []
-			for slave_id in overlapped_slaves.keys():
+			for slave_id in overlapped_matches.keys():
 			    slaves.append(grouped_slaves["acq_info"][slave_id]
                         switch_references(master_acq, slaves)
 
