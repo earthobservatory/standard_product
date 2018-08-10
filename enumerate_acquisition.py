@@ -76,7 +76,7 @@ def run_acq_query(query):
     print(result['hits']['total'])
     return result['hits']['hits']
 
-def get_overlapping_pre_acq_query(acq):
+def get_overlapping_slaves_query(master):
     query = {
             "query": {
                 "filtered": {
@@ -98,19 +98,19 @@ def get_overlapping_pre_acq_query(acq):
 				{
                                 "geo_shape": {
                                     "location": {
-                                      "shape": acq.location
+                                      "shape": master.location
                                     }
                                 }},
 				{	
                                 "range" : {
                                     "endtime" : {
-                                        "lte" : acq.starttime
+                                        "lte" : master.starttime
                 
                                     }
                                 }},
-				{ "term": { "direction": acq.direction }}
+				{ "term": { "direction": master.direction }}
 			    ],
-			"must_not": { "term": { "orbitNumber": acq.orbitnumber }}
+			"must_not": { "term": { "orbitNumber": master.orbitnumber }}
 			}
                     }
                 }
@@ -124,6 +124,113 @@ def get_overlapping_pre_acq_query(acq):
 
     return query
 
+def get_overlapping_masters_query(master, slave):
+    query = {
+            "query": {
+                "filtered": {
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {
+                                    "term": {
+                                        "dataset.raw": "acquisition-S1-IW_SLC"
+                                    }
+				
+                                }
+                            ]
+                        }
+                    },
+                    "filter": {
+ 			"bool": {
+			    "must": [
+				{
+                                "geo_shape": {
+                                    "location": {
+                                      "shape": master.location
+                                    }
+                                }},
+				{ "term": { "direction": master.direction }},
+	                        { "term": { "orbitNumber": master.orbitnumber }},
+			        { "term": { "trackNumber": master.tracknumber }}
+			    ]
+			}
+                    }
+                }
+            },
+            "partial_fields" : {
+                "partial" : {
+                        "exclude": "city"
+                }
+            }
+        }    
+
+    return query
+
+def ref_truncated(ref_scene, matched_footprints, covth=.99):
+    """Return True if reference scene will be truncated."""
+
+    # geometries are in lat/lon projection
+    src_srs = osr.SpatialReference()
+    src_srs.SetWellKnownGeogCS("WGS84")
+    #src_srs.ImportFromEPSG(4326)
+
+    # use projection with unit as meters
+    tgt_srs = osr.SpatialReference()
+    tgt_srs.ImportFromEPSG(3857)
+
+    # create transformer
+    transform = osr.CoordinateTransformation(src_srs, tgt_srs)
+    
+    # get polygon to fill if specified
+    ref_geom = ogr.CreateGeometryFromJson(json.dumps(ref_scene.location))
+    ref_geom_tr = ogr.CreateGeometryFromJson(json.dumps(ref_scene.location))
+    ref_geom_tr.Transform(transform)
+    ref_geom_tr_area = ref_geom_tr.GetArea() # in square meters
+    logger.info("Reference GeoJSON: %s" % ref_geom.ExportToJson())
+
+    # get union geometry of all matched scenes
+    matched_geoms = []
+    matched_union = None
+    matched_geoms_tr = []
+    matched_union_tr = None
+    ids = matched_footprints.keys()
+    ids.sort()
+    #logger.info("ids: %s" % len(ids))
+    for id in ids:
+        geom = ogr.CreateGeometryFromJson(json.dumps(matched_footprints[id]))
+        geom_tr = ogr.CreateGeometryFromJson(json.dumps(matched_footprints[id]))
+        geom_tr.Transform(transform)
+        matched_geoms.append(geom)
+        matched_geoms_tr.append(geom_tr)
+        if matched_union is None:
+            matched_union = geom
+            matched_union_tr = geom_tr
+        else:
+            matched_union = matched_union.Union(geom)
+            matched_union_tr = matched_union_tr.Union(geom_tr)
+    matched_union_geojson =  json.loads(matched_union.ExportToJson())
+    logger.info("Matched union GeoJSON: %s" % json.dumps(matched_union_geojson))
+    
+    # check matched_union disjointness
+    if len(matched_union_geojson['coordinates']) > 1:
+        logger.info("Matched union is a disjoint geometry.")
+        return True
+            
+    # check that intersection of reference and stitched scenes passes coverage threshold
+    ref_int = ref_geom.Intersection(matched_union)
+    ref_int_tr = ref_geom_tr.Intersection(matched_union_tr)
+    ref_int_tr_area = ref_int_tr.GetArea() # in square meters
+    logger.info("Reference intersection GeoJSON: %s" % ref_int.ExportToJson())
+    logger.info("area (m^2) for intersection: %s" % ref_int_tr_area)
+    cov = ref_int_tr_area/ref_geom_tr_area
+    logger.info("coverage: %s" % cov)
+    if cov < covth:
+        logger.info("Matched union doesn't cover at least %s%% of the reference footprint." % (covth*100.))
+        return True
+   
+    return False
+
+
 def is_overlap(geojson1, geojson2):
     '''returns True if there is any overlap between the two geojsons. The geojsons
     are just a list of coordinate tuples'''
@@ -131,7 +238,7 @@ def is_overlap(geojson1, geojson2):
     p1=Polygon(geojson1[0])
     p2=Polygon(geojson2[0])
     if p1.intersects(p2):
-        p3 = p1.intersection(p2).area
+        p3 = p1.intersection(p2).area/p1.area
     return p1.intersects(p2), p3
 
 
@@ -142,7 +249,47 @@ def is_within(geojson1, geojson2):
     p2=Polygon(geojson2[0])
     return p1.within(p2)
 
-def group_frames(frames):
+
+def find_slave_match(master_acq, slave_acqs):
+    #logger.info("\n\nmaster info : %s : %s : %s :%s" %(master_acq.tracknumber, master_acq.orbitnumber, master_acq.pv, master_acq.acq_id))
+    #logger.info("slave info : ")
+    master_loc = master_acq.location["coordinates"]
+
+    #logger.info("\n\nmaster_loc : %s" %master_loc)
+    overlapped_slaves = {}
+    for slave in slave_acqs:
+        slave_loc = slave.location["coordinates"]
+        #logger.info("\n\nslave_loc : %s" %slave_loc)
+        is_over, overlap = is_overlap(master_loc, slave_loc)
+        logger.info("is_overlap : %s" %is_over)
+        logger.info("overlap area : %s" %overlap)
+        if is_over:
+            overlapped_slaves[slave.acq_id] = slave.location
+            logger.info("Overlapped slave : %s" %slave.acq_id)
+
+    return overlapped_slaves
+
+def get_union_geometry(acq_dict):
+    """Return polygon of union of acquisition footprints."""
+
+    # geometries are in lat/lon projection
+    #src_srs = osr.SpatialReference()
+    #src_srs.SetWellKnownGeogCS("WGS84")
+    #src_srs.ImportFromEPSG(4326)
+
+    # get union geometry of all scenes
+    geoms = []
+    union = None
+    #logger.info(acq_dict)
+    ids = sorted(acq_dict.keys())
+    for id in ids:
+        geom = ogr.CreateGeometryFromJson(json.dumps(acq_dict[id]))
+        geoms.append(geom)
+        union = geom if union is None else union.Union(geom)
+    union_geojson =  json.loads(union.ExportToJson())
+    return union_geojson
+
+def group_acqs_by_orbitnumber(frames):
     grouped = {}
     acq_info = {}
     print("frame length : %s" %len(frames))
@@ -245,57 +392,56 @@ def group_frames_by_track_date(frames):
         "metadata": metadata,
     }
 
+
+def switch_references(master_acq, slaves):
+    query = get_master_overlapped_query(master_acq)
  
-def find_slave_match(master_acq, slave_acqs):
-    #logger.info("\n\nmaster info : %s : %s : %s :%s" %(master_acq.tracknumber, master_acq.orbitnumber, master_acq.pv, master_acq.acq_id))
-    #logger.info("slave info : ")
-    master_loc = master_acq.location["coordinates"]
+    for slave in salves:
+	query = get_overlapping_masters_query(master_acq, slave)
+	find_match(slave, query, master)
+
+
+def find_match(ref, query, must_acq=None):
+    matched_acqs = process_query(query)
     
-    #logger.info("\n\nmaster_loc : %s" %master_loc)
-    overlapped_slaves = []
-    for slave in slave_acqs:
-	slave_loc = slave.location["coordinates"]
-	#logger.info("\n\nslave_loc : %s" %slave_loc)
-	is_over, overlap = is_overlap(master_loc, slave_loc)
-	logger.info("is_overlap : %s" %is_over)
-	logger.info("overlap area : %s" %overlap)
-	if is_over:
-	    overlapped_slaves.append(slave)
-	    logger.info("Overlapped slave : %s" %slave.acq_id)
-
-    return overlapped_slaves
-
-	#logger.info("%s : %s : %s : %s" %(slave.tracknumber, slave.orbitnumber, slave.pv, slave.acq_id))
-
-def get_union_geometry(acq_list):
-    """Return polygon of union of SLC footprints."""
-   
-    # geometries are in lat/lon projection
-    #src_srs = osr.SpatialReference()
-    #src_srs.SetWellKnownGeogCS("WGS84")
-    #src_srs.ImportFromEPSG(4326)
-
-    # get union geometry of all scenes
-    geoms = []
-    union = None
-    #ids.sort()
-    for acq in acq_list:
-        geom = ogr.CreateGeometryFromJson(json.dumps(acq.location))
-        geoms.append(geom)
-        union = geom if union is None else union.Union(geom)
-    union_geojson =  json.loads(union.ExportToJson())
-    return union_geojson
 
 
-def enumerate_acquisations_standard_product(acq_id):
 
-    
+
+def process_query(query):
+
     rest_url = app.conf.GRQ_ES_URL
     #dav_url =  "https://aria-dav.jpl.nasa.gov"
     #version = "v1.1"
     grq_index_prefix = "grq"
-    idx= "grq"
-    #url: http://100.64.134.49:9200/grq/_search?search_type=scan&scroll=60&size=100
+
+    logger.info("query: {}".format(json.dumps(query, indent=2)))
+
+    if rest_url.endswith('/'):
+        rest_url = rest_url[:-1]
+
+    # get index name and url
+    url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, grq_index_prefix)
+    logger.info("url: {}".format(url))
+    r = requests.post(url, data=json.dumps(query))
+    r.raise_for_status()
+    scan_result = r.json()
+    count = scan_result['hits']['total']
+    print("count : %s" %count)
+    scroll_id = scan_result['_scroll_id']
+    ref_hits = []
+    while True:
+        r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        res = r.json()
+        scroll_id = res['_scroll_id']
+        if len(res['hits']['hits']) == 0: break
+        ref_hits.extend(res['hits']['hits'])
+
+    return ref_hits
+
+def enumerate_acquisations_standard_product(acq_id):
+
+    
     covth = 1.0
 
     # First lets find information about the acquisation
@@ -315,38 +461,18 @@ def enumerate_acquisations_standard_product(acq_id):
 
     }
     #Now lets find all the acqusations that has same location but from previous date 
-    pre_overlap_query = get_overlapping_pre_acq_query(master_acq)
-
-    logger.info("query: {}".format(json.dumps(pre_overlap_query, indent=2)))
-
-    if rest_url.endswith('/'):
-	rest_url = rest_url[:-1] 
-
-    # get index name and url
-    url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, grq_index_prefix)
-    logger.info("url: {}".format(url))
-    r = requests.post(url, data=json.dumps(pre_overlap_query))
-    r.raise_for_status()
-    scan_result = r.json()
-    count = scan_result['hits']['total']
-    print("count : %s" %count)
-    scroll_id = scan_result['_scroll_id']
     ref_hits = []
-    while True:
-        r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
-        res = r.json()
-        scroll_id = res['_scroll_id']
-        if len(res['hits']['hits']) == 0: break
-        ref_hits.extend(res['hits']['hits'])
+    query = get_overlapping_slaves_query(master_acq)
+    ref_hits = process_query(query)
 
     # extract reference ids
-    ref_ids = { h['_id']: True for h in ref_hits }
+    #ref_ids = { h['_id']: True for h in ref_hits }
     #logger.info("ref_ids: {}".format(json.dumps(ref_ids, indent=2)))
     #logger.info("ref_hits count: {}".format(len(ref_hits)))
 
 
 
-    grouped_slaves = group_frames(ref_hits)
+    grouped_slaves = group_acqs_by_orbitnumber(ref_hits)
     #logger.info(grouped_slaves["acq_info"].keys())
     #logger.info(type(grouped_slaves["acq_info"]))
     #logger.info(grouped_slaves["grouped"])
@@ -378,13 +504,22 @@ def enumerate_acquisations_standard_product(acq_id):
 		    logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
 		    union_loc = get_union_geometry(overlapped_slaves)
 		    logger.info("union loc : %s" %union_loc)
+
+		    is_ref_truncated = ref_truncated(master_acq, overlapped_slaves, covth=.99)
 		    is_covered = is_within(master_acq.location["coordinates"], union_loc["coordinates"])
+		    is_overlapped, overlap = is_overlap(master_acq.location["coordinates"], union_loc["coordinates"])
+		    logger.info("is_ref_truncated : %s" %is_ref_truncated)
 		    logger.info("is_within : %s" %is_covered)
+		    logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
         	    #logger.info("overlap area : %s" %overlap)
         	    if is_covered: # and overlap >=covth:
 			logger.info("we have found a match :" )
 		    else:
-			logger.info("we have NOT found a match : ")
+			logger.info("we have NOT found a match. So switching slaves...")
+			slaves = []
+			for slave_id in overlapped_slaves.keys():
+			    slaves.append(grouped_slaves["acq_info"][slave_id]
+                        switch_references(master_acq, slaves)
 
 		else:
 		    logger.info("No Overlapped Acq for track: %s orbit_number: %s process version: %s" %(track, orbitnumber, pv))
@@ -395,31 +530,6 @@ def enumerate_acquisations_standard_product(acq_id):
 
     
 
-    '''
-    # group ref hits by track and date
-    grouped_refs = group_frames_by_track_date(ref_hits)
-    print(grouped_refs['grouped'])
-    get_pair_hits(master_scene, grouped_refs, 0.99)
-    #
-    '''
-def get_pair_hits(master_scene, grouped_refs, covth):
-
-    filtered_matches = []
-    filtered_dates = {}
-    for track in grouped_refs['grouped']:
-        logger.info("track: %s" % track)
-	for ref_dt in sorted(grouped_refs['grouped'][track], reverse=True):
-            logger.info("reference date: %s" % ref_dt.isoformat())
-	    logger.info("\t%s"%grouped_refs['grouped'][track][ref_dt])
-	    if not ref_truncated(master_scene, grouped_refs['grouped'][track][ref_dt], grouped_refs["footprints"], covth=covth):
-                filtered_matches.extend(grouped_refs['grouped'][track][ref_dt][i] for i in grouped_refs['grouped'][track][ref_dt])
-                filtered_dates[hit_date] = ref_dt
-                logger.info("Added hit_date %s." %ref_dt)
-            else:
-                logger.info("Not adding hit_date %s." %ref_dt)
-	
-    logger.info(filtered_matches)
-    logger.info(filtered_dates)
 
 if __name__ == "__main__":
     acq_id = "acquisition-S1A_IW_SLC__1SDV_20180702T135953_20180702T140020_022616_027345_3578"
