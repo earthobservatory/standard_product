@@ -124,109 +124,23 @@ def get_overlapping_pre_acq_query(acq):
 
     return query
 
-def get_overlap(loc1, loc2):
-    """Return percent overlap of two GeoJSON geometries."""
-
-    # geometries are in lat/lon projection
-    src_srs = osr.SpatialReference()
-    src_srs.SetWellKnownGeogCS("WGS84")
-    #src_srs.ImportFromEPSG(4326)
-
-    # use projection with unit as meters
-    tgt_srs = osr.SpatialReference()
-    tgt_srs.ImportFromEPSG(3857)
-
-    # create transformer
-    transform = osr.CoordinateTransformation(src_srs, tgt_srs)
-    
-    # get area of first geometry
-    geom1 = ogr.CreateGeometryFromJson(json.dumps(loc1))
-    geom1.Transform(transform)
-    logger.info("geom1: %s" % geom1)
-    area1 = geom1.GetArea() # in square meters
-    logger.info("area (m^2) for geom1: %s" % area1)
-    
-    # get area of second geometry
-    geom2 = ogr.CreateGeometryFromJson(json.dumps(loc2))
-    geom2.Transform(transform)
-    logger.info("geom2: %s" % geom2)
-    area2 = geom2.GetArea() # in square meters
-    logger.info("area (m^2) for geom2: %s" % area2)
-    
-    # get area of intersection
-    intersection = geom1.Intersection(geom2)
-    intersection.Transform(transform)
-    logger.info("intersection: %s" % intersection)
-    intersection_area = intersection.GetArea() # in square meters
-    logger.info("area (m^2) for intersection: %s" % intersection_area)
-    if area1 > area2:
-        return intersection_area/area1
-    else:
-        return intersection_area/area2
+def is_overlap(geojson1, geojson2):
+    '''returns True if there is any overlap between the two geojsons. The geojsons
+    are just a list of coordinate tuples'''
+    p3=0
+    p1=Polygon(geojson1[0])
+    p2=Polygon(geojson2[0])
+    if p1.intersects(p2):
+        p3 = p1.intersection(p2).area
+    return p1.intersects(p2), p3
 
 
-def ref_truncated(ref_scene, ids, footprints, covth=.95):
-    """Return True if reference scene will be truncated."""
-
-    # geometries are in lat/lon projection
-    src_srs = osr.SpatialReference()
-    src_srs.SetWellKnownGeogCS("WGS84")
-    #src_srs.ImportFromEPSG(4326)
-
-    # use projection with unit as meters
-    tgt_srs = osr.SpatialReference()
-    tgt_srs.ImportFromEPSG(3857)
-
-    # create transformer
-    transform = osr.CoordinateTransformation(src_srs, tgt_srs)
-    
-    # get polygon to fill if specified
-    ref_geom = ogr.CreateGeometryFromJson(json.dumps(ref_scene['location']))
-    ref_geom_tr = ogr.CreateGeometryFromJson(json.dumps(ref_scene['location']))
-    ref_geom_tr.Transform(transform)
-    ref_geom_tr_area = ref_geom_tr.GetArea() # in square meters
-    logger.info("Reference GeoJSON: %s" % ref_geom.ExportToJson())
-
-    # get union geometry of all matched scenes
-    matched_geoms = []
-    matched_union = None
-    matched_geoms_tr = []
-    matched_union_tr = None
-    ids.sort()
-    logger.info("ids: %s" % len(ids))
-    for id in ids:
-        geom = ogr.CreateGeometryFromJson(json.dumps(footprints[id]))
-        geom_tr = ogr.CreateGeometryFromJson(json.dumps(footprints[id]))
-        geom_tr.Transform(transform)
-        matched_geoms.append(geom)
-        matched_geoms_tr.append(geom_tr)
-        if matched_union is None:
-            matched_union = geom
-            matched_union_tr = geom_tr
-        else:
-            matched_union = matched_union.Union(geom)
-            matched_union_tr = matched_union_tr.Union(geom_tr)
-    matched_union_geojson =  json.loads(matched_union.ExportToJson())
-    logger.info("Matched union GeoJSON: %s" % json.dumps(matched_union_geojson))
-    
-    # check matched_union disjointness
-    if len(matched_union_geojson['coordinates']) > 1:
-        logger.info("Matched union is a disjoint geometry.")
-        return True
-            
-    # check that intersection of reference and stitched scenes passes coverage threshold
-    ref_int = ref_geom.Intersection(matched_union)
-    ref_int_tr = ref_geom_tr.Intersection(matched_union_tr)
-    ref_int_tr_area = ref_int_tr.GetArea() # in square meters
-    logger.info("Reference intersection GeoJSON: %s" % ref_int.ExportToJson())
-    logger.info("area (m^2) for intersection: %s" % ref_int_tr_area)
-    cov = ref_int_tr_area/ref_geom_tr_area
-    logger.info("coverage: %s" % cov)
-    if cov < covth:
-        logger.info("Matched union doesn't cover at least %s%% of the reference footprint." % (covth*100.))
-        return True
-   
-    return False
+def is_within(geojson1, geojson2):
+    '''returns True if there is any overlap between the two geojsons. The geojsons
+    are just a list of coordinate tuples'''
+    p1=Polygon(geojson1[0])
+    p2=Polygon(geojson2[0])
+    return p1.within(p2)
 
 def group_frames(frames):
     grouped = {}
@@ -331,18 +245,47 @@ def group_frames_by_track_date(frames):
         "metadata": metadata,
     }
 
-
-def 
+ 
 def find_slave_match(master_acq, slave_acqs):
     #logger.info("\n\nmaster info : %s : %s : %s :%s" %(master_acq.tracknumber, master_acq.orbitnumber, master_acq.pv, master_acq.acq_id))
     #logger.info("slave info : ")
     master_loc = master_acq.location["coordinates"]
     
-    logger.info("\n\nmaster_loc : %s" %master_loc)
+    #logger.info("\n\nmaster_loc : %s" %master_loc)
+    overlapped_slaves = []
     for slave in slave_acqs:
 	slave_loc = slave.location["coordinates"]
-	logger.info("\n\nslave_loc : %s" %slave_loc)
+	#logger.info("\n\nslave_loc : %s" %slave_loc)
+	is_over, overlap = is_overlap(master_loc, slave_loc)
+	logger.info("is_overlap : %s" %is_over)
+	logger.info("overlap area : %s" %overlap)
+	if is_over:
+	    overlapped_slaves.append(slave)
+	    logger.info("Overlapped slave : %s" %slave.acq_id)
+
+    return overlapped_slaves
+
 	#logger.info("%s : %s : %s : %s" %(slave.tracknumber, slave.orbitnumber, slave.pv, slave.acq_id))
+
+def get_union_geometry(acq_list):
+    """Return polygon of union of SLC footprints."""
+   
+    # geometries are in lat/lon projection
+    #src_srs = osr.SpatialReference()
+    #src_srs.SetWellKnownGeogCS("WGS84")
+    #src_srs.ImportFromEPSG(4326)
+
+    # get union geometry of all scenes
+    geoms = []
+    union = None
+    #ids.sort()
+    for acq in acq_list:
+        geom = ogr.CreateGeometryFromJson(json.dumps(acq.location))
+        geoms.append(geom)
+        union = geom if union is None else union.Union(geom)
+    union_geojson =  json.loads(union.ExportToJson())
+    return union_geojson
+
 
 def enumerate_acquisations_standard_product(acq_id):
 
@@ -426,13 +369,25 @@ def enumerate_acquisations_standard_product(acq_id):
 		    slc_count=slc_count+1
 		    #logger.info("]\t\t%s" %type(acq[0]))
 		    if acq[0].strip() in grouped_slaves["acq_info"].keys():
-			
 	            	acq_info =grouped_slaves["acq_info"][acq[0].strip()]
-		    
 		    	slave_acqs.append(acq_info) 
 		    else:
 			logger.info("Key does not exists" %acq.strp())   
-		find_slave_match(master_acq, slave_acqs)
+		overlapped_slaves = find_slave_match(master_acq, slave_acqs)
+		if len(overlapped_slaves)>0:
+		    logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
+		    union_loc = get_union_geometry(overlapped_slaves)
+		    logger.info("union loc : %s" %union_loc)
+		    is_covered = is_within(master_acq.location["coordinates"], union_loc["coordinates"])
+		    logger.info("is_within : %s" %is_covered)
+        	    #logger.info("overlap area : %s" %overlap)
+        	    if is_covered: # and overlap >=covth:
+			logger.info("we have found a match :" )
+		    else:
+			logger.info("we have NOT found a match : ")
+
+		else:
+		    logger.info("No Overlapped Acq for track: %s orbit_number: %s process version: %s" %(track, orbitnumber, pv))
     logger.info("track_count : %s" %track_count)
     logger.info("orbit_count : %s" %orbit_count)
     logger.info("pv_count : %s" %pv_count)
