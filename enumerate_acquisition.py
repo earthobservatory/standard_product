@@ -14,6 +14,10 @@ from shapely.geometry import Polygon
 #import isce
 #from UrlUtils import UrlUtils as UU
 
+
+covth = 0.98
+MIN_MAX = 2
+
 class ACQ:
     def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, pv ):
 	self.acq_id=acq_id,
@@ -297,6 +301,7 @@ def group_acqs_by_orbitnumber(frames):
     for acq in frames:
 	acq_data = acq['fields']['partial'][0]
 	acq_id = acq['_id']
+        print("acq_id : %s : %s" %(type(acq_id), acq_id))
 	match = SLC_RE.search(acq_id)
         if not match:
 	    logger.info("No Match : %s" %acq_id)
@@ -394,14 +399,14 @@ def group_frames_by_track_date(frames):
     }
 
 
-def switch_references(master_acq, slaves):
+def switch_references(candidate_pair_list, master_acq, slaves):
  
     for slave in slaves:
 	query = get_overlapping_masters_query(master_acq, slave)
-	find_candidate_pair(slave, query, False, master_acq)
+	return find_candidate_pair(candidate_pair_list, slave, query, False, master_acq)
 
 
-def find_candidate_pair(ref_acq, query, switch, must_acq=None):
+def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=None):
     matched_acqs = process_query(query)
     #for acq in matched_acqs:
 	#logger.info(acq["_id"])
@@ -474,14 +479,20 @@ def find_candidate_pair(ref_acq, query, switch, must_acq=None):
 
                  	logger.info("\n\n\nmaster urls : %s" %master_acqs)
 			logger.info("slave urls : %s" %slave_acqs)
+			candidate_pair_list.append({"master_acqs" : master_acqs, "slave_acqs" : slave_acqs})
+			if len(candidate_pair_list)>=MIN_MAX:
+			    return candidate_pair_list
 			#return {"master_acqs" : master_acqs, "slave_acqs" : slave_acqs}
 		    else:
 			logger.info("we have NOT found a match. So switching slaves...")
 			if switch:
-                            switch_references(ref_acq, matched_acqs)
+                            candidate_pair_list.extend(switch_references(ref_acq, matched_acqs))
+			    if len(candidate_pair_list)>=MIN_MAX:
+                                return candidate_pair_list
 
 		else:
 		    logger.info("No Overlapped Acq for track: %s orbit_number: %s process version: %s" %(track, orbitnumber, pv))
+    return candidate_pair_list
 
 def process_query(query):
 
@@ -517,7 +528,8 @@ def process_query(query):
 def enumerate_acquisations_standard_product(acq_id):
 
     
-    covth = 0.95
+    
+    candidate_pair_list = []   
 
     # First lets find information about the acquisation
     acq = util.get_complete_acquisition_data(acq_id)[0]
@@ -539,70 +551,11 @@ def enumerate_acquisations_standard_product(acq_id):
     ref_hits = []
     query = get_overlapping_slaves_query(master_acq)
 
-    find_candidate_pair(master_acq, query, True)
+    candidate_pair_list = find_candidate_pair(candidate_pair_list, master_acq, query, True)
 
-    '''
-    ref_hits = process_query(query)
+    logger.info("\n\nFinal Result: length : %s" %len(candidate_pair_list))
+    logger.info(candidate_pair_list)
 
-    # extract reference ids
-    #ref_ids = { h['_id']: True for h in ref_hits }
-    #logger.info("ref_ids: {}".format(json.dumps(ref_ids, indent=2)))
-    #logger.info("ref_hits count: {}".format(len(ref_hits)))
-
-
-
-    grouped_slaves = group_acqs_by_orbitnumber(ref_hits)
-    #logger.info(grouped_slaves["acq_info"].keys())
-    #logger.info(type(grouped_slaves["acq_info"]))
-    #logger.info(grouped_slaves["grouped"])
-    slc_count = 0
-    pv_count = 0
-    orbit_count =0
-    track_count = 0
-    for track in grouped_slaves["grouped"]:
-	track_count = track_count+1
-	#logger.info("\n\n\nTRACK : %s" %track)
-	for orbitnumber in grouped_slaves["grouped"][track]:
- 	    orbit_count= orbit_count+1
-	    #logger.info("OrbitNumber : %s" %orbitnumber)
-	    for pv in grouped_slaves["grouped"][track][orbitnumber]:
-		#logger.info("\tpv : %s" %pv)
-	 	pv_count = pv_count +1
-                slave_acq_ids=grouped_slaves["grouped"][track][orbitnumber][pv]
-		slave_acqs = []
-		for acq in slave_acq_ids:
-		    slc_count=slc_count+1
-		    #logger.info("]\t\t%s" %type(acq[0]))
-		    if acq[0].strip() in grouped_slaves["acq_info"].keys():
-	            	acq_info =grouped_slaves["acq_info"][acq[0].strip()]
-		    	slave_acqs.append(acq_info) 
-		    else:
-			logger.info("Key does not exists" %acq.strp())   
-		overlapped_matches = find_overlap_match(master_acq, slave_acqs)
-		if len(overlapped_matches)>0:
-		    logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
-		    union_loc = get_union_geometry(overlapped_matches)
-		    logger.info("union loc : %s" %union_loc)
-
-		    is_ref_truncated = ref_truncated(master_acq, overlapped_matches, covth=.99)
-		    is_covered = is_within(master_acq.location["coordinates"], union_loc["coordinates"])
-		    is_overlapped, overlap = is_overlap(master_acq.location["coordinates"], union_loc["coordinates"])
-		    logger.info("is_ref_truncated : %s" %is_ref_truncated)
-		    logger.info("is_within : %s" %is_covered)
-		    logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
-        	    #logger.info("overlap area : %s" %overlap)
-        	    if is_covered: # and overlap >=covth:
-			logger.info("we have found a match :" )
-		    else:
-			logger.info("we have NOT found a match. So switching slaves...")
-			slaves = []
-			for slave_id in overlapped_matches.keys():
-			    slaves.append(grouped_slaves["acq_info"][slave_id]
-                        switch_references(master_acq, slaves)
-
-		else:
-		    logger.info("No Overlapped Acq for track: %s orbit_number: %s process version: %s" %(track, orbitnumber, pv))
-    '''  
 
 
 if __name__ == "__main__":
