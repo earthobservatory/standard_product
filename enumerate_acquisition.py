@@ -410,11 +410,11 @@ def switch_references(candidate_pair_list, master_acq, slaves):
 
 def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=None):
     logger.info("find_candidate_pair candidate_pair_list: %s" %candidate_pair_list)
-    '''
+    
     if len(candidate_pair_list)>=MIN_MAX:
      	logger.info("returning as Min_MAX satisfied")
   	return candidate_pair_list
-    '''
+    
     matched_acqs = process_query(query)
     #for acq in matched_acqs:
 	#logger.info(acq["_id"])
@@ -498,10 +498,10 @@ def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=No
 			logger.info("we have NOT found a match. So switching slaves...")
 			if switch:
                             candidate_pair_list = switch_references(candidate_pair_list, ref_acq, matched_acqs)
-			    '''
+			    
 			    if len(candidate_pair_list)>=MIN_MAX:
                                 return candidate_pair_list
-			    '''
+			    
 
 		else:
 		    logger.info("No Overlapped Acq for track: %s orbit_number: %s process version: %s" %(track, orbitnumber, pv))
