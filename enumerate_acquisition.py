@@ -301,7 +301,7 @@ def group_acqs_by_orbitnumber(frames):
     for acq in frames:
 	acq_data = acq['fields']['partial'][0]
 	acq_id = acq['_id']
-        print("acq_id : %s : %s" %(type(acq_id), acq_id))
+        #print("acq_id : %s : %s" %(type(acq_id), acq_id))
 	match = SLC_RE.search(acq_id)
         if not match:
 	    logger.info("No Match : %s" %acq_id)
@@ -317,9 +317,9 @@ def group_acqs_by_orbitnumber(frames):
 	slave_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, pv)
         acq_info[acq_id] = slave_acq
        
-        logger.info("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
+        #logger.info("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
 	#logger.info(grouped)
-        bisect.insort(grouped.setdefault(track, {}).setdefault(orbitnumber, {}).setdefault(pv, []), slave_acq.acq_id)
+        bisect.insort(grouped.setdefault(track, {}).setdefault(orbitnumber, {}).setdefault(pv, []), acq_id)
 	'''
 	if track in grouped.keys():
 	    if orbitnumber in grouped[track].keys():
@@ -424,32 +424,33 @@ def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=No
 	    logger.info("ERROR : master acq : %s in matched acq list of the slave : "%must_acq.acq_id)
 	
     
-    #logger.info(grouped_slaves["acq_info"].keys())
-    #logger.info(type(grouped_slaves["acq_info"]))
-    #logger.info(grouped_slaves["grouped"])
+    logger.info(grouped_matched["acq_info"].keys())
+    #logger.info(type(grouped_matched["acq_info"]))
+    #logger.info(grouped_matched["grouped"])
     slc_count = 0
     pv_count = 0
     orbit_count =0
     track_count = 0
     for track in grouped_matched["grouped"]:
 	track_count = track_count+1
-	#logger.info("\n\n\nTRACK : %s" %track)
+	logger.info("\n\n\nTRACK : %s" %track)
 	for orbitnumber in sorted( grouped_matched["grouped"][track], reverse=True):
  	    orbit_count= orbit_count+1
 	    logger.info("SortedOrbitNumber : %s" %orbitnumber)
 	    for pv in grouped_matched["grouped"][track][orbitnumber]:
-		#logger.info("\tpv : %s" %pv)
+		logger.info("\tpv : %s" %pv)
 	 	pv_count = pv_count +1
                 matched_acq_ids=grouped_matched["grouped"][track][orbitnumber][pv]
 		matched_acqs = []
 		for acq in matched_acq_ids:
+                    
 		    slc_count=slc_count+1
-		    #logger.info("]\t\t%s" %type(acq[0]))
-		    if acq[0].strip() in grouped_matched["acq_info"].keys():
-	            	acq_info =grouped_matched["acq_info"][acq[0].strip()]
+		    logger.info("]\t\tTypeCheck %s : %s" %(type(acq), type(acq[0])))
+		    if acq.strip() in grouped_matched["acq_info"].keys():
+	            	acq_info =grouped_matched["acq_info"][acq.strip()]
 		    	matched_acqs.append(acq_info) 
 		    else:
-			logger.info("Key does not exists" %acq[0].strip())   
+			logger.info("Key does not exists : %s" %acq.strip())   
 		overlapped_matches = find_overlap_match(ref_acq, matched_acqs)
 		if len(overlapped_matches)>0:
 		    logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
@@ -471,11 +472,11 @@ def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=No
         	    if is_overlapped and overlap>=0.95: # and overlap >=covth:
 			logger.info("MATCHED we have found a match :" )
 			if switch:
-			    master_acqs=[ref_acq.acq_id]
+			    master_acqs=[ref_acq.acq_id[0]]
 			    slave_acqs=[matched_acqs2]
 			else:
 			    master_acqs=[matched_acqs2]
-			    slave_acqs=[ref_acq.acq_id]
+			    slave_acqs=[ref_acq.acq_id[0]]
 
                  	logger.info("\n\n\nmaster urls : %s" %master_acqs)
 			logger.info("slave urls : %s" %slave_acqs)
@@ -525,7 +526,23 @@ def process_query(query):
 
     return ref_hits
 
-def enumerate_acquisations_standard_product(acq_id):
+def enumerate_acquisations_array(acq_array):
+
+    enumerate_dict={}
+
+    logger.info("\n\n\nenumerate_acquisations_array Length : %s" %len(acq_array))
+    for acq_data in acq_array:
+	logger.info("\n\n Processing Acquisition : %s" %acq_data['acq_id'])
+	enumerate_dict[acq_data['acq_id']] =  enumerate_acquisations_standard_product(acq_data['acq_id'], acq_data['project'], acq_data['spyddder_extract_version'], acq_data['aoi'], acq_data['job_priority'], acq_data['queue'])
+
+
+    logger.info("\n\n\n\nFinal Result:")
+    for acq_id in enumerate_dict.keys():
+	logger.info("\nFor Acq %s, the matched pairs are : %s" %(acq_id, enumerate_dict[acq_id]))
+
+    enumerate_dict
+
+def enumerate_acquisations_standard_product(acq_id, project, spyddder_extract_version, aoi, priority, queue):
 
     
     
@@ -553,9 +570,9 @@ def enumerate_acquisations_standard_product(acq_id):
 
     candidate_pair_list = find_candidate_pair(candidate_pair_list, master_acq, query, True)
 
-    logger.info("\n\nFinal Result: length : %s" %len(candidate_pair_list))
-    logger.info(candidate_pair_list)
-
+    #logger.info("\n\nFinal Result: length : %s" %len(candidate_pair_list))
+    #logger.info(candidate_pair_list)
+    return candidate_pair_list
 
 
 if __name__ == "__main__":

@@ -29,7 +29,7 @@ def query_es(query, es_index=None):
     url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
     if es_index:
         url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
-    logger.info("url: {}".format(url))
+    #logger.info("url: {}".format(url))
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
@@ -152,7 +152,7 @@ def query_aois(starttime, endtime):
     hits = [i['fields']['partial'][0] for i in query_es(query) 
             if 'inactive' not in i['fields']['partial'][0].get('metadata', {}).get('user_tags', [])]
     #logger.info("hits: {}".format(json.dumps(hits, indent=2)))
-    logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
+    #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
     return hits
 
 def get_query(acq):
@@ -301,10 +301,10 @@ def get_dem_type(acq):
 def query_aoi_acquisitions(starttime, endtime, platform):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
-
-    acq_info = {}
+    aoi_acq = {}
     es_index = "grq_*_*acquisition*"
     for aoi in query_aois(starttime, endtime):
+        acq_info = {}
         logger.info("aoi: {}".format(aoi['id']))
         query = {
             "query": {
@@ -364,9 +364,11 @@ def query_aoi_acquisitions(starttime, endtime, platform):
             if acq['id'] in acq_info and acq_info[acq['id']].get('priority', 0) > aoi_priority:
                 continue
             acq['aoi'] = aoi['id']
+            acq['aoi_location'] =  aoi['location']
             acq['priority'] = aoi_priority
             acq_info[acq['id']] = acq
-    logger.info("Acquistions to localize: {}".format(json.dumps(acq_info, indent=2)))
+	#aoi_acq[aoi] = acq_info 
+        logger.info("Acquistions to localize: {}".format(json.dumps(acq_info, indent=2)))
     return acq_info
     
 
@@ -432,62 +434,48 @@ def resolve_aoi_acqs(ctx_file):
     with open(ctx_file) as f:
         ctx = json.load(f)
 
-    SFL = os.path.join(os.environ['HOME'], 'standard_product', 'aoi_acquisition_localizer_standard_product.sf.xml')
+    #SFL = os.path.join(os.environ['HOME'], 'standard_product', 'aoi_acquisition_localizer_standard_product.sf.xml')
     # get acq_info
     acq_info = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'])
 
     # build args
-    spyddder_extract_versions = []
-    queues = []
-    urls = []
-    archive_filenames = []
-    identifiers = []
-    prod_dates = []
-    priorities = []
-    aois = []
-    temporalBaseline = get_temporal_baseline(ctx)
-    queue = ctx['queue']
+    #queue = ctx["recommended-queues"][0]
+    queue = "system-jobs-queue"
     singlesceneOnly = True
     precise_orbit_only = True
     spyddder_extract_version= ctx['spyddder_extract_version']
-    standard_product_version= ctx['standard_product_version']
-    project = "standard_product"
+    #standard_product_version= ctx['standard_product_version']
+    project = ctx['project']
+    priority = ctx["job_priority"]
+    acquisition_array =[]
 
     for id in sorted(acq_info):
         acq = acq_info[id]
-        logging.info("\n\nPrinting Acq : %s" %id)
-        #print(acq)
+	aoi = acq['aoi']
+        logging.info("\n\nPrinting AOI : %s, Acq : %s" %(aoi, id))
+            #print(acq)
 
-        job_type = "sciflo_stage_iw_slc:{}".format(ctx['stage_iw_slc_version'])
-	preReferencePairDirection = "backward"
-	postReferencePairDirection = "backward"
-        '''
-        params = {
-        "dataset= acq['dataset'],
-        "project= acq['project'],
-        "identifier= acq['identifier'],
-        "download_url= acq['download_url'],
-        "dataset_type= acq['dataset_type'],
-	"archive_filename= acq['archive_filename'],
-	"spyddder_extract_version= acq['spyddder_extract_version'],
-	"standard_product_version= acq['standard_product_version'],
-	"aoi= acq['aoi'],
-	"job_priority= acq['job_priority']
-        }
-	'''
-	dataset= acq['dataset']
-        identifier= acq['metadata']['identifier']
-        download_url= acq['metadata']['download_url']
-        dataset_type= acq['dataset_type']
-        archive_filename= acq['metadata']['archive_filename']
-        aoi= acq['aoi'],
-        bbox = acq['metadata']['bbox']
-        job_priority= acq['priority']
-	ipf = acq['metadata']['processing_version']
-	dem_type = get_dem_type(acq)
-        query = get_query(acq)
+    	job_type = "sciflo_stage_iw_slc:{}".format(ctx['stage_iw_slc_version'])
+       
+	    #return id, project, spyddder_extract_version, aoi, priority, queue
 
 
+     	acq_data = {
+            "acq_id" : id,
+            "project" : project,
+            #"identifier" : acq['metadata']['identifier'],
+	    "spyddder_extract_version" : spyddder_extract_version,
+	    #"standard_product_version" : ctx['standard_product_version'],
+	    "aoi" : aoi,
+	    "job_priority" : ctx['job_priority'],
+	    "queue" : queue
+		
+        } 
+        acquisition_array.append(acq_data)
+
+    logging.info("acquisition_array length : %s" %acquisition_array)
+    return acquisition_array
+    '''
         logging.info("acq identifier : %s " %identifier)
 	logging.info("acq city : %s " %acq['city'])
         logging.info("dem_type : %s" %dem_type)
@@ -495,12 +483,15 @@ def resolve_aoi_acqs(ctx_file):
 	logging.info("bbox : %s" %bbox)
         logging.info("ipf : %s" %ipf)
 	
+        acquisition_array.append([project, True, bbox, dataset, identifier, download_url, dataset_type, ipf, archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version, queue, job_priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only])
+        
         return project, True, bbox, dataset, identifier, download_url, dataset_type, ipf, archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version, queue, job_priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only
-
+        exit(0)
         #job = resolve_hysds_job(job_type, queue, priority=acq['priority'], params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
 
         #job_id = submit_hysds_job(job)
 
+    '''
 
 def main():
     """Run S1 create interferogram sciflo."""

@@ -9,8 +9,7 @@
       <context_file>_context.json</context_file>
     </sf:inputs>
     <sf:outputs>
-      <!--<datasets from="@#enumerate"/>-->
-      <project from="@#resolve_source"/>
+      <datasets from="@#enumerate"/>
     </sf:outputs>
 
     <sf:processes>
@@ -20,27 +19,7 @@
           <context_file/>
         </sf:inputs>
         <sf:outputs>
-	  <project/>
-          <auto_bbox/>
-	  <bbox/>
-	  <dataset/>
-	  <identifier/>
-	  <download_url/>
-	  <dataset_type/>
-	  <ipf/>
-	  <archive_filename/>
-          <query/>
-          <aoi/>
-          <dem_type/>
-          <spyddder_extract_version/>
-          <standard_product_version/>
-          <queue/>
-          <priority/>
-	  <preReferencePairDirection/>
-          <postReferencePairDirection/>
-          <temporalBaseline/>
-	  <singlesceneOnly/>
-	  <precise_orbit_only/>
+	  <acq_array/>
         </sf:outputs>
         <sf:operator>
           <sf:description></sf:description>
@@ -50,30 +29,9 @@
         </sf:operator>
       </sf:process>
       
-<!--
       <sf:process id="enumerate">
         <sf:inputs>
-	  <project from="@#previous"/>
-          <auto_bbox from="@#previous"/>
-	  <bbox from="@#previous"/>
-          <dataset from="@#previous"/>
-          <identifier from="@#previous"/>
-          <download_url from="@#previous"/>
-          <dataset_type from="@#previous"/>
-	  <ipf from="@#previous"/>
-          <archive_filename from="@#previous"/>
-          <query from="@#previous"/>
-          <aoi from="@#previous"/>
-          <dem_type from="@#previous"/>
-          <spyddder_extract_version from="@#previous"/>
-          <standard_product_version from="@#previous"/>
-          <queue from="@#previous"/>
-          <priority from="@#previous"/>
-          <preReferencePairDirection from="@#previous"/>
-          <postReferencePairDirection from="@#previous"/>
-          <temporalBaseline from="@#previous"/>
-          <singlesceneOnly from="@#previous"/>
-          <precise_orbit_only from="@#previous"/>
+	  <acq_arrayt from="@#previous"/>
         </sf:inputs>
         <sf:outputs>
           <datasets/>
@@ -81,11 +39,11 @@
         <sf:operator>
           <sf:description></sf:description>
           <sf:op>
-	    <sf:binding>python:?enumerate_acquisition.get_topsapp_cfgs_standard_product</sf:binding>
+	    <sf:binding>python:?enumerate_acquisition.enumerate_acquisations_array</sf:binding>
           </sf:op>
         </sf:operator>
       </sf:process>
-      
+ <!--
       <sf:process id="submit_sling">
         <sf:inputs>
           <spyddder_extract_version from="@#previous"/>
@@ -107,8 +65,7 @@
           </sf:op>
         </sf:operator>
       </sf:process>
--->
-
+ -->
     </sf:processes>
   </sf:flow>
 </sf:sciflo>
