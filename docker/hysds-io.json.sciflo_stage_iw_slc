@@ -29,10 +29,6 @@
     { 
       "name": "job_priority",
       "from": "submitter"
-    },
-    {
-      "name": "job_priority",
-      "from": "submitter"
     }
   ]
 }
