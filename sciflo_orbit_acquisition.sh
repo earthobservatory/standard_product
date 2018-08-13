@@ -17,15 +17,16 @@ export PATH=$BASE_PATH:$TROPMAP_HOME:$GMT_HOME/bin:$PATH
 # source environment
 source $HOME/verdi/bin/activate
 
+
 echo "##########################################" 1>&2
-echo -n "Running Orbit to Acquisitions sciflo: " 1>&2
+echo -n "Running S1 Orbit to Acquisition sciflo: " 1>&2
 date 1>&2
 /usr/bin/python $BASE_PATH/sciflo_orbit_acquisition.py > sciflo_orbit_acquisition.log 2>&1
 STATUS=$?
 echo -n "Finished running Orbit to Acquisition sciflo: " 1>&2
 date 1>&2
 if [ $STATUS -ne 0 ]; then
-  echo "Failed to run echo -n "Finished running sciflo." 1>&2
+  echo "Failed to run orbit acquisition sciflo." 1>&2
   cat sciflo_orbit_acquisition.log 1>&2
   echo "{}"
   exit $STATUS
