@@ -38,6 +38,10 @@
     {
       "name": "job_priority",
       "destination": "context"
+    },
+    {
+      "name": "job_priority",
+      "from": "context"
     }
   ]
 }
