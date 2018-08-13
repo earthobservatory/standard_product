@@ -31,7 +31,7 @@
       
       <sf:process id="enumerate">
         <sf:inputs>
-	  <acq_arrayt from="@#previous"/>
+	  <acq_array from="@#previous"/>
         </sf:inputs>
         <sf:outputs>
           <datasets/>

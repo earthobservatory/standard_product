@@ -540,7 +540,7 @@ def enumerate_acquisations_array(acq_array):
     for acq_id in enumerate_dict.keys():
 	logger.info("\nFor Acq %s, the matched pairs are : %s" %(acq_id, enumerate_dict[acq_id]))
 
-    enumerate_dict
+    return enumerate_dict
 
 def enumerate_acquisations_standard_product(acq_id, project, spyddder_extract_version, aoi, priority, queue):
 
