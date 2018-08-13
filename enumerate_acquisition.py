@@ -29,7 +29,7 @@ class ACQ:
 	self.pv = pv
 	self.direction = direction
         self.orbitnumber = orbitnumber
-        print("%s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, pv))
+        #print("%s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, pv))
 
 
 
@@ -71,13 +71,13 @@ def run_acq_query(query):
     r = requests.post(search_url, data=json.dumps(query))
 
     if r.status_code != 200:
-        print("Failed to query %s:\n%s" % (es_url, r.text))
-        print("query: %s" % json.dumps(query, indent=2))
-        print("returned: %s" % r.text)
+        logger.info("Failed to query %s:\n%s" % (es_url, r.text))
+        logger.info("query: %s" % json.dumps(query, indent=2))
+        logger.info("returned: %s" % r.text)
         r.raise_for_status()
 
     result = r.json()
-    print(result['hits']['total'])
+    #print(result['hits']['total'])
     return result['hits']['hits']
 
 def get_overlapping_slaves_query(master):
@@ -297,7 +297,7 @@ def get_union_geometry(acq_dict):
 def group_acqs_by_orbitnumber(frames):
     grouped = {}
     acq_info = {}
-    print("frame length : %s" %len(frames))
+    #print("frame length : %s" %len(frames))
     for acq in frames:
 	acq_data = acq['fields']['partial'][0]
 	acq_id = acq['_id']
@@ -345,7 +345,7 @@ def group_frames_by_track_date(frames):
     for h in frames: 
         if h['_id'] in hits: continue
         fields = h['fields']['partial'][0]
-        print("h['_id'] : %s" %h['_id'])
+        #print("h['_id'] : %s" %h['_id'])
 
         # get product url; prefer S3
         prod_url = fields['urls'][0]
@@ -354,7 +354,7 @@ def group_frames_by_track_date(frames):
                 if u.startswith('s3://'):
                     prod_url = u
                     break
-        print("prod_url : %s" %prod_url)
+        #print("prod_url : %s" %prod_url)
         hits[h['_id']] = "%s/%s" % (prod_url, fields['metadata']['archive_filename'])
         match = SLC_RE.search(h['_id'])
         #print("match : %s" %match)
@@ -389,7 +389,7 @@ def group_frames_by_track_date(frames):
         metadata[h['_id']] = fields['metadata']
 	#break
     #print("grouped : %s" %grouped)
-    print("grouped keys : %s" %grouped.keys())
+    logger.info("grouped keys : %s" %grouped.keys())
     return {
         "hits": hits,
         "grouped": grouped,
@@ -400,18 +400,25 @@ def group_frames_by_track_date(frames):
 
 
 def switch_references(candidate_pair_list, master_acq, slaves):
- 
+    logger.info("swithch reference initial  candidate_pair_list: %s" %candidate_pair_list)
     for slave in slaves:
 	query = get_overlapping_masters_query(master_acq, slave)
-	return find_candidate_pair(candidate_pair_list, slave, query, False, master_acq)
+	candidate_pair_list = find_candidate_pair(candidate_pair_list, slave, query, False, master_acq)
+        logger.info("swithch reference returning  candidate_pair_list: %s" %candidate_pair_list)
+        return candidate_pair_list
 
 
 def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=None):
+    logger.info("find_candidate_pair candidate_pair_list: %s" %candidate_pair_list)
+    '''
+    if len(candidate_pair_list)>=MIN_MAX:
+     	logger.info("returning as Min_MAX satisfied")
+  	return candidate_pair_list
+    '''
     matched_acqs = process_query(query)
     #for acq in matched_acqs:
 	#logger.info(acq["_id"])
     #exit(0)
-    
 
     grouped_matched = group_acqs_by_orbitnumber(matched_acqs)
     matched_ids = grouped_matched["acq_info"].keys()
@@ -477,19 +484,24 @@ def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=No
 			else:
 			    master_acqs=[matched_acqs2]
 			    slave_acqs=[ref_acq.acq_id[0]]
-
+			logger.info("find_candidate_pair, before adding to  candidate_pair_list: %s" %candidate_pair_list)
                  	logger.info("\n\n\nmaster urls : %s" %master_acqs)
 			logger.info("slave urls : %s" %slave_acqs)
 			candidate_pair_list.append({"master_acqs" : master_acqs, "slave_acqs" : slave_acqs})
+			logger.info("find_candidate_pair, after adding to  candidate_pair_list: %s" %candidate_pair_list)
+			logger.info("find_candidate_pair, after adding to  candidate_pair_list: %s" %len(candidate_pair_list))
 			if len(candidate_pair_list)>=MIN_MAX:
+			    logger.info("returning as Min_MAX satisfied")
 			    return candidate_pair_list
 			#return {"master_acqs" : master_acqs, "slave_acqs" : slave_acqs}
 		    else:
 			logger.info("we have NOT found a match. So switching slaves...")
 			if switch:
                             candidate_pair_list.extend(switch_references(candidate_pair_list, ref_acq, matched_acqs))
+			    '''
 			    if len(candidate_pair_list)>=MIN_MAX:
                                 return candidate_pair_list
+			    '''
 
 		else:
 		    logger.info("No Overlapped Acq for track: %s orbit_number: %s process version: %s" %(track, orbitnumber, pv))
@@ -533,8 +545,10 @@ def enumerate_acquisations_array(acq_array):
     logger.info("\n\n\nenumerate_acquisations_array Length : %s" %len(acq_array))
     for acq_data in acq_array:
 	logger.info("\n\n Processing Acquisition : %s" %acq_data['acq_id'])
-	enumerate_dict[acq_data['acq_id']] =  enumerate_acquisations_standard_product(acq_data['acq_id'], acq_data['project'], acq_data['spyddder_extract_version'], acq_data['aoi'], acq_data['job_priority'], acq_data['queue'])
+	candidate_pair_list =  enumerate_acquisations_standard_product(acq_data['acq_id'], acq_data['project'], acq_data['spyddder_extract_version'], acq_data['aoi'], acq_data['job_priority'], acq_data['queue'])
 
+
+    logger.info("enumerate_acquisations_array  before adding to enumerate_dict: candidate_pair_list: %s" %candidate_pair_list)
 
     logger.info("\n\n\n\nFinal Result:")
     for acq_id in enumerate_dict.keys():
@@ -552,8 +566,8 @@ def enumerate_acquisations_standard_product(acq_id, project, spyddder_extract_ve
     acq = util.get_complete_acquisition_data(acq_id)[0]
     #print(acq)
     acq_data = acq['_source']
-    print(acq_data['metadata']['download_url'])
-    print(acq_data['starttime'])
+    #print(acq_data['metadata']['download_url'])
+    #print(acq_data['starttime'])
     master_acq = ACQ(acq['_id'], acq_data['metadata']['download_url'], acq_data['metadata']['trackNumber'], acq_data['location'], acq_data['starttime'], acq_data['endtime'], acq_data['metadata']['direction'], acq_data['metadata']['orbitNumber'], acq_data['metadata']['processing_version'])
     master_scene = {
      'id': acq['_id'],
@@ -569,7 +583,7 @@ def enumerate_acquisations_standard_product(acq_id, project, spyddder_extract_ve
     query = get_overlapping_slaves_query(master_acq)
 
     candidate_pair_list = find_candidate_pair(candidate_pair_list, master_acq, query, True)
-
+    logger.info("enumerate_acquisations_standard_product before returning candidate_pair_list: %s" %candidate_pair_list)
     #logger.info("\n\nFinal Result: length : %s" %len(candidate_pair_list))
     #logger.info(candidate_pair_list)
     return candidate_pair_list
