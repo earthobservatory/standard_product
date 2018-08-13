@@ -1,5 +1,5 @@
 {
-  "command":"/home/ops/verdi/ops/standard_product/run_sciflo.sh",
+  "command":"/home/ops/verdi/ops/standard_product/sciflo_orbit_acquisition.sh",
   "imported_worker_files": {
     "/home/ops/.netrc": "/home/ops/.netrc",
     "/home/ops/.aws": "/home/ops/.aws",
