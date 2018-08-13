@@ -176,6 +176,41 @@ def check_ES_status(doc_id):
 
     logging.info("Job status updated on ES to %s"%str(result["hits"]["hits"][0]["_source"]["status"]))
     return True
+def get_complete_acquisition_data(id):
+    es_url = app.conf.GRQ_ES_URL
+    es_index = "grq_*_*acquisition*"
+    query = {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "term": {
+                "_id": id
+              }
+            }
+          ]
+        }
+      }
+    }
+
+
+    print(query)
+
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+    print(result['hits']['total'])
+    return result['hits']['hits']
 
 
 def get_acquisition_data(id):
