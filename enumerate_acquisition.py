@@ -487,7 +487,7 @@ def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=No
 		    else:
 			logger.info("we have NOT found a match. So switching slaves...")
 			if switch:
-                            candidate_pair_list.extend(switch_references(ref_acq, matched_acqs))
+                            candidate_pair_list.extend(switch_references(candidate_pair_list, ref_acq, matched_acqs))
 			    if len(candidate_pair_list)>=MIN_MAX:
                                 return candidate_pair_list
 
