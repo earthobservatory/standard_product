@@ -26,7 +26,7 @@ echo -n "Finished running Orbit to Acquisition sciflo: " 1>&2
 date 1>&2
 if [ $STATUS -ne 0 ]; then
   echo "Failed to run echo -n "Finished running sciflo." 1>&2
-  cat sciflo_create_ifg.log 1>&2
+  cat sciflo_orbit_acquisition.log 1>&2
   echo "{}"
   exit $STATUS
 fi
