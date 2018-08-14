@@ -544,19 +544,83 @@ def enumerate_acquisations_array(acq_array):
 
     logger.info("\n\n\nenumerate_acquisations_array Length : %s" %len(acq_array))
     for acq_data in acq_array:
-	logger.info("\n\n Processing Acquisition : %s" %acq_data['acq_id'])
-	candidate_pair_list =  enumerate_acquisations_standard_product(acq_data['acq_id'], acq_data['project'], acq_data['spyddder_extract_version'], acq_data['aoi'], acq_data['job_priority'], acq_data['queue'])
+        try:
+	    logger.info("\n\n Processing Acquisition : %s" %acq_data['acq_id']
+	    candidate_pair_list =  enumerate_acquisations_standard_product(acq_data['acq_id'])
 
 
-    logger.info("enumerate_acquisations_array  before adding to enumerate_dict: candidate_pair_list: %s" %candidate_pair_list)
+def submit_sling_job(candidate_pair_list, acq_data):
 
+    
+    for candidate_pair in candidate_pair_list:
+	
+        product_name="standard_product"
+		
+	job_spec = "job-standard_product_localizer" #:{0}".format(spec_version)
+     	time = datetime.datetime.utcnow()
+     	job_name = "{0}-{1}-{2}".format(job_spec, product_name, rtime.strftime("%d_%b_%Y_%H:%M:%S"))
+    	job_name = job_name.lstrip('job-')
+    	print("Job_name : %s\n" %job_name)
+    	#Setup input arguments here
+    	rule = {
+        		"rule_name": "standard_product_sling",
+        		#"queue": queue, # job submission queue
+        		"priority": priority,
+        		"kwargs":'{}'
+    	}
+
+	params = [
+            	{
+                    "name": "project",
+                    "from": "value",
+                    "value": acq_data["project"]
+             	},
+		{
+                    "name": "master_acquisitions",
+                    "from": "value",
+                    "value": candidate["master_acqs"]
+                },
+		{
+                    "name": "slave_acquisitions",
+                    "from": "value",
+                    "value": candidate["slave_acqs"]
+                },
+		{
+                    "name": "spyddder_extract_version",
+                    "from": "value",
+                    "value": acq_data["spyddder_extract_version"]
+                },
+		{
+                    "name": "aoi",
+                    "from": "value",
+                    "value": acq_data["aoi"]
+                },
+		{
+                    "name": "job_priority",
+                    "from": "value",
+                    "value": acq_data["job_priority"]
+                }
+    	    ]
+
+	submit_mozart_job({}, rule,
+                      hysdsio={"id": "internal-temporary-wiring",
+                              "params": params,
+                              "job-specification": job_spec},
+                      job_name=job_name, enable_dedup=True)
+
+
+        return acq_data['project'], acq_data['spyddder_extract_version'], acq_data['aoi'], acq_data['job_priority'], acq_data['queue'])
+
+
+    '''
     logger.info("\n\n\n\nFinal Result:")
     for acq_id in enumerate_dict.keys():
 	logger.info("\nFor Acq %s, the matched pairs are : %s" %(acq_id, enumerate_dict[acq_id]))
 
     return enumerate_dict
+    '''
 
-def enumerate_acquisations_standard_product(acq_id, project, spyddder_extract_version, aoi, priority, queue):
+def enumerate_acquisations_standard_product(acq_id):
 
     
     
@@ -587,6 +651,10 @@ def enumerate_acquisations_standard_product(acq_id, project, spyddder_extract_ve
     #logger.info("\n\nFinal Result: length : %s" %len(candidate_pair_list))
     #logger.info(candidate_pair_list)
     return candidate_pair_list
+
+
+
+def submit_sling_job(enumerate_dict, project, spyddder_extract_version, aoi, priority, queue)
 
 
 if __name__ == "__main__":
