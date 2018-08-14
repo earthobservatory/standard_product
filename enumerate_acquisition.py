@@ -548,7 +548,7 @@ def enumerate_acquisations_array(acq_array):
 	    logger.info("\n\n Processing Acquisition : %s" %acq_data['acq_id']
 	    candidate_pair_list =  enumerate_acquisations_standard_product(acq_data['acq_id'])
 	    enumerate_dict[acq_data['acq_id']] = candidate_pair_list
-	    submit_sling_job(candidate_pair_list, acq_data)
+	    #submit_sling_job(candidate_pair_list, acq_data)
 
 	except Exception as err:
 	    logger.info("Error processing acquisition : %s" %acq_data['acq_id'])
