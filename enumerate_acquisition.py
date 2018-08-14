@@ -547,6 +547,18 @@ def enumerate_acquisations_array(acq_array):
         try:
 	    logger.info("\n\n Processing Acquisition : %s" %acq_data['acq_id']
 	    candidate_pair_list =  enumerate_acquisations_standard_product(acq_data['acq_id'])
+	    enumerate_dict[acq_data['acq_id']] = candidate_pair_list
+	    submit_sling_job(candidate_pair_list, acq_data)
+
+	except Exception as err:
+	    logger.info("Error processing acquisition : %s" %acq_data['acq_id'])
+	    logger.info(str(err))
+	    
+    logger.info("\n\n\n\nFinal Result:")
+    for acq_id in enumerate_dict.keys():
+        logger.info("\nFor Acq %s, the matched pairs are : %s" %(acq_id, enumerate_dict[acq_id]))
+
+    return enumerate_dict
 
 
 def submit_sling_job(candidate_pair_list, acq_data):
