@@ -31,10 +31,6 @@
       "name": "spyddder_extract_version",
       "destination": "context"
     },
-    { 
-      "name": "standard_product_version",
-      "destination": "context"
-    },
     {
       "name": "job_priority",
       "destination": "context"

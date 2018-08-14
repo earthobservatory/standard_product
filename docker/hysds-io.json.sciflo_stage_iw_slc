@@ -23,10 +23,6 @@
       "from": "submitter"
     },
     { 
-      "name": "standard_product_version",
-      "from": "submitter"
-    },
-    { 
       "name": "job_priority",
       "from": "submitter"
     }

@@ -8,10 +8,12 @@
       "from": "value",
       "value": "orbit_acquisition_enumerator_standard_product.sf.xml"
     },
-    { 
+    {
       "name": "project",
-      "from": "value",
-      "value": "standard_product"
+      "from": "submitter",
+      "type": "enum",
+      "default": "grfn",
+      "enumerables": ["aria", "grfn", "mem", "urgent-response", "dwr"]
     },
     { 
       "name": "dataset_version",
