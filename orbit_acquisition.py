@@ -447,6 +447,8 @@ def resolve_aoi_acqs(ctx_file):
     #standard_product_version= ctx['standard_product_version']
     project = ctx['project']
     priority = ctx["job_priority"]
+    job_type, job_version = ctx['job_specification']['id'].split(':') 
+    acquisitions = []
     acquisition_array =[]
 
     for id in sorted(acq_info):
@@ -455,7 +457,7 @@ def resolve_aoi_acqs(ctx_file):
         logging.info("\n\nPrinting AOI : %s, Acq : %s" %(aoi, id))
             #print(acq)
 
-    	#job_type = "sciflo_stage_iw_slc:{}".format(ctx['stage_iw_slc_version'])
+    	job_type = "sciflo_stage_iw_slc:{}".format(ctx['stage_iw_slc_version'])
        
 	    #return id, project, spyddder_extract_version, aoi, priority, queue
 
@@ -465,16 +467,20 @@ def resolve_aoi_acqs(ctx_file):
             "project" : project,
             #"identifier" : acq['metadata']['identifier'],
 	    "spyddder_extract_version" : spyddder_extract_version,
-	    #"standard_product_version" : ctx['standard_product_version'],
 	    "aoi" : aoi,
-	    "job_priority" : ctx['job_priority'],
-	    "queue" : queue
+  	    "job_type" : job_type, 
+	    "job_version" : job_version,
+	    "job_priority" : ctx['job_priority']
 		
         } 
         acquisition_array.append(acq_data)
 
+    acquisitions.append(acquisition_array)
+
     logging.info("acquisition_array length : %s" %acquisition_array)
+    #return acquisitions
     return acquisition_array
+
     '''
         logging.info("acq identifier : %s " %identifier)
 	logging.info("acq city : %s " %acq['city'])
