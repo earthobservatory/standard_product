@@ -16,11 +16,11 @@ logger.setLevel(logging.INFO)
 BASE_PATH = os.path.dirname(__file__)
 
 
-class SLC:
-    def __init__(self, slc_id, download_url, ds_status, job_id=None, job_status = None):
-	self.slc_id=slc_id
-	self.download_url = download_url
-	self.ds_status = ds_status
+class ACQ:
+    def __init__(self, acq_id, acq_data, localized=False, job_id=None, job_status = None):
+	self.acq_id=acq_id
+	self.acq_data = acq_data
+	self.localized = localized
         self.job_id = job_id
 	self.job_status = job_status
 
@@ -47,7 +47,7 @@ def get_job_status(job_id):
     #print ("Job INFO retrieved from ES: %s"%json.dumps(result))
     #print ("Type of status from ES: %s"%type(result["_source"]["status"]))
     status = str(result["_source"]["status"])
-    if  status == "job-deduped":
+    if status == "job-deduped":
         logger.info("Job was deduped")
         print("Job was deduped")
         #query ES for the original job's status
@@ -77,9 +77,9 @@ def get_job_status(job_id):
 
     return return_job_status, return_job_id
 
-def check_slc_status(acq_id, index_suffix):
+def check_slc_status(slc_id, index_suffix):
 
-    result = util.get_dataset(acq_id, index_suffix)
+    result = util.get_dataset(slc_id, index_suffix)
     total = result['hits']['total']
 
     if total > 0:
@@ -93,7 +93,7 @@ def resolve_source(master_acqs, slave_acqs):
 
 
     # get settings
-    '''
+    
     context_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_context_sling.json')
     with open(context_file) as f:
         ctx = json.load(f)
@@ -108,82 +108,85 @@ def resolve_source(master_acqs, slave_acqs):
     
 
     # build args
-    spyddder_extract_versions = ctx["spyddder_extract_versions"]
-    standard_product_versions = ["standard_product_versions"]
-    master_acqs = ["master_acquisations"]
-    slave_acqs = ["slave_acquisations"]
+    project = ctx["project"]
+    master_acqs = ctx["master_acquisitions"]
+    slave_acqs = ctx["slave_acquisitions"]
+    spyddder_extract_version = ctx["spyddder_extract_version"]
+    job_priority = ctx["job_priority"]
+    job_type, job_version = ctx['job_specification']['id'].split(':') 
+
     queues = []  # where should we get the queue value
     identifiers = []
     prod_dates = []
-    priorities = []
-    '''
+   
 
-    slc_info = {}
+    acq_info = {}
     
-    index_suffix = "S1-IW_SLC"
+    index_suffix = "S1-IW_ACQ"
 
 
 
-    # Find out status of all Master SLCs, create a SLC object with that and update slc_info dictionary
+    # Find out status of all Master ACQs, create a ACQ object with that and update acq_info dictionary
     for acq in master_acqs:
-        logger.info(acq)
-	acq_data = util.get_acquisition_data(acq)[0]['fields']['partial'][0]
-	slc_id = acq_data['metadata']['identifier']
-        download_url = acq_data['metadata']['download_url']
- 	status = check_slc_status(slc_id, index_suffix)
-        if status:
-	    # status=1
-            logger.info("%s exists" %slc_id)
-	    slc_info[slc_id]=SLC(slc_id, download_url, 1)
-	else:
-	    # status=1
-            logger.info("%s exists" %slc_id)
-	    logger.info(download_url)
-	    slc_info[slc_id]=SLC(slc_id, download_url, 0)
 
-    # Find out status of all Slave SLCs, create a SLC object with that and update slc_info dictionary
+	logger.info(acq)
+        #acq_data = util.get_acquisition_data(acq)[0]['fields']['partial'][0]
+        acq_data = util.get_partial_grq_data(acq)['fields']['partial'][0]
+        status = check_slc_status(acq_data['metadata']['identifier'], index_suffix)
+        if status:
+            # status=1
+            logger.info("%s exists" %acq_id)
+            acq_info[id]=ACQ(acq_id, acq_data, 1)
+        else:
+            #status = 0
+            logger.info("%s does NOT exist"%acq_id)
+            acq_info[acq_id]=ACQ(acq_id, acq_data, 0)
+
+
+    # Find out status of all Slave ACQs, create a ACQ object with that and update acq_info dictionary
     for acq in slave_acqs:
         logger.info(acq)
-        acq_data = util.get_acquisition_data(acq)[0]['fields']['partial'][0]
-        slc_id = acq_data['metadata']['identifier']
-        download_url = acq_data['metadata']['download_url']
-        status = check_slc_status(slc_id, index_suffix)
+        #acq_data = util.get_acquisition_data(acq)[0]['fields']['partial'][0]
+	acq_data = util.get_partial_grq_data(acq)['fields']['partial'][0]
+        status = check_slc_status(acq_data['metadata']['identifier'], index_suffix)
         if status:
 	    # status=1
-            logger.info("%s exists" %slc_id)
-	    slc_info[slc_id]=SLC(slc_id, download_url, 1)
+            logger.info("%s exists" %acq_id)
+	    acq_info[id]=ACQ(acq_id, acq_data, 1)
         else:
 	    #status = 0
-	    logger.info("%s does NOT exist"%slc_id)
-	    slc_info[slc_id]=SLC(slc_id, download_url, 0)
+	    logger.info("%s does NOT exist"%acq_id)
+	    acq_info[acq_id]=ACQ(acq_id, acq_data, 0)
             logger.info(download_url)
 
-    sling(slc_info)
+    sling(acq_info)
 
-def sling(slc_info):
+def sling(acq_info):
     '''
-	This function checks if any SLC that has not been ingested yet and sling them.
+	This function checks if any ACQ that has not been ingested yet and sling them.
     '''
     i = 0
     sleep_seconds = 30
-    # slc_info has now all the SLC's status. Now submit the Sling job for the one's whose status = 0 and update the slc_info with job id
-    for slc_id in slc_info.keys():
+    # acq_info has now all the ACQ's status. Now submit the Sling job for the one's whose status = 0 and update the slc_info with job id
+    for acq_id in acq_info.keys():
         i = i+1
 
-	if not slc_info[slc_id].ds_status:
-	    download_url = slc_info[slc_id].download_url
+	if not acq_info[acq_id].localized:
+	    metadata = acq_info[acq_id].acq_data['metadata']
+
+	    download_url = acq_info[acq_id].download_url
 	    print ("Submitting sling job for %s" %download_url)
 	    job_id = submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, prod_date, priority, aoi)
-	    if i==1:
-                job_id = "b618cbb0-0682-4885-95c7-2d78c81b0452"
+	    #if i==1:
+             #   job_id = "b618cbb0-0682-4885-95c7-2d78c81b0452"
  
-	    slc_info[slc_id].job_id = job_id
+	    acq_info[acq_id].job_id = job_id
 	    #job_status, new_job_id  = get_job_status(job_id)
-	    if i==1:
-		job_id = "b618cbb0-0682-4885-95c7-2d78c81b0452"
-	    slc_info[slc_id].job_id = job_id
-	    slc_info[slc_id].job_id = new_job_id
-	    slc_info[slc_id].job_id = job_status
+	    #if i==1:
+	    #	job_id = "b618cbb0-0682-4885-95c7-2d78c81b0452"
+	    acq_info[acq_id].job_id = job_id
+	    acq_info[acq_id].job_id = new_job_id
+	    acq_info[acq_id].job_id = job_status
 
 
     # Now loop in until all the jobs are completed 
@@ -191,28 +194,28 @@ def sling(slc_info):
 
     while not all_done:
 
-        for slc_id in slc_info.keys():
-            if not slc_info[slc_id].ds_status: 
-		job_status, job_id  = get_job_status(slc_info[slc_id].job_id)  
+        for acq_id in acq_info.keys():
+            if not acq_info[acq_id].localized: 
+		job_status, job_id  = get_job_status(acq_info[acq_id].job_id)  
   		if job_status == "job-completed":
 		    logger.info("Success! sling job for slc : %  with job id : %s COMPLETED!!")
-		    slc_info[slc_id].job_id = job_id
-		    slc_info[slc_id].job_status = job_status
+		    acq_info[acq_id].job_id = job_id
+		    acq_info[acq_id].job_status = job_status
 		elif job_status == "job-failed":
-		    download_url = slc_info[slc_id].download_url
+		    download_url = acq_info[acq_id].download_url
            	    print ("Submitting sling job for %s" %download_url)
             	    job_id = submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, prod_date, priority, aoi)
-            	    slc_info[slc_id].job_id = job_id
+            	    acq_info[acq_id].job_id = job_id
             	    job_status, new_job_id  = get_job_status(job_id)
-            	    slc_info[slc_id].job_id = new_job_id
-            	    slc_info[slc_id].job_id = job_status
+            	    acq_info[acq_id].job_id = new_job_id
+            	    acq_info[acq_id].job_id = job_status
 		else:
-		    slc_info[slc_id].job_id = job_id
-                    slc_info[slc_id].job_status = job_status
-		    logger.info("Sling Job for SLC : %s status: "%slc_info[slc_id])
-		    logger.info("Job id : %s. Job Status : %s" %(slc_info[slc_id].job_id, slc_info[slc_id].job_status))
+		    acq_info[acq_id].job_id = job_id
+                    acq_info[acq_id].job_status = job_status
+		    logger.info("Sling Job for ACQ : %s status: "%acq_info[acq_id])
+		    logger.info("Job id : %s. Job Status : %s" %(acq_info[acq_id].job_id, slc_info[acq_id].job_status))
 
-	all_done = check_all_job_completed(slc_info)
+	all_done = check_all_job_completed(acq_info)
 	if not all_done:
 	    time.sleep(sleep_seconds)
 
@@ -224,10 +227,10 @@ def sling(slc_info):
 
     while not all_exists:
         all_exists = True
-	for slc_id in slc_info.keys():
-            if not slc_info[slc_id].ds_status:
- 		slc_info[slc_id].ds_status = check_slc_status(slc_id, index_suffix)
-		if not slc_info[slc_id].ds_status:
+	for acq_id in acq_info.keys():
+            if not acq_info[acq_id].localized:
+ 		acq_info[acq_id].localized = check_slc_status(acq_id, index_suffix)
+		if not acq_info[acq_id].localized:
 		    all_exists = False
 		    break
 	if not all_exists:
@@ -243,19 +246,19 @@ def submit_create_ifg_job():
     pass	
 
 
-def check_all_job_completed(slc_info):
+def check_all_job_completed(acq_info):
     all_done = True
-    for slc_id in slc_info.keys():
-        if not slc_info[slc_id].status:  
-	    job_status = slc_info[slc_id].job_status
+    for acq_id in acq_info.keys():
+        if not acq_info[acq_id].status:  
+	    job_status = acq_info[acq_id].job_status
 	    if not job_status == "job-completed":	
 		all_done = False
 		break
     return all_done
 
 
-#def submit_sling_job(spyddder_extract_version, queue, localize_url, file, prod_name, prod_date, priority, aoi, wuid=None, job_num=None):
-def submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, prod_date, priority, aoi, wuid=None, job_num=None):
+def submit_sling_job(project, spyddder_extract_version, acq_data, priority,  wuid=None, job_num=None):
+
     """Map function for spyddder-man extract job."""
 
     if wuid is None or job_num is None:
@@ -264,37 +267,56 @@ def submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, p
     # set job type and disk space reqs
     job_type = "job-spyddder-extract:{}".format(spyddder_extract_version)
 
-    # resolve hysds job
+     # set job type and disk space reqs
+    disk_usage = "300GB"
+
+    # set job queue based on project
+    job_queue = "%s-job_worker-large" % project
     params = {
-        "localize_url": localize_url,
-        #"file": file,
-
-        "prod_name": prod_name,
-        "prod_date": prod_date,
-        "aoi": aoi,
-    }
-    job = resolve_hysds_job(job_type, queue, priority=priority, params=params, 
+	"project": project,
+	"spyddder_extract_version": spyddder_extract_version,
+	"dataset_type" : acq_data["dataset_type"],
+	"dataset": acq_data["dataset"],
+  	"identifier": acq_data["metadata"]["identifier"],
+	"download_url": acq_data["metadata"]["download_url"],
+	"archive_filename": acq_data["metadata"]["archive_filename"],
+	"prod_met": acq_data["metadata"]
+	}
+    job = resolve_hysds_job(job_type, job-queue, priority=priority, params=params,
                             job_name="%s-%s-%s" % (job_type, aoi, prod_name))
-
-    # save to archive_filename if it doesn't match url basename
-    if os.path.basename(localize_url) != file:
-        job['payload']['localize_urls'][0]['local_path'] = file
+ 
 
     # add workflow info
     job['payload']['_sciflo_wuid'] = wuid
     job['payload']['_sciflo_job_num'] = job_num
-    print("job: {}".format(json.dumps(job, indent=2)))
+    print("job: {}".format(json.dumps(job, indent=2))
+
+
 
     return job
     
 
 def main():
-    master_acqs = ["acquisition-S1A_IW_SLC__1SDV_20180702T135953_20180702T140020_022616_027345_3578"]
-    slave_acqs = ["acquisition-S1B_IW_SLC__1SDV_20180720T015751_20180720T015819_011888_015E1C_3C64"]
-    resolve_source(master_acqs, slave_acqs)
+    #master_acqs = ["acquisition-S1A_IW_ACQ__1SDV_20180702T135953_20180702T140020_022616_027345_3578"]
+    #slave_acqs = ["acquisition-S1B_IW_ACQ__1SDV_20180720T015751_20180720T015819_011888_015E1C_3C64"]
+    master_acqs = ["acquisition-S1A_IW_ACQ__1SDV_20180807T135955_20180807T140022_023141_02837E_DA79"]
+    slave_acqs =["acquisition-S1A_IW_ACQ__1SDV_20180714T140019_20180714T140046_022791_027880_AFD3", "acquisition-S1A_IW_ACQ__1SDV_20180714T135954_20180714T140021_022791_027880_D224", "acquisition-S1A_IW_ACQ__1SDV_20180714T135929_20180714T135956_022791_027880_9FCA"]
 
+
+    #acq_data= util.get_partial_grq_data("acquisition-S1A_IW_ACQ__1SDV_20180702T135953_20180702T140020_022616_027345_3578")['fields']['partial'][0]
+    acq_data= util.get_partial_grq_data("acquisition-S1A_IW_SLC__1SSV_20160630T135949_20160630T140017_011941_01266D_C62F")['fields']['partial'][0]
+    print(acq_data) 
     
-
+    #resolve_source(master_acqs, slave_acqs)
+    print(acq_data["dataset_type"])
+    print(acq_data["dataset"])    
+    print(acq_data["metadata"]["identifier"]) 
+    print(acq_data["metadata"]["download_url"])
+    print(acq_data["metadata"]["archive_filename"])
+    #print(acq_data["metadata"][""])
 if __name__ == "__main__":
     main()
+
+
+
 
