@@ -161,9 +161,23 @@ def resolve_source(master_acqs, slave_acqs):
 	    acq_info[acq_id]=ACQ(acq_id, acq_type, acq_data, 0)
             logger.info(download_url)
 
-    sling(acq_info)
+    acq_infoes =[]
+    projects = []
+    job_prorities = []
+    job_types = []
+    job_versions = []
+    spyddder_extract_versions = []
 
-def sling(acq_info, project, job_priority, job_type, job_version):
+    acq_infoes.append(acq_info)
+    projects.append(project)
+    job_prorities.append(job_priority)
+    job_types.append(job_type)
+    job_versions.append(job_version)
+    spyddder_extract_versions.append(spyddder_extract_version)
+
+    return acq_infoes, spyddder_extract_version, projects, job_prorities, job_types, job_versions
+
+def sling(acq_info, spyddder_extract_version, project, job_priority, job_type, job_version):
     '''
 	This function checks if any ACQ that has not been ingested yet and sling them.
     '''
@@ -172,11 +186,9 @@ def sling(acq_info, project, job_priority, job_type, job_version):
     for acq_id in acq_info.keys():
 
 	if not acq_info[acq_id].localized:
-	    metadata = acq_info[acq_id].acq_data['metadata']
-
-	    download_url = acq_info[acq_id].download_url
-	    print ("Submitting sling job for %s" %download_url)
-	    job_id = submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, prod_date, priority, aoi)
+	    acq_data = acq_info[acq_id].acq_data
+	    job_id = submit_sling_job(project, spyddder_extract_version, acq_data, job_priority)
+	    #submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, prod_date, priority, aoi)
 	    #if i==1:
              #   job_id = "b618cbb0-0682-4885-95c7-2d78c81b0452"
  
@@ -195,6 +207,7 @@ def sling(acq_info, project, job_priority, job_type, job_version):
     while not all_done:
 
         for acq_id in acq_info.keys():
+	    acq_data = acq_info[acq_id].acq_data
             if not acq_info[acq_id].localized: 
 		job_status, job_id  = get_job_status(acq_info[acq_id].job_id)  
   		if job_status == "job-completed":
@@ -204,7 +217,7 @@ def sling(acq_info, project, job_priority, job_type, job_version):
 		elif job_status == "job-failed":
 		    download_url = acq_info[acq_id].download_url
            	    print ("Submitting sling job for %s" %download_url)
-            	    job_id = submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, prod_date, priority, aoi)
+            	    job_id = job_id = submit_sling_job(project, spyddder_extract_version, acq_data, job_priority)
             	    acq_info[acq_id].job_id = job_id
             	    job_status, new_job_id  = get_job_status(job_id)
             	    acq_info[acq_id].job_id = new_job_id
@@ -238,8 +251,21 @@ def sling(acq_info, project, job_priority, job_type, job_version):
 
 
     # At this point, we have all the slc downloaded and we are ready to submit a create standard product job
-    
-    submit_create_ifg_job( acq_info, project, job_priority, job_type, job_version)
+    acq_infoes =[]
+    projects = []
+    job_prorities = []
+    job_types = []
+    job_versions = []
+
+    acq_infoes.append(acq_info)
+    projects.append(project)
+    job_prorities.append(job_priority)
+    job_types.append(job_type)
+    job_versions.append(job_version)
+
+   
+
+    return acq_infoes, projects, job_prorities, job_types, job_versions 
 
 
 
@@ -255,7 +281,7 @@ def check_all_job_completed(acq_info):
 		break
     return all_done
 
-def submit_create_ifg_job( acq_info, project, job_priority, job_type, job_version, wuid=None, job_num=None):
+def submit_ifg_job( acq_info, project, job_priority, job_type, job_version, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     if wuid is None or job_num is None:
@@ -280,7 +306,6 @@ def submit_create_ifg_job( acq_info, project, job_priority, job_type, job_versio
 
 	elif acq_type == "slave":
             slave_ids_list.append(identifier)
-
             if slave_ids_str=="":
                 slave_ids_str=identifier
             else:
@@ -324,7 +349,7 @@ def submit_create_ifg_job( acq_info, project, job_priority, job_type, job_versio
         }
     }
 
-def submit_sling_job(project, spyddder_extract_version, acq_data, priority,  wuid=None, job_num=None):
+def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
 
     """Map function for spyddder-man extract job."""
 
