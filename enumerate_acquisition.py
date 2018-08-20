@@ -113,7 +113,8 @@ def get_overlapping_slaves_query(master):
                                     }
                                 }},
 				{ "term": { "trackNumber": master.tracknumber }},
-				{ "term": { "direction": master.direction }}
+				{ "term": { "direction": master.direction }},
+				{ "term": { "platformname": "Sentinel-1"}}
 			    ],
 			"must_not": { "term": { "orbitNumber": master.orbitnumber }}
 			}
@@ -156,7 +157,8 @@ def get_overlapping_masters_query(master, slave):
                                 }},
 				{ "term": { "direction": master.direction }},
 	                        { "term": { "orbitNumber": master.orbitnumber }},
-			        { "term": { "trackNumber": master.tracknumber }}
+			        { "term": { "trackNumber": master.tracknumber }},
+				{ "term": { "platformname": "Sentinel-1"}}
 			    ]
 			}
                     }
