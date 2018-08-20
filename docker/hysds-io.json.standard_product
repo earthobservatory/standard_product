@@ -1,6 +1,6 @@
 {     
   "submission_type": "iteration",
-  "label": "S1 Standard Product",
+  "label": "Standard Product Orbit Initiator",
   "allowed_accounts": [ "ops" ],
   "params" : [ 
     {
