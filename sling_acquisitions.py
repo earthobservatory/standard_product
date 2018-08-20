@@ -14,7 +14,7 @@ logger.setLevel(logging.INFO)
 #logger.addFilter(LogFilter())
 
 BASE_PATH = os.path.dirname(__file__)
-
+MOZART_URL = app.conf['MOZART_URL']
 
 class ACQ:
     def __init__(self, acq_id, acq_type, acq_data, localized=False, job_id=None, job_status = None):
@@ -355,9 +355,12 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
 
     if wuid is None or job_num is None:
         raise RuntimeError("Need to specify workunit id and job num.")
+    acquisition_localizer_version = "develop"
+
+    job_submit_url = '%s/mozart/api/v0.1/job/submit' % MOZART_URL
 
     # set job type and disk space reqs
-    job_type = "job-spyddder-extract:{}".format(spyddder_extract_version)
+    job_type = "acquisition_localizer:{}".format(acquisition_localizer_version)
 
      # set job type and disk space reqs
     disk_usage = "300GB"
@@ -365,6 +368,15 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
 
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
+
+    rule = {
+        "rule_name": "standard-product-sling",
+        "queue": job_queue,
+        "priority": '5',
+        "kwargs":'{}'
+    }
+
+
     params = {
 	"project": project,
 	"spyddder_extract_version": spyddder_extract_version,
@@ -375,6 +387,8 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
 	"archive_filename": acq_data["metadata"]["archive_filename"],
 	"prod_met": acq_data["metadata"]
 	}
+
+    '''
     job = resolve_hysds_job(job_type, job-queue, priority=priority, params=params,
                             job_name="%s-%s-%s" % (job_type,spyddder_extract_version, acq_id ))
  
@@ -383,8 +397,9 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
     job['payload']['_sciflo_wuid'] = wuid
     job['payload']['_sciflo_job_num'] = job_num
     print("job: {}".format(json.dumps(job, indent=2)))
+    '''
 
-
+    mozart_job_id = submit_mozart_job({}, rule,hysdsio={"id": "internal-temporary-wiring", "params": params, "job-specification": job_type}, job_name='job_%s-%s-%s' % ('standard-product-acquisition-localizer', acq_id, acquisition_localizer_version))
 
     return job
     
