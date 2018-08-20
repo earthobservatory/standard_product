@@ -23,7 +23,11 @@
       "from": "submitter"
     },
     {
-      "name": "aoi",
+      "name": "acquisition_localizer_version",
+      "from": "submitter"
+    },
+    {
+      "name": "standard_product_ifg_version",
       "from": "submitter"
     },
     { 

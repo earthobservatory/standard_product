@@ -444,6 +444,10 @@ def resolve_aoi_acqs(ctx_file):
     singlesceneOnly = True
     precise_orbit_only = True
     spyddder_extract_version= ctx['spyddder_extract_version']
+    acquisition_localizer_version = ctx['acquisition_localizer_version']
+    standard_product_localizer_version = ctx['standard_product_localizer_version']
+    standard_product_ifg_version = ctx['standard_product_ifg_version']
+
     #standard_product_version= ctx['standard_product_version']
     project = ctx['project']
     priority = ctx["job_priority"]
@@ -467,7 +471,9 @@ def resolve_aoi_acqs(ctx_file):
             "project" : project,
             #"identifier" : acq['metadata']['identifier'],
 	    "spyddder_extract_version" : spyddder_extract_version,
-	    "aoi" : aoi,
+	    "standard_product_ifg_version" : standard_product_ifg_version
+	    "acquisition_localizer_version" : acquisition_localizer_version
+	    "standard_product_localizer_version" : standard_product_localizer_version
   	    "job_type" : job_type, 
 	    "job_version" : job_version,
 	    "job_priority" : ctx['job_priority']
