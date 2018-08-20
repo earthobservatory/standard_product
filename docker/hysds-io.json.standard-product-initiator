@@ -45,8 +45,8 @@
       "name": "standard_product_ifg_version",
       "from": "submitter",
       "type": "jobspec_version",
-      "version_regex": "job-standard-product-ifg",
-      "placeholder": "standard product interferrogram job version"
+      "version_regex": "job-sciflo-standard-product-ifg",
+      "placeholder": "standard product interferogram job version"
     },
     {
       "name": "starttime",
