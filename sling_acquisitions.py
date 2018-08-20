@@ -17,8 +17,9 @@ BASE_PATH = os.path.dirname(__file__)
 
 
 class ACQ:
-    def __init__(self, acq_id, acq_data, localized=False, job_id=None, job_status = None):
+    def __init__(self, acq_id, acq_type, acq_data, localized=False, job_id=None, job_status = None):
 	self.acq_id=acq_id
+	self.acq_type = acq_type
 	self.acq_data = acq_data
 	self.localized = localized
         self.job_id = job_id
@@ -128,7 +129,7 @@ def resolve_source(master_acqs, slave_acqs):
 
     # Find out status of all Master ACQs, create a ACQ object with that and update acq_info dictionary
     for acq in master_acqs:
-
+ 	acq_type = "master"
 	logger.info(acq)
         #acq_data = util.get_acquisition_data(acq)[0]['fields']['partial'][0]
         acq_data = util.get_partial_grq_data(acq)['fields']['partial'][0]
@@ -136,40 +137,39 @@ def resolve_source(master_acqs, slave_acqs):
         if status:
             # status=1
             logger.info("%s exists" %acq_id)
-            acq_info[id]=ACQ(acq_id, acq_data, 1)
+            acq_info[id]=ACQ(acq_id, acq_type, acq_data, 1)
         else:
             #status = 0
             logger.info("%s does NOT exist"%acq_id)
-            acq_info[acq_id]=ACQ(acq_id, acq_data, 0)
+            acq_info[acq_id]=ACQ(acq_id, acq_type, acq_data, 0)
 
 
     # Find out status of all Slave ACQs, create a ACQ object with that and update acq_info dictionary
     for acq in slave_acqs:
         logger.info(acq)
+	acq_type = "slave"
         #acq_data = util.get_acquisition_data(acq)[0]['fields']['partial'][0]
 	acq_data = util.get_partial_grq_data(acq)['fields']['partial'][0]
         status = check_slc_status(acq_data['metadata']['identifier'], index_suffix)
         if status:
 	    # status=1
             logger.info("%s exists" %acq_id)
-	    acq_info[id]=ACQ(acq_id, acq_data, 1)
+	    acq_info[id]=ACQ(acq_id, acq_type, acq_data, 1)
         else:
 	    #status = 0
 	    logger.info("%s does NOT exist"%acq_id)
-	    acq_info[acq_id]=ACQ(acq_id, acq_data, 0)
+	    acq_info[acq_id]=ACQ(acq_id, acq_type, acq_data, 0)
             logger.info(download_url)
 
     sling(acq_info)
 
-def sling(acq_info):
+def sling(acq_info, project, job_priority, job_type, job_version):
     '''
 	This function checks if any ACQ that has not been ingested yet and sling them.
     '''
-    i = 0
     sleep_seconds = 30
     # acq_info has now all the ACQ's status. Now submit the Sling job for the one's whose status = 0 and update the slc_info with job id
     for acq_id in acq_info.keys():
-        i = i+1
 
 	if not acq_info[acq_id].localized:
 	    metadata = acq_info[acq_id].acq_data['metadata']
@@ -239,12 +239,11 @@ def sling(acq_info):
 
     # At this point, we have all the slc downloaded and we are ready to submit a create standard product job
     
-    submit_create_ifg_job()
+    submit_create_ifg_job( acq_info, project, job_priority, job_type, job_version)
+
+
 
         
-def submit_create_ifg_job():
-    pass	
-
 
 def check_all_job_completed(acq_info):
     all_done = True
@@ -256,6 +255,74 @@ def check_all_job_completed(acq_info):
 		break
     return all_done
 
+def submit_create_ifg_job( acq_info, project, job_priority, job_type, job_version, wuid=None, job_num=None):
+    """Map function for create interferogram job json creation."""
+
+    if wuid is None or job_num is None:
+        raise RuntimeError("Need to specify workunit id and job num.")
+
+    master_ids_str=""
+    master_ids_list=[]
+
+    slave_ids_str=""
+    slave_ids_list=[]
+
+    for acq in acq_info.keys():
+	acq_data = acq_info[acq].acq_data
+	acq_type = acq_info[acq].acq_type
+	identifier =  acq_data["metadata"]["identifier"],
+	if acq_type == "master":
+	    master_ids_list.append(identifier)
+	    if master_ids_str=="":
+		master_ids_str=identifier
+	    else:
+		master_ids_str += " "+identifier
+
+	elif acq_type == "slave":
+            slave_ids_list.append(identifier)
+
+            if slave_ids_str=="":
+                slave_ids_str=identifier
+            else:
+                slave_ids_str += " "+identifier
+
+    # set job type and disk space reqs
+    disk_usage = "300GB"
+
+    # set job queue based on project
+    job_queue = "%s-job_worker-large" % project
+
+
+    return {
+        "job_name": "%s-%s" % (job_type, job_version),
+        "job_type": "job:%s" % job_type,
+        "job_queue": job_queue,
+        "container_mappings": {
+            "/home/ops/.netrc": "/home/ops/.netrc",
+            "/home/ops/.aws": "/home/ops/.aws"
+            #"/home/ops/ariamh/conf/settings.conf": "/home/ops/ariamh/conf/settings.conf"
+        },    
+        "soft_time_limit": 86400,
+        "time_limit": 86700,
+        "payload": {
+            # sciflo tracking info
+            "_sciflo_wuid": wuid,
+            "_sciflo_job_num": job_num,
+
+            # job params
+            "project": project,
+            "master_ids": master_ids_str,
+	    "slave_ids": slave_ids_str,
+	    "job_priority" : job_priority,
+
+            # v2 cmd
+            "_command": "/home/ops/ariamh/interferogram/sentinel/sciflo_create_standard_product.sh",
+
+            # disk usage
+            "_disk_usage": disk_usage,
+
+        }
+    }
 
 def submit_sling_job(project, spyddder_extract_version, acq_data, priority,  wuid=None, job_num=None):
 
@@ -269,6 +336,7 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority,  wui
 
      # set job type and disk space reqs
     disk_usage = "300GB"
+    acq_id = acq_data.acq_id
 
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
@@ -283,13 +351,13 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority,  wui
 	"prod_met": acq_data["metadata"]
 	}
     job = resolve_hysds_job(job_type, job-queue, priority=priority, params=params,
-                            job_name="%s-%s-%s" % (job_type, aoi, prod_name))
+                            job_name="%s-%s-%s" % (job_type,spyddder_extract_version, acq_id ))
  
 
     # add workflow info
     job['payload']['_sciflo_wuid'] = wuid
     job['payload']['_sciflo_job_num'] = job_num
-    print("job: {}".format(json.dumps(job, indent=2))
+    print("job: {}".format(json.dumps(job, indent=2)))
 
 
 
