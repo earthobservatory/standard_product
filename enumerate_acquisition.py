@@ -632,7 +632,7 @@ def enumerate_acquisations_standard_product(acq_id):
     candidate_pair_list = []   
 
     # First lets find information about the acquisation
-    acq = util.get_complete_acquisition_data(acq_id)[0]
+    acq = util.get_complete_grq_data(acq_id)[0]
     #print(acq)
     acq_data = acq['_source']
     #print(acq_data['metadata']['download_url'])
