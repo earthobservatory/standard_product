@@ -4,6 +4,12 @@ import os, sys, time, json, requests, logging
 from hysds_commons.job_utils import resolve_hysds_job
 from hysds.celery import app
 import util
+import uuid  # only need this import to simulate returned mozart job id
+from hysds.celery import app
+import commons
+from commons import constants
+from hysds_commons.job_utils import submit_mozart_job
+
 
 
 # set logger
@@ -401,7 +407,7 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
 
     mozart_job_id = submit_mozart_job({}, rule,hysdsio={"id": "internal-temporary-wiring", "params": params, "job-specification": job_type}, job_name='job_%s-%s-%s' % ('standard-product-acquisition-localizer', acq_id, acquisition_localizer_version))
 
-    return job
+    return mozart_job_id
     
 
 def main():
