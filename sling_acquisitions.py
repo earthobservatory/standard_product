@@ -410,16 +410,6 @@ def submit_sling_job(project, spyddder_extract_version, acquisition_localizer_ve
 	"prod_met": acq_data["metadata"]
 	}
 
-    '''
-    job = resolve_hysds_job(job_type, job-queue, priority=priority, params=params,
-                            job_name="%s-%s-%s" % (job_type,spyddder_extract_version, acq_id ))
- 
-
-    # add workflow info
-    job['payload']['_sciflo_wuid'] = wuid
-    job['payload']['_sciflo_job_num'] = job_num
-    print("job: {}".format(json.dumps(job, indent=2)))
-    '''
 
     mozart_job_id = submit_mozart_job({}, rule,hysdsio={"id": "internal-temporary-wiring", "params": params, "job-specification": job_type}, job_name=sling_job_name)
 
