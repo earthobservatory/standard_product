@@ -26,6 +26,18 @@
       "destination": "context"
     },
     {
+      "name": "acquisition_localizer_version",
+      "destination": "context"
+    },
+    {
+      "name": "standard_product_localizer_version",
+      "destination": "context" 
+    },
+    {
+      "name": "standard_product_ifg_version",
+      "destination": "context"
+    },
+    {
         "name": "starttime",
         "destination": "context"
     },

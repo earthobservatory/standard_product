@@ -28,6 +28,27 @@
       "placeholder": "spyddder-man extract job version"
     },
     {
+      "name": "acquisition_localizer_version",
+      "from": "submitter",
+      "type": "jobspec_version",
+      "version_regex": "job-acquisition_localizer",
+      "placeholder": "spyddder-man acquisition localizer job version"
+    },
+    {
+      "name": "standard_product_localizer_version",
+      "from": "submitter",
+      "type": "jobspec_version",
+      "version_regex": "job-standard_product_localizer",
+      "placeholder": "standard product localizer job version"
+    },
+    {
+      "name": "standard_product_ifg_version",
+      "from": "submitter",
+      "type": "jobspec_version",
+      "version_regex": "job-standard-product-ifg",
+      "placeholder": "standard product interferrogram job version"
+    },
+    {
       "name": "starttime",
       "from": "dataset_jpath:_source.starttime",
       "type": "text"
