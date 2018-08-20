@@ -175,7 +175,7 @@ def resolve_source(master_acqs, slave_acqs):
     job_versions.append(job_version)
     spyddder_extract_versions.append(spyddder_extract_version)
 
-    return acq_infoes, spyddder_extract_version, projects, job_prorities, job_types, job_versions
+    return acq_infoes, spyddder_extract_versions, projects, job_prorities, job_types, job_versions
 
 def sling(acq_info, spyddder_extract_version, project, job_priority, job_type, job_version):
     '''

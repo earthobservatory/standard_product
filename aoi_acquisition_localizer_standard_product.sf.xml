@@ -19,15 +19,12 @@
           <context_file/>
         </sf:inputs>
         <sf:outputs>
-          <spyddder_extract_version/>
-          <standard_product_version/>
-          <queue/>
-          <localize_url/>
-          <file/>
-          <prod_name/>
-          <prod_date/>
-          <priority/>
-          <aoi/>
+	  <acq_infoes/>
+	  <spyddder_extract_versions/>
+	  <projects/>
+ 	  <job_prorities/>
+	  <job_types/>
+ 	  <job_versions/>
         </sf:outputs>
         <sf:operator>
           <sf:description></sf:description>
@@ -36,17 +33,39 @@
           </sf:op>
         </sf:operator>
       </sf:process>
-      
+     
+      <sf:process id="sling_acq">
+        <sf:inputs>
+          <acq_infoes from="@#previous"/> 
+          <spyddder_extract_versions from="@#previous"/>
+          <projects from="@#previous"/>
+          <job_prorities from="@#previous"/>
+          <job_types from="@#previous"/>
+          <job_versions from="@#previous"/>  
+        </sf:inputs>
+        <sf:outputs>
+	  <acq_infoes/> 
+          <projects/>
+          <job_prorities/>
+          <job_types/>
+          <job_versions/>
+        </sf:outputs>
+        <sf:operator>
+          <sf:description></sf:description>
+          <sf:op>
+            <sf:binding>python:?sling_acquisitions.sling</sf:binding>
+          </sf:op>
+        </sf:operator>
+      </sf:process>
+
+ 
       <sf:process id="submit_ifg_job">
         <sf:inputs>
-          <spyddder_extract_version from="@#previous"/>
-          <queue from="@#previous"/>
-          <localize_url from="@#previous"/>
-          <file from="@#previous"/>
-          <prod_name from="@#previous"/>
-          <prod_date from="@#previous"/>
-          <priority from="@#previous"/>
-          <aoi from="@#previous"/>
+	  <acq_infoes from="@#previous"/> 
+          <projects from="@#previous"/>
+          <job_prorities from="@#previous"/>
+          <job_types from="@#previous"/>
+          <job_versions from="@#previous"/>
         </sf:inputs>
         <sf:outputs>
           <datasets/>
