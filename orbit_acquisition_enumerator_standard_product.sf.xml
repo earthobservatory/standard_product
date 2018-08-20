@@ -38,9 +38,9 @@
 	  <slave_slcs/>
 	  <projects/>
  	  <spyddder_extract_versions/>
- 	  <acquisition_localizer_version/>
-	  <standard_product_localizer_version/>
-	  <standard_product_ifg_version/>
+ 	  <acquisition_localizer_versions/>
+	  <standard_product_localizer_versions/>
+	  <standard_product_ifg_versions/>
 	  <job_priorities/>
 	  <job_types/>
 	  <job_versions/>
@@ -59,9 +59,9 @@
           <slave_slcs from="@#previous"/>
           <projects from="@#previous"/>
           <spyddder_extract_versions from="@#previous"/>
-          <acquisition_localizer_version from="@#previous"/>
-          <standard_product_localizer_version from="@#previous"/>
-          <standard_product_ifg_version from="@#previous"/>
+          <acquisition_localizer_versions from="@#previous"/>
+          <standard_product_localizer_versions from="@#previous"/>
+          <standard_product_ifg_versions from="@#previous"/>
 	  <job_priorities from="@#previous"/>
           <job_types from="@#previous"/>
 	  <job_versions from="@#previous"/>

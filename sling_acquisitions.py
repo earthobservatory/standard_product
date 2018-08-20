@@ -119,6 +119,8 @@ def resolve_source(master_acqs, slave_acqs):
     master_acqs = ctx["master_acquisitions"]
     slave_acqs = ctx["slave_acquisitions"]
     spyddder_extract_version = ctx["spyddder_extract_version"]
+    acquisition_localizer_version = ctx["acquisition_localizer_version"]
+    standard_product_ifg_version = ctx["standard_product_ifg_version"]
     job_priority = ctx["job_priority"]
     job_type, job_version = ctx['job_specification']['id'].split(':') 
 
@@ -173,6 +175,8 @@ def resolve_source(master_acqs, slave_acqs):
     job_types = []
     job_versions = []
     spyddder_extract_versions = []
+    acquisition_localizer_versions = []
+    standard_product_ifg_versions = []
 
     acq_infoes.append(acq_info)
     projects.append(project)
@@ -180,10 +184,12 @@ def resolve_source(master_acqs, slave_acqs):
     job_types.append(job_type)
     job_versions.append(job_version)
     spyddder_extract_versions.append(spyddder_extract_version)
+    acquisition_localizer_versions.append(acquisition_localizer_version)
+    standard_product_ifg_versions.append(standard_product_ifg_version)
 
-    return acq_infoes, spyddder_extract_versions, projects, job_prorities, job_types, job_versions
+    return acq_infoes, spyddder_extract_versions, acquisition_localizer_versions, standard_product_ifg_versions, projects, job_prorities, job_types, job_versions
 
-def sling(acq_info, spyddder_extract_version, project, job_priority, job_type, job_version):
+def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version):
     '''
 	This function checks if any ACQ that has not been ingested yet and sling them.
     '''
@@ -193,7 +199,7 @@ def sling(acq_info, spyddder_extract_version, project, job_priority, job_type, j
 
 	if not acq_info[acq_id].localized:
 	    acq_data = acq_info[acq_id].acq_data
-	    job_id = submit_sling_job(project, spyddder_extract_version, acq_data, job_priority)
+	    job_id = submit_sling_job(project, spyddder_extract_version, acquisition_localizer_versions, acq_data, job_priority)
 	    #submit_sling_job(spyddder_extract_version, queue, localize_url, prod_name, prod_date, priority, aoi)
 	    #if i==1:
              #   job_id = "b618cbb0-0682-4885-95c7-2d78c81b0452"
@@ -223,7 +229,7 @@ def sling(acq_info, spyddder_extract_version, project, job_priority, job_type, j
 		elif job_status == "job-failed":
 		    download_url = acq_info[acq_id].download_url
            	    print ("Submitting sling job for %s" %download_url)
-            	    job_id = job_id = submit_sling_job(project, spyddder_extract_version, acq_data, job_priority)
+            	    job_id = job_id = submit_sling_job(project, spyddder_extract_version, acquisition_localizer_versions, acq_data, job_priority)
             	    acq_info[acq_id].job_id = job_id
             	    job_status, new_job_id  = get_job_status(job_id)
             	    acq_info[acq_id].job_id = new_job_id
@@ -262,16 +268,15 @@ def sling(acq_info, spyddder_extract_version, project, job_priority, job_type, j
     job_prorities = []
     job_types = []
     job_versions = []
+    standard_product_ifg_versions = []
 
     acq_infoes.append(acq_info)
     projects.append(project)
     job_prorities.append(job_priority)
-    job_types.append(job_type)
-    job_versions.append(job_version)
-
+    standard_product_ifg_versions.append(standard_product_ifg_version)
    
 
-    return acq_infoes, projects, job_prorities, job_types, job_versions 
+    return acq_infoes, projects, standard_product_ifg_versions, job_prorities 
 
 
 
@@ -287,7 +292,7 @@ def check_all_job_completed(acq_info):
 		break
     return all_done
 
-def submit_ifg_job( acq_info, project, job_priority, job_type, job_version, wuid=None, job_num=None):
+def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     if wuid is None or job_num is None:
@@ -322,10 +327,20 @@ def submit_ifg_job( acq_info, project, job_priority, job_type, job_version, wuid
 
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
+   
+    job_type-"job-standard-product-ifg:%s" %standard_product_ifg_version
+
+    job_hash = hashlib.md5(json.dumps([
+	job_priority,
+	master_ids_str,
+	slave_ids_str
+    ])).hexdigest()
+
+
 
 
     return {
-        "job_name": "%s-%s" % (job_type, job_version),
+        "job_name": "%s-%s" % (job_type, job_hash[0:4]),
         "job_type": "job:%s" % job_type,
         "job_queue": job_queue,
         "container_mappings": {
@@ -355,7 +370,7 @@ def submit_ifg_job( acq_info, project, job_priority, job_type, job_version, wuid
         }
     }
 
-def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
+def submit_sling_job(project, spyddder_extract_version, acquisition_localizer_versions, acq_data, priority):
 
     """Map function for spyddder-man extract job."""
 
@@ -366,7 +381,7 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
     job_submit_url = '%s/mozart/api/v0.1/job/submit' % MOZART_URL
 
     # set job type and disk space reqs
-    job_type = "acquisition_localizer:{}".format(acquisition_localizer_version)
+    job_type = "job-acquisition_localizer:{}".format(acquisition_localizer_versions)
 
      # set job type and disk space reqs
     disk_usage = "300GB"
@@ -382,6 +397,7 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
         "kwargs":'{}'
     }
 
+    sling_job_name = "%s-%s" %(job_type, acq_data["metadata"]["identifier"])
 
     params = {
 	"project": project,
@@ -405,7 +421,7 @@ def submit_sling_job(project, spyddder_extract_version, acq_data, priority):
     print("job: {}".format(json.dumps(job, indent=2)))
     '''
 
-    mozart_job_id = submit_mozart_job({}, rule,hysdsio={"id": "internal-temporary-wiring", "params": params, "job-specification": job_type}, job_name='job_%s-%s-%s' % ('standard-product-acquisition-localizer', acq_id, acquisition_localizer_version))
+    mozart_job_id = submit_mozart_job({}, rule,hysdsio={"id": "internal-temporary-wiring", "params": params, "job-specification": job_type}, job_name=sling_job_name)
 
     return mozart_job_id
     

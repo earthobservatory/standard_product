@@ -543,6 +543,9 @@ def enumerate_acquisations_array(acq_array):
     enumerate_dict={}
     projects = []
     spyddder_extract_versions = []
+    acquisition_localizer_versions = []
+    standard_product_localizer_versions = []
+    standard_product_ifg_versions=[]
     aois = []
     job_priorities = []
     queues = []
@@ -563,7 +566,9 @@ def enumerate_acquisations_array(acq_array):
 	for candidate in candidate_pair_list:
 	    projects.append(acq_data['project'])
 	    spyddder_extract_versions.append(acq_data['spyddder_extract_version'])
-	    aois.append(acq_data['aoi'])
+	    acquisition_localizer_versions.append(acq_data['acquisition_localizer_version'])
+	    standard_product_localizer_versions.append(acq_data['standard_product_localizer_version'])
+	    standard_product_ifg_versions.append(acq_data['standard_product_ifg_version'])
 	    job_priorities.append(acq_data['job_priority'])
 	    master_ids.append(candidate["master_acqs"])
 	    slave_ids.append(candidate["slave_acqs"])
@@ -577,10 +582,10 @@ def enumerate_acquisations_array(acq_array):
 	    #logger.info(str(err))
 	    
     logger.info("Sending %s" %job_priorities)
-    return master_ids, slave_ids, projects, spyddder_extract_versions, aois, job_priorities, job_types, job_versions
+    return master_ids, slave_ids, projects, spyddder_extract_versions, acquisition_localizer_versions, standard_product_localizer_versions, standard_product_ifg_versions,  job_priorities, job_types, job_versions
 
 
-def submit_localize_job( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, aoi, job_priority, job_type, job_version, wuid=None, job_num=None):
+def submit_localize_job( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, acquisition_localizer_version, standard_product_localizer_version, standard_product_ifg_version, job_priority, job_type, job_version, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     if wuid is None or job_num is None:
@@ -594,10 +599,27 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
 
+    localizer_job_type = "job-standard_product_localizer:%s" % standard_product_localizer_version,
+    master_ids_str=""
+    slave_ids_str=""
 
+    for acq in master_acquisitions:
+	if master_ids_str=="":
+	    master_ids_str= acq
+	else:
+	    master_ids_str += ","+acq	
+    
+    for acq in slave_acquisitions:
+        if slave_ids_str=="":
+            slave_ids_str= acq
+        else:
+            slave_ids_str += " "+acq 
+
+    logger.info("Master Acquisitions : %s" %master_ids_str)
+    logger.info("Slave Acquisitions : %s" %slave_ids_str)
     return {
-        "job_name": "%s-%s" % (job_type, job_version),
-        "job_type": "job:%s" % job_type,
+        "job_name": "%s-%s" % (localizer_job_type, job_version),
+        "job_type": localizer_job_type,
         "job_queue": job_queue,
         "container_mappings": {
             "/home/ops/.netrc": "/home/ops/.netrc",
@@ -613,9 +635,11 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
 
             # job params
             "project": project,
-            "master_acquisitions": master_acquisitions,
-	    "slave_acquisitions": slave_acquisitions,
+            "master_acquisitions": master_ids_str,
+	    "slave_acquisitions": slave_ids_str,
 	    "spyddder_extract_version" : spyddder_extract_version,
+	    "acquisition_localizer_version" : acquisition_localizer_version,
+	    "standard_product_ifg_version" : standard_product_ifg_version,
 	    "job_priority" : job_priority,
 
             # v2 cmd
