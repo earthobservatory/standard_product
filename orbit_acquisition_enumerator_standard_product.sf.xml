@@ -34,8 +34,8 @@
 	  <acq_array from="@#previous"/>
         </sf:inputs>
         <sf:outputs>
-          <master_slcs/>
-	  <slave_slcs/>
+          <master_acquisitions/>
+	  <slave_acquisitions/>
 	  <projects/>
  	  <spyddder_extract_versions/>
  	  <acquisition_localizer_versions/>
@@ -55,8 +55,8 @@
  
       <sf:process id="submit_job">
         <sf:inputs>
-	  <master_slcs from="@#previous"/>
-          <slave_slcs from="@#previous"/>
+	  <master_acquisitions from="@#previous"/>
+          <slave_acquisitions from="@#previous"/>
           <projects from="@#previous"/>
           <spyddder_extract_versions from="@#previous"/>
           <acquisition_localizer_versions from="@#previous"/>

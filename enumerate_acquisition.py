@@ -113,8 +113,7 @@ def get_overlapping_slaves_query(master):
                                     }
                                 }},
 				{ "term": { "trackNumber": master.tracknumber }},
-				{ "term": { "direction": master.direction }},
-				{ "term": { "platformname": "Sentinel-1"}}
+				{ "term": { "direction": master.direction }}
 			    ],
 			"must_not": { "term": { "orbitNumber": master.orbitnumber }}
 			}
@@ -157,8 +156,7 @@ def get_overlapping_masters_query(master, slave):
                                 }},
 				{ "term": { "direction": master.direction }},
 	                        { "term": { "orbitNumber": master.orbitnumber }},
-			        { "term": { "trackNumber": master.tracknumber }},
-				{ "term": { "platformname": "Sentinel-1"}}
+			        { "term": { "trackNumber": master.tracknumber }}
 			    ]
 			}
                     }
@@ -601,7 +599,7 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
 
-    localizer_job_type = "job-standard_product_localizer:%s" % standard_product_localizer_version,
+    localizer_job_type = "job-standard_product_localizer:%s" % standard_product_localizer_version
     master_ids_str=""
     slave_ids_str=""
 
@@ -648,7 +646,7 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
             "_command": "/home/ops/standard_product/sciflo_stage_iw_slc.sh",
 
             # disk usage
-            "_disk_usage": disk_usage,
+            "_disk_usage": disk_usage
 
         }
     }
