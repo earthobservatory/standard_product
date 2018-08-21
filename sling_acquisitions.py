@@ -118,6 +118,11 @@ def resolve_source(master_acqs, slave_acqs):
     project = ctx["project"]
     master_acqs = ctx["master_acquisitions"]
     slave_acqs = ctx["slave_acquisitions"]
+    master_acqs = [i.strip() for i in context['master_ids'].split()]
+    slave_acqs = [i.strip() for i in context['slave_ids'].split()]
+    logger.info("master_acqs : %s" %master_acqs)
+    logger.info("slave_acqs : %s" %slave_acqs)
+    
     spyddder_extract_version = ctx["spyddder_extract_version"]
     acquisition_localizer_version = ctx["acquisition_localizer_version"]
     standard_product_ifg_version = ctx["standard_product_ifg_version"]
@@ -397,7 +402,7 @@ def submit_sling_job(project, spyddder_extract_version, acquisition_localizer_ve
         "kwargs":'{}'
     }
 
-    sling_job_name = "%s-%s" %(job_type, acq_data["metadata"]["identifier"])
+    sling_job_name = "standard_product-%s-%s" %(job_type, acq_data["metadata"]["identifier"])
 
     params = {
 	"project": project,
