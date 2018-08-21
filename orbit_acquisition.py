@@ -226,13 +226,7 @@ def get_query(acq):
                 		    "dataset.raw": "acquisition-S1-IW_SLC"
               			}
 			
-            		    },
-			    {
-                                "term": {
-				    "platformname": "Sentinel-1"
-                                }
-
-                            }
+            		    }
           		]
         	    }
       		}
@@ -327,11 +321,6 @@ def query_aoi_acquisitions(starttime, endtime, platform):
                                 {
                                     "term": {
                                         "metadata.platform.raw": platform
-                                    }
-                                },
-			 	{
-                                    "term": {
-                                        "platformname": "Sentinel-1"
                                     }
                                 },
                                 {

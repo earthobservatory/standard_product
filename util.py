@@ -176,7 +176,8 @@ def check_ES_status(doc_id):
 
     logging.info("Job status updated on ES to %s"%str(result["hits"]["hits"][0]["_source"]["status"]))
     return True
-def get_complete_acquisition_data(id):
+
+def get_complete_grq_data(id):
     es_url = app.conf.GRQ_ES_URL
     es_index = "grq_*_*acquisition*"
     query = {
