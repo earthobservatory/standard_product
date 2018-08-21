@@ -6,8 +6,6 @@ from hysds.celery import app
 import util
 import uuid  # only need this import to simulate returned mozart job id
 from hysds.celery import app
-import commons
-from commons import constants
 from hysds_commons.job_utils import submit_mozart_job
 
 
@@ -94,32 +92,28 @@ def check_slc_status(slc_id, index_suffix):
 
     return False
 
-#def resolve_source():
-def resolve_source(master_acqs, slave_acqs):
+def resolve_source(ctx_file):
     """Resolve best URL from acquisition."""
 
 
     # get settings
-    
-    context_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_context_sling.json')
-    with open(context_file) as f:
+    # read in context
+    with open(ctx_file) as f:
         ctx = json.load(f)
-
-
+    
+    '''
     settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.json')
     with open(settings_file) as f:
         settings = json.load(f)
-
+    '''
 
     sleep_seconds = 30
     
 
     # build args
     project = ctx["project"]
-    master_acqs = ctx["master_acquisitions"]
-    slave_acqs = ctx["slave_acquisitions"]
-    master_acqs = [i.strip() for i in context['master_ids'].split()]
-    slave_acqs = [i.strip() for i in context['slave_ids'].split()]
+    master_acqs = [i.strip() for i in ctx['master_acquisitions'].split()]
+    slave_acqs = [i.strip() for i in ctx['slave_acquisitions'].split()]
     logger.info("master_acqs : %s" %master_acqs)
     logger.info("slave_acqs : %s" %slave_acqs)
     
@@ -127,7 +121,7 @@ def resolve_source(master_acqs, slave_acqs):
     acquisition_localizer_version = ctx["acquisition_localizer_version"]
     standard_product_ifg_version = ctx["standard_product_ifg_version"]
     job_priority = ctx["job_priority"]
-    job_type, job_version = ctx['job_specification']['id'].split(':') 
+    job_type, job_version = ctx['context']['job_specification']['id'].split(':') 
 
     queues = []  # where should we get the queue value
     identifiers = []
@@ -149,12 +143,12 @@ def resolve_source(master_acqs, slave_acqs):
         status = check_slc_status(acq_data['metadata']['identifier'], index_suffix)
         if status:
             # status=1
-            logger.info("%s exists" %acq_id)
-            acq_info[id]=ACQ(acq_id, acq_type, acq_data, 1)
+            logger.info("%s exists" %acq_data['metadata']['identifier'])
+            acq_info[acq]=ACQ(acq, acq_type, acq_data, 1)
         else:
             #status = 0
-            logger.info("%s does NOT exist"%acq_id)
-            acq_info[acq_id]=ACQ(acq_id, acq_type, acq_data, 0)
+            logger.info("%s does NOT exist"%acq_data['metadata']['identifier'])
+            acq_info[acq]=ACQ(acq, acq_type, acq_data, 0)
 
 
     # Find out status of all Slave ACQs, create a ACQ object with that and update acq_info dictionary
@@ -166,13 +160,12 @@ def resolve_source(master_acqs, slave_acqs):
         status = check_slc_status(acq_data['metadata']['identifier'], index_suffix)
         if status:
 	    # status=1
-            logger.info("%s exists" %acq_id)
-	    acq_info[id]=ACQ(acq_id, acq_type, acq_data, 1)
+            logger.info("%s exists" %acq_data['metadata']['identifier'])
+	    acq_info[acq]=ACQ(acq, acq_type, acq_data, 1)
         else:
 	    #status = 0
-	    logger.info("%s does NOT exist"%acq_id)
-	    acq_info[acq_id]=ACQ(acq_id, acq_type, acq_data, 0)
-            logger.info(download_url)
+	    logger.info("%s does NOT exist"%acq_data['metadata']['identifier'])
+	    acq_info[acq]=ACQ(acq, acq_type, acq_data, 0)
 
     acq_infoes =[]
     projects = []
