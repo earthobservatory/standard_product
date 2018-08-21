@@ -480,9 +480,9 @@ def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=No
 			logger.info("MATCHED we have found a match :" )
 			if switch:
 			    master_acqs=[ref_acq.acq_id[0]]
-			    slave_acqs=[matched_acqs2]
+			    slave_acqs=matched_acqs2
 			else:
-			    master_acqs=[matched_acqs2]
+			    master_acqs=matched_acqs2
 			    slave_acqs=[ref_acq.acq_id[0]]
 			logger.info("find_candidate_pair, before adding to  candidate_pair_list: %s" %candidate_pair_list)
                  	logger.info("\n\n\nmaster urls : %s" %master_acqs)
@@ -549,8 +549,8 @@ def enumerate_acquisations_array(acq_array):
     aois = []
     job_priorities = []
     queues = []
-    master_ids = []
-    slave_ids = []
+    master_acquisitions= []
+    slave_acquisitions = []
     job_types = []
     job_versions = []
 
@@ -561,17 +561,19 @@ def enumerate_acquisations_array(acq_array):
     for acq_data in acq_array:
         #try:
   	logger.info("%s : %s" %(type(acq_data), acq_data))
-	logger.info("\n\n Processing Acquisition : %s" %acq_data['acq_id'])
+	logger.info("\n\n Processing Acquisition : %s for project : %s" %(acq_data['acq_id'], acq_data['project']))
 	candidate_pair_list =  enumerate_acquisations_standard_product(acq_data['acq_id'])
 	for candidate in candidate_pair_list:
+   	    #logger.info("candidate slave_acqs is of type : %s of length : %s" %(type(candidate["slave_acqs"]), len(candidate["slave_acqs"])))
+	    #logger.info("candidate master_acqs is of type : %s of length : %s" %(type(candidate["master_acqs"]), len(candidate["master_acqs"])))
 	    projects.append(acq_data['project'])
 	    spyddder_extract_versions.append(acq_data['spyddder_extract_version'])
 	    acquisition_localizer_versions.append(acq_data['acquisition_localizer_version'])
 	    standard_product_localizer_versions.append(acq_data['standard_product_localizer_version'])
 	    standard_product_ifg_versions.append(acq_data['standard_product_ifg_version'])
 	    job_priorities.append(acq_data['job_priority'])
-	    master_ids.append(candidate["master_acqs"])
-	    slave_ids.append(candidate["slave_acqs"])
+	    master_acquisitions.append(candidate["master_acqs"])
+	    slave_acquisitions.append(candidate["slave_acqs"])
 	    job_types.append(acq_data["job_type"])
     	    job_versions.append(acq_data["job_version"])
 	    #enumerate_dict[acq_data['acq_id']] = candidate_pair_list
@@ -581,8 +583,7 @@ def enumerate_acquisations_array(acq_array):
 	    #logger.info("Error processing acquisition : %s" %acq_data['acq_id'])
 	    #logger.info(str(err))
 	    
-    logger.info("Sending %s" %job_priorities)
-    return master_ids, slave_ids, projects, spyddder_extract_versions, acquisition_localizer_versions, standard_product_localizer_versions, standard_product_ifg_versions,  job_priorities, job_types, job_versions
+    return master_acquisitions, slave_acquisitions, projects, spyddder_extract_versions, acquisition_localizer_versions, standard_product_localizer_versions, standard_product_ifg_versions,  job_priorities, job_types, job_versions
 
 
 def submit_localize_job( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, acquisition_localizer_version, standard_product_localizer_version, standard_product_ifg_version, job_priority, job_type, job_version, wuid=None, job_num=None):
@@ -598,25 +599,32 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
 
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
+    logger.info("submit_localize_job : Queue : %s" %job_queue)
 
     localizer_job_type = "job-standard_product_localizer:%s" % standard_product_localizer_version
     master_ids_str=""
     slave_ids_str=""
 
+    logger.info("master acq type : %s of length %s"  %(type(master_acquisitions), len(master_acquisitions)))
+    logger.info("slave acq type : %s of length %s" %(type(slave_acquisitions), len(master_acquisitions)))
+
     for acq in master_acquisitions:
+	#logger.info("master acq : %s" %acq)
 	if master_ids_str=="":
 	    master_ids_str= acq
 	else:
-	    master_ids_str += ","+acq	
+	    master_ids_str += " "+acq	
     
     for acq in slave_acquisitions:
+	#logger.info("slave acq : %s" %acq)
         if slave_ids_str=="":
             slave_ids_str= acq
         else:
             slave_ids_str += " "+acq 
 
-    logger.info("Master Acquisitions : %s" %master_ids_str)
-    logger.info("Slave Acquisitions : %s" %slave_ids_str)
+    logger.info("Master Acquisitions_str : %s" %master_ids_str)
+    logger.info("Slave Acquisitions_str : %s" %slave_ids_str)
+    
     return {
         "job_name": "%s-%s" % (localizer_job_type, job_version),
         "job_type": localizer_job_type,
