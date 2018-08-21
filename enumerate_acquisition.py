@@ -651,7 +651,7 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
 	    "job_priority" : job_priority,
 
             # v2 cmd
-            "_command": "/home/ops/standard_product/sciflo_stage_iw_slc.sh",
+            "_command": "/home/ops/verdi/ops/standard_product/sciflo_stage_iw_slc.sh",
 
             # disk usage
             "_disk_usage": disk_usage
