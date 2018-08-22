@@ -64,7 +64,7 @@ def get_job_status(job_id):
     return_job_status = None
 
     #check if Jobs ES has updated job status
-    if check_ES_status(job_id):
+    if util.check_ES_status(job_id):
         response = util.query_es(endpoint, job_id)
 
     result = response["hits"]["hits"][0]
@@ -79,7 +79,7 @@ def get_job_status(job_id):
         #query ES for the original job's status
         orig_job_id = result["_source"]["dedup_job"]
         return_job_id = orig_job_id
-        orig_job_info = query_es(endpoint, orig_job_id)
+        orig_job_info = util.query_es(endpoint, orig_job_id)
         """check if original job failed -> this would happen when at the moment of deduplication, the original job
          was in 'running state', but soon afterwards failed. So, by the time the status is checked in this function,
          it may be shown as failed."""
@@ -257,7 +257,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 		    acq_info[acq_id]['job_id'] = job_id
                     acq_info[acq_id]['job_status'] = job_status
 		    logger.info("Sling Job for ACQ : %s status: "%acq_info[acq_id])
-		    logger.info("Job id : %s. Job Status : %s" %(acq_info[acq_id]['job_id'], slc_info[acq_id]['job_status']))
+		    logger.info("Job id : %s. Job Status : %s" %(acq_info[acq_id]['job_id'], acq_info[acq_id]['job_status']))
 
 	all_done = check_all_job_completed(acq_info)
 	if not all_done:
@@ -272,9 +272,9 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     while not all_exists:
         all_exists = True
 	for acq_id in acq_info.keys():
-            if not acq_info[acq_id].localized:
- 		acq_info[acq_id].localized = check_slc_status(acq_id, index_suffix)
-		if not acq_info[acq_id].localized:
+            if not acq_info[acq_id]['localized']:
+ 		acq_info[acq_id]['localized'] = check_slc_status(acq_id, index_suffix)
+		if not acq_info[acq_id]['localized']:
 		    all_exists = False
 		    break
 	if not all_exists:
@@ -304,8 +304,8 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 def check_all_job_completed(acq_info):
     all_done = True
     for acq_id in acq_info.keys():
-        if not acq_info[acq_id].status:  
-	    job_status = acq_info[acq_id].job_status
+        if not acq_info[acq_id]['localized']:  
+	    job_status = acq_info[acq_id]['job_status']
 	    if not job_status == "job-completed":	
 		all_done = False
 		break

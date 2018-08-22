@@ -4,7 +4,6 @@ import os, sys, time, json, requests, logging
 from hysds_commons.job_utils import resolve_hysds_job
 from hysds.celery import app
 
-
 # set logger
 log_format = "[%(asctime)s: %(levelname)s/%(name)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
@@ -122,15 +121,30 @@ def query_es(endpoint, doc_id):
         }
     }
 
-    ES = elasticsearch.Elasticsearch(es_url)
-    result = ES.search(index=es_index, body=query)
+    #ES = elasticsearch.Elasticsearch(es_url)
+    #result = ES.search(index=es_index, body=query)
+
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
 
     if len(result["hits"]["hits"]) == 0:
         raise ValueError("Couldn't find record with ID: %s, at ES: %s"%(doc_id, es_url))
         return
 
-    LOGGER.debug("Got: {0}".format(json.dumps(result)))
+    #LOGGER.debug("Got: {0}".format(json.dumps(result)))
     return result
+
 
 def check_ES_status(doc_id):
     """
@@ -157,8 +171,22 @@ def check_ES_status(doc_id):
         }
     }
 
-    ES = elasticsearch.Elasticsearch(es_url)
-    result = ES.search(index=es_index, body=query)
+    #ES = elasticsearch.Elasticsearch(es_url)
+    #result = ES.search(index=es_index, body=query)
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+
 
     sleep_seconds = 2
     timeout_seconds = 300
@@ -171,7 +199,17 @@ def check_ES_status(doc_id):
             else:
                 raise RuntimeError("ES taking too long to update status of job with id %s."%doc_id)
         time.sleep(sleep_seconds)
-        result = ES.search(index=es_index, body=query)
+        #result = ES.search(index=es_index, body=query)
+
+	r = requests.post(search_url, data=json.dumps(query))
+
+        if r.status_code != 200:
+            print("Failed to query %s:\n%s" % (es_url, r.text))
+            print("query: %s" % json.dumps(query, indent=2))
+            print("returned: %s" % r.text)
+            r.raise_for_status()
+
+        result = r.json()
         sleep_seconds = sleep_seconds * 2
 
     logging.info("Job status updated on ES to %s"%str(result["hits"]["hits"][0]["_source"]["status"]))
@@ -296,7 +334,7 @@ def get_acquisition_data(id):
     print(result['hits']['total'])
     return result['hits']['hits']
 
-
+'''
 def query_es(query, es_index):
     """Query ES."""
 
@@ -318,7 +356,7 @@ def query_es(query, es_index):
         if len(res['hits']['hits']) == 0: break
         hits.extend(res['hits']['hits'])
     return hits
-
+'''
 
 
 def resolve_s1_slc(identifier, download_url, project):
@@ -419,56 +457,3 @@ def resolve_source_from_ctx_file(ctx_file):
         return resolve_source(json.load(f))
 
 
-def extract_job(ds_exists, spyddder_extract_version, queue, localize_url, file, prod_name,
-                prod_date, priority, aoi, wuid=None, job_num=None):
-    """Map function for spyddder-man extract job."""
-
-    if wuid is None or job_num is None:
-        raise RuntimeError("Need to specify workunit id and job num.")
-
-    # set job type and disk space reqs
-    job_type = "job-spyddder-extract:{}".format(spyddder_extract_version)
-
-    # resolve hysds job
-    params = {
-        "localize_url": localize_url,
-        "file": file,
-        "prod_name": prod_name,
-        "prod_date": prod_date,
-        "aoi": aoi,
-    }
-    job = resolve_hysds_job(job_type, queue, priority=priority, params=params, 
-                            job_name="%s-%s-%s" % (job_type, aoi, prod_name))
-
-    # save to archive_filename if it doesn't match url basename
-    if os.path.basename(localize_url) != file:
-        job['payload']['localize_urls'][0]['local_path'] = file
-
-    # add workflow info
-    job['payload']['_sciflo_wuid'] = wuid
-    job['payload']['_sciflo_job_num'] = job_num
-    print("job: {}".format(json.dumps(job, indent=2)))
-
-    return job
-
-def standard_product_job(standard_product_version, queue, prod_name,
-                prod_date, priority, aoi, wuid=None, job_num=None):
-    # set job type and disk space reqs
-    job_type = "job-standard-product:{}".format(standard_product_version)
-    
-    # resolve hysds job
-    params = {
-        "singlesceneOnly": True,
-        "preReferencePairDirection": "",
-        "postReferencePairDirection": "",
-        "minMatch": 2,
-        "covth": 0.95,
-        "preciseOrbitOnly": True,
-        "range_looks": 7,
-	"azimuth_looks": 19,
-	"filter_strength": 0.5
-    }
-
-    job = resolve_hysds_job(job_type, queue, priority=priority, params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
-
-    return job
