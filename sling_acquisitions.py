@@ -406,6 +406,11 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
             "master_ids": master_ids_str,
 	    "slave_ids": slave_ids_str,
 	    "job_priority" : job_priority,
+	    "azimuth_looks" : 19,
+	    "range_looks" : 7,
+	    "filter_strength" : 0.5,
+	    "precise_orbit_only" : "true",
+	    "auto_bbox" : "true"
 
             # v2 cmd
             "_command": "/home/ops/ariamh/interferogram/sentinel/sciflo_create_standard_product.sh",
