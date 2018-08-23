@@ -51,9 +51,7 @@
 	  <acq_infoes/> 
           <projects/>
 	  <standard_product_ifg_versions/>
-          <job_prorities/>
-          <job_types/>
-          <job_versions/>
+          <job_priorities/>
         </sf:outputs>
         <sf:operator>
           <sf:description></sf:description>
@@ -62,16 +60,13 @@
           </sf:op>
         </sf:operator>
       </sf:process>
-
  
       <sf:process id="submit_ifg_job">
         <sf:inputs>
 	  <acq_infoes from="@#previous"/> 
           <projects from="@#previous"/>
 	  <standard_product_ifg_versions from="@#previous"/>
-          <job_prorities from="@#previous"/>
-          <job_types from="@#previous"/>
-          <job_versions from="@#previous"/>
+          <job_priorities from="@#previous"/>
         </sf:inputs>
         <sf:outputs>
           <datasets/>

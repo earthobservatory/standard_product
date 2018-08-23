@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 import os, sys, time, json, requests, logging
-
+import hashlib
 from hysds_commons.job_utils import resolve_hysds_job
 from hysds.celery import app
 import util
@@ -28,6 +28,7 @@ BASE_PATH = os.path.dirname(__file__)
 MOZART_URL = app.conf['MOZART_URL']
 MOZART_ES_ENDPOINT = "MOZART"
 GRQ_ES_ENDPOINT = "GRQ"
+sleep_seconds = 120
 
 
 class ACQ:
@@ -42,7 +43,7 @@ class ACQ:
 def get_acq_object(acq_id, acq_type, acq_data, localized=False, job_id=None, job_status = None):
     return {
         "acq_id": acq_id,
-        "acq_typ":  acq_type,
+        "acq_type":  acq_type,
         "acq_data" :acq_data,
         "localized" : localized,
         "job_id": job_id,
@@ -215,7 +216,6 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     '''
 	This function checks if any ACQ that has not been ingested yet and sling them.
     '''
-    sleep_seconds = 30
     #logger.info("acq_info type: %s : %s" %(type(acq_info), len(acq_info) ))
     #logger.info(acq_info)
     logger.info("%s : %s" %(type(spyddder_extract_version), spyddder_extract_version))
@@ -247,34 +247,42 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 		    acq_info[acq_id]['job_status'] = job_status
 		elif job_status == "job-failed":
 		    download_url = acq_info[acq_id]['download_url']
-           	    print ("Submitting sling job for %s" %download_url)
+           	    logger.info ("Job %s failed. So again smitting sling job for %s" %(acq_info[acq_id]['job_id'], download_url))
             	    job_id = submit_sling_job(project, spyddder_extract_version, acquisition_localizer_versions, acq_data, job_priority)
             	    acq_info[acq_id]['job_id'] = job_id
+		    logger.info("New Job Id : %s" %acq_info[acq_id]['job_id'])
             	    job_status, new_job_id  = get_job_status(job_id)
             	    acq_info[acq_id]['job_id'] = new_job_id
             	    acq_info[acq_id]['job_status'] = job_status
+		    logger.info("After checking job status, New Job Id : %s and status is %s" %(acq_info[acq_id]['job_id'], acq_info[acq_id]['job_status']))
 		else:
 		    acq_info[acq_id]['job_id'] = job_id
                     acq_info[acq_id]['job_status'] = job_status
-		    logger.info("Sling Job for ACQ : %s status: "%acq_info[acq_id])
-		    logger.info("Job id : %s. Job Status : %s" %(acq_info[acq_id]['job_id'], acq_info[acq_id]['job_status']))
+		    logger.info("Sling job for %s  : Job id : %s. Job Status : %s" %(acq_info[acq_id], acq_info[acq_id]['job_id'], acq_info[acq_id]['job_status']))
 
+  	logger.info("Checking if all job completed")
 	all_done = check_all_job_completed(acq_info)
 	if not all_done:
+	    logger.info("All job not completed. So sleeping for %s seconds" %sleep_seconds)
 	    time.sleep(sleep_seconds)
 
 
 
     #At this point, all sling jobs have been completed. Now lets recheck the slc status
 
+
+    logger.info("\nAll sling jobs have been completed. Now lets recheck the slc status")
     all_exists = False
+    index_suffix = "S1-IW_ACQ"
 
     while not all_exists:
         all_exists = True
 	for acq_id in acq_info.keys():
             if not acq_info[acq_id]['localized']:
- 		acq_info[acq_id]['localized'] = check_slc_status(acq_id, index_suffix)
+ 		acq_info[acq_id]['localized'] = check_slc_status(acq_data['metadata']['identifier'], index_suffix)
+		
 		if not acq_info[acq_id]['localized']:
+		    logger.info("%s NOT localized!!" %acq_data['metadata']['identifier'])
 		    all_exists = False
 		    break
 	if not all_exists:
@@ -284,18 +292,18 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     # At this point, we have all the slc downloaded and we are ready to submit a create standard product job
     acq_infoes =[]
     projects = []
-    job_prorities = []
+    job_priorities = []
     job_types = []
     job_versions = []
     standard_product_ifg_versions = []
 
     acq_infoes.append(acq_info)
     projects.append(project)
-    job_prorities.append(job_priority)
+    job_priorities.append(job_priority)
     standard_product_ifg_versions.append(standard_product_ifg_version)
    
 
-    return acq_info, project, standard_product_ifg_version, job_priority 
+    return acq_infoes, projects, standard_product_ifg_versions, job_priorities 
 
 
 
@@ -306,7 +314,8 @@ def check_all_job_completed(acq_info):
     for acq_id in acq_info.keys():
         if not acq_info[acq_id]['localized']:  
 	    job_status = acq_info[acq_id]['job_status']
-	    if not job_status == "job-completed":	
+	    if not job_status == "job-completed":
+		logger.info("check_all_job_completed : %s NOT completed!!" %acq_info[acq_id]['job_id'])	
 		all_done = False
 		break
     return all_done
@@ -316,17 +325,21 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
 
     if wuid is None or job_num is None:
         raise RuntimeError("Need to specify workunit id and job num.")
-
+    logger.info("\n\n\n SUBMIT IFG JOB!!!")
     master_ids_str=""
     master_ids_list=[]
 
     slave_ids_str=""
     slave_ids_list=[]
 
+
+    logger.info("project : %s" %project)
+
     for acq in acq_info.keys():
-	acq_data = acq_info[acq].acq_data
-	acq_type = acq_info[acq].acq_type
-	identifier =  acq_data["metadata"]["identifier"],
+	acq_data = acq_info[acq]['acq_data']
+	acq_type = acq_info[acq]['acq_type']
+	identifier =  acq_data["metadata"]["identifier"]
+        logger.info("identifier : %s" %identifier)
 	if acq_type == "master":
 	    master_ids_list.append(identifier)
 	    if master_ids_str=="":
@@ -341,13 +354,16 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
             else:
                 slave_ids_str += " "+identifier
 
+
+    logger.info("master_ids_str : %s" %master_ids_str)
+    logger.info("slave_ids_str : %s" %slave_ids_str)
     # set job type and disk space reqs
     disk_usage = "300GB"
 
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
    
-    job_type-"job-standard-product-ifg:%s" %standard_product_ifg_version
+    job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
 
     job_hash = hashlib.md5(json.dumps([
 	job_priority,
@@ -486,7 +502,7 @@ def submit_sling_job(project, spyddder_extract_version, acquisition_localizer_ve
     logger.info(sling_job_name)
 
     mozart_job_id = submit_mozart_job({}, rule,hysdsio={"id": "internal-temporary-wiring", "params": params, "job-specification": job_type}, job_name=sling_job_name)
-    logger.info("\nSubmitted sling job id for %s : %s" %(acq_data["metadata"]["identifier"], mozart_job_id))
+    logger.info("\nSubmitted sling job with id %s for  %s" %(acq_data["metadata"]["identifier"], mozart_job_id))
 
     return mozart_job_id
     
