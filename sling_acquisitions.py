@@ -296,6 +296,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
         all_exists = True
 	for acq_id in acq_info.keys():
             if not acq_info[acq_id]['localized']:
+		acq_data = acq_info[acq_id]['acq_data']
  		acq_info[acq_id]['localized'] = check_slc_status(acq_data['metadata']['identifier'])
 		
 		if not acq_info[acq_id]['localized']:
