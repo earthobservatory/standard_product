@@ -1,6 +1,7 @@
 #!/usr/bin/env python 
 import os, sys, time, json, requests, logging
 import hashlib
+from datetime import datetime
 from hysds_commons.job_utils import resolve_hysds_job
 from hysds.celery import app
 import util
@@ -29,6 +30,8 @@ MOZART_URL = app.conf['MOZART_URL']
 MOZART_ES_ENDPOINT = "MOZART"
 GRQ_ES_ENDPOINT = "GRQ"
 sleep_seconds = 120
+slc_check_max_sec = 300
+sling_completion_max_sec = 10800
 
 
 class ACQ:
@@ -75,8 +78,6 @@ def get_job_status(job_id):
     #print ("Type of status from ES: %s"%type(result["_source"]["status"]))
     status = str(result["_source"]["status"])
     if status == "job-deduped":
-        logger.info("Job was deduped")
-        print("Job was deduped")
         #query ES for the original job's status
         orig_job_id = result["_source"]["dedup_job"]
         return_job_id = orig_job_id
@@ -87,13 +88,14 @@ def get_job_status(job_id):
         #print ("Original JOB info: \n%s"%json.dumps(orig_job_info))
         orig_job_info = orig_job_info["hits"]["hits"][0]
         orig_job_status = str(orig_job_info["_source"]["status"])
+	logger.info("Check Job Status : Job %s was Deduped. The new/origianl job id is %s whose status is : %s" %(job_id, return_job_id, return_job_status)) 
 	return_job_status = orig_job_status
 
         if  orig_job_status == "job-failed":
             message = "Job was deduped against a failed job with id: %s, please retry job."%orig_job_id
             logger.info(message) 
         elif orig_job_status == "job-started" or orig_job_status == "job-queued":
-            print ("Job was deduped against a queued/started job with id: %s. Please look at already running job with same params."%orig_job_id)
+            logger.info ("Job was deduped against a queued/started job with id: %s. Please look at already running job with same params."%orig_job_id)
             message = "Job was deduped against a queued/started job with id: %s. Please look at already running job with same params."%orig_job_id
         elif orig_job_status == "job-completed":
             # return products staged and context of original job
@@ -245,7 +247,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 
     # Now loop in until all the jobs are completed 
     all_done = False
-
+    sling_check_start_time = datetime.utcnow()
     while not all_done:
 
         for acq_id in acq_info.keys():
@@ -253,7 +255,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
             if not acq_info[acq_id]['localized']: 
 		job_status, job_id  = get_job_status(acq_info[acq_id]['job_id'])  
   		if job_status == "job-completed":
-		    logger.info("Success! sling job for slc : %  with job id : %s COMPLETED!!")
+		    logger.info("Success! sling job for slc : %  with job id : %s COMPLETED!!" %(acq_data['metadata']['identifier'], job_id))
 		    acq_info[acq_id]['job_id'] = job_id
 		    acq_info[acq_id]['job_status'] = job_status
 		elif job_status == "job-failed":
@@ -274,6 +276,10 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
   	logger.info("Checking if all job completed")
 	all_done = check_all_job_completed(acq_info)
 	if not all_done:
+	    now = datetime.utcnow()
+	    delta = (now - sling_check_start_time).total_seconds()
+            if delta >= sling_completion_max_sec:
+            	raise RuntimeError("Error : Sling jobs NOT completed after %.2f hours!!" %delta/3600)
 	    logger.info("All job not completed. So sleeping for %s seconds" %sleep_seconds)
 	    time.sleep(sleep_seconds)
 
@@ -285,7 +291,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     logger.info("\nAll sling jobs have been completed. Now lets recheck the slc status")
     all_exists = False
     index_suffix = "S1-IW_ACQ"
-
+    slc_check_start_time = datetime.utcnow()
     while not all_exists:
         all_exists = True
 	for acq_id in acq_info.keys():
@@ -297,6 +303,10 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 		    all_exists = False
 		    break
 	if not all_exists:
+	    now = datetime.utcnow()
+            delta = (now-slc_check_start_time).total_seconds()
+	    if delta >= slc_check_max_sec:
+                raise RuntimeError("Error : SLC not available %.2f min after sling jobs completed!!" %delta/60)
             time.sleep(60)
 
 
@@ -410,7 +420,7 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
 	    "range_looks" : 7,
 	    "filter_strength" : 0.5,
 	    "precise_orbit_only" : "true",
-	    "auto_bbox" : "true"
+	    "auto_bbox" : "true",
 
             # v2 cmd
             "_command": "/home/ops/ariamh/interferogram/sentinel/sciflo_create_standard_product.sh",
@@ -498,19 +508,6 @@ def submit_sling_job(project, spyddder_extract_version, acquisition_localizer_ve
         }
     ]
     
-    '''
-    params = {
-	"project": project,
-	"spyddder_extract_version": spyddder_extract_version,
-	"dataset_type" : acq_data["dataset_type"],
-	"dataset": acq_data["dataset"],
-  	"identifier": acq_data["metadata"]["identifier"],
-	"download_url": acq_data["metadata"]["download_url"],
-	"archive_filename": acq_data["metadata"]["archive_filename"],
-	"name" : sling_job_name,
-	"prod_met": acq_data["metadata"]
-	}
-    '''
 
     logger.info("PARAMS : %s" %params)
     logger.info("RULE : %s"%rule)
