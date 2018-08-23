@@ -114,6 +114,17 @@ def check_slc_status(slc_id, index_suffix):
 
     return False
 
+def check_slc_status(slc_id):
+
+    result = util.get_dataset(slc_id)
+    total = result['hits']['total']
+
+    if total > 0:
+        return True
+
+    return False
+
+
 def resolve_source(ctx_file):
     """Resolve best URL from acquisition."""
 
@@ -162,7 +173,7 @@ def resolve_source(ctx_file):
 	#logger.info(acq)
         #acq_data = util.get_acquisition_data(acq)[0]['fields']['partial'][0]
         acq_data = util.get_partial_grq_data(acq)['fields']['partial'][0]
-        status = check_slc_status(acq_data['metadata']['identifier'], index_suffix)
+        status = check_slc_status(acq_data['metadata']['identifier'])
         if status:
             # status=1
             logger.info("%s exists" %acq_data['metadata']['identifier'])
@@ -180,7 +191,7 @@ def resolve_source(ctx_file):
         #acq_data = util.get_acquisition_data(acq)[0]['fields']['partial'][0]
 	#logger.info("ACQ value : %s" %acq)
 	acq_data = util.get_partial_grq_data(acq)['fields']['partial'][0]
-        status = check_slc_status(acq_data['metadata']['identifier'], index_suffix)
+        status = check_slc_status(acq_data['metadata']['identifier'])
         if status:
 	    # status=1
             logger.info("%s exists" %acq_data['metadata']['identifier'])
@@ -279,7 +290,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
         all_exists = True
 	for acq_id in acq_info.keys():
             if not acq_info[acq_id]['localized']:
- 		acq_info[acq_id]['localized'] = check_slc_status(acq_data['metadata']['identifier'], index_suffix)
+ 		acq_info[acq_id]['localized'] = check_slc_status(acq_data['metadata']['identifier'])
 		
 		if not acq_info[acq_id]['localized']:
 		    logger.info("%s NOT localized!!" %acq_data['metadata']['identifier'])

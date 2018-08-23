@@ -63,6 +63,7 @@ def get_dataset(id, index_suffix):
     # es_url and es_index
     es_url = app.conf.GRQ_ES_URL
     es_index = "grq_*_{}".format(index_suffix.lower())
+    #es_index = "grq"
 
     # query
     query = {
@@ -94,6 +95,43 @@ def get_dataset(id, index_suffix):
     print(result['hits']['total'])
     return result
 
+def get_dataset(id):
+    """Query for existence of dataset by ID."""
+
+    # es_url and es_index
+    es_url = app.conf.GRQ_ES_URL
+    #es_index = "grq_*_{}".format(index_suffix.lower())
+    es_index = "grq"
+
+    # query
+    query = {
+        "query":{
+            "bool":{
+                "must":[
+                    { "term":{ "_id": id } }
+                ]
+            }
+        },
+        "fields": []
+    }
+
+    print(query)
+
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+    print(result['hits']['total'])
+    return result
 
 def query_es(endpoint, doc_id):
     """
