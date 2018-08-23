@@ -422,6 +422,7 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
 	    "filter_strength" : 0.5,
 	    "precise_orbit_only" : "true",
 	    "auto_bbox" : "true",
+	    "priority" : job_priority,
 
             # v2 cmd
             "_command": "/home/ops/ariamh/interferogram/sentinel/sciflo_create_standard_product.sh",
