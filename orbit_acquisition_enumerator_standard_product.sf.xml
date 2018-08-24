@@ -42,8 +42,6 @@
 	  <standard_product_localizer_versions/>
 	  <standard_product_ifg_versions/>
 	  <job_priorities/>
-	  <job_types/>
-	  <job_versions/>
         </sf:outputs>
         <sf:operator>
           <sf:description></sf:description>
@@ -63,8 +61,6 @@
           <standard_product_localizer_versions from="@#previous"/>
           <standard_product_ifg_versions from="@#previous"/>
 	  <job_priorities from="@#previous"/>
-          <job_types from="@#previous"/>
-	  <job_versions from="@#previous"/>
         </sf:inputs>
         <sf:outputs>
           <datasets/>

@@ -465,7 +465,7 @@ def resolve_aoi_acqs(ctx_file):
         logging.info("\n\nPrinting AOI : %s, Acq : %s" %(aoi, id))
             #print(acq)
 
-    	job_type = "job-standard_product_localizer:{}".format(standard_product_localizer_version)
+    	#job_type = "job-standard_product_localizer:{}".format(standard_product_localizer_version)
        
 	    #return id, project, spyddder_extract_version, aoi, priority, queue
 
@@ -478,8 +478,8 @@ def resolve_aoi_acqs(ctx_file):
 	    "standard_product_ifg_version" : standard_product_ifg_version,
 	    "acquisition_localizer_version" : acquisition_localizer_version,
 	    "standard_product_localizer_version" : standard_product_localizer_version,
-  	    "job_type" : job_type, 
-	    "job_version" : job_version,
+  	    #"job_type" : job_type, 
+	    #"job_version" : job_version,
 	    "job_priority" : ctx['job_priority']
 		
         } 

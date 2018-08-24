@@ -551,8 +551,8 @@ def enumerate_acquisations_array(acq_array):
     queues = []
     master_acquisitions= []
     slave_acquisitions = []
-    job_types = []
-    job_versions = []
+    #job_types = []
+    #job_versions = []
 
    
 
@@ -574,8 +574,8 @@ def enumerate_acquisations_array(acq_array):
 	    job_priorities.append(acq_data['job_priority'])
 	    master_acquisitions.append(candidate["master_acqs"])
 	    slave_acquisitions.append(candidate["slave_acqs"])
-	    job_types.append(acq_data["job_type"])
-    	    job_versions.append(acq_data["job_version"])
+	    #job_types.append(acq_data["job_type"])
+    	    #job_versions.append(acq_data["job_version"])
 	    #enumerate_dict[acq_data['acq_id']] = candidate_pair_list
 	    #submit_sling_job(candidate_pair_list, acq_data)
 
@@ -583,10 +583,10 @@ def enumerate_acquisations_array(acq_array):
 	    #logger.info("Error processing acquisition : %s" %acq_data['acq_id'])
 	    #logger.info(str(err))
 	    
-    return master_acquisitions, slave_acquisitions, projects, spyddder_extract_versions, acquisition_localizer_versions, standard_product_localizer_versions, standard_product_ifg_versions,  job_priorities, job_types, job_versions
+    return master_acquisitions, slave_acquisitions, projects, spyddder_extract_versions, acquisition_localizer_versions, standard_product_localizer_versions, standard_product_ifg_versions,  job_priorities
 
 
-def submit_localize_job( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, acquisition_localizer_version, standard_product_localizer_version, standard_product_ifg_version, job_priority, job_type, job_version, wuid=None, job_num=None):
+def submit_localize_job( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, acquisition_localizer_version, standard_product_localizer_version, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     if wuid is None or job_num is None:
@@ -608,6 +608,7 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
     logger.info("master acq type : %s of length %s"  %(type(master_acquisitions), len(master_acquisitions)))
     logger.info("slave acq type : %s of length %s" %(type(slave_acquisitions), len(master_acquisitions)))
 
+
     for acq in master_acquisitions:
 	#logger.info("master acq : %s" %acq)
 	if master_ids_str=="":
@@ -624,9 +625,15 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
 
     logger.info("Master Acquisitions_str : %s" %master_ids_str)
     logger.info("Slave Acquisitions_str : %s" %slave_ids_str)
+
+    job_hash = hashlib.md5(json.dumps([
+        job_priority,
+        master_ids_str,
+        slave_ids_str
+    ])).hexdigest()
     
     return {
-        "job_name": "%s-%s" % (localizer_job_type, job_version),
+        "job_name": "%s-%s" % (localizer_job_type, job_hash[0:4]),
         "job_type": localizer_job_type,
         "job_queue": job_queue,
         "container_mappings": {
