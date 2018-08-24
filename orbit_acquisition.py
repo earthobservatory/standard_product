@@ -465,7 +465,7 @@ def resolve_aoi_acqs(ctx_file):
         logging.info("\n\nPrinting AOI : %s, Acq : %s" %(aoi, id))
             #print(acq)
 
-    	job_type = "sciflo_stage_iw_slc:{}".format(ctx['stage_iw_slc_version'])
+    	job_type = "job-standard_product_localizer:{}".format(standard_product_localizer_version)
        
 	    #return id, project, spyddder_extract_version, aoi, priority, queue
 
