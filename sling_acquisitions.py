@@ -403,7 +403,7 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
         "container_mappings": {
             "/home/ops/.netrc": "/home/ops/.netrc",
             "/home/ops/.aws": "/home/ops/.aws"
-            #"/home/ops/ariamh/conf/settings.conf": "/home/ops/ariamh/conf/settings.conf"
+            "/home/ops/ariamh/conf/settings.conf": "/home/ops/ariamh/conf/settings.conf"
         },    
         "soft_time_limit": 86400,
         "time_limit": 86700,
