@@ -551,37 +551,28 @@ def enumerate_acquisations_array(acq_array):
     queues = []
     master_acquisitions= []
     slave_acquisitions = []
-    #job_types = []
-    #job_versions = []
 
    
 
     logger.info("\n\n\nenumerate_acquisations_array Length : %s" %len(acq_array))
     logger.info(acq_array)
     for acq_data in acq_array:
-        #try:
   	logger.info("%s : %s" %(type(acq_data), acq_data))
 	logger.info("\n\n Processing Acquisition : %s for project : %s" %(acq_data['acq_id'], acq_data['project']))
 	candidate_pair_list =  enumerate_acquisations_standard_product(acq_data['acq_id'])
-	for candidate in candidate_pair_list:
-   	    #logger.info("candidate slave_acqs is of type : %s of length : %s" %(type(candidate["slave_acqs"]), len(candidate["slave_acqs"])))
-	    #logger.info("candidate master_acqs is of type : %s of length : %s" %(type(candidate["master_acqs"]), len(candidate["master_acqs"])))
-	    projects.append(acq_data['project'])
-	    spyddder_extract_versions.append(acq_data['spyddder_extract_version'])
-	    acquisition_localizer_versions.append(acq_data['acquisition_localizer_version'])
-	    standard_product_localizer_versions.append(acq_data['standard_product_localizer_version'])
-	    standard_product_ifg_versions.append(acq_data['standard_product_ifg_version'])
-	    job_priorities.append(acq_data['job_priority'])
-	    master_acquisitions.append(candidate["master_acqs"])
-	    slave_acquisitions.append(candidate["slave_acqs"])
-	    #job_types.append(acq_data["job_type"])
-    	    #job_versions.append(acq_data["job_version"])
-	    #enumerate_dict[acq_data['acq_id']] = candidate_pair_list
-	    #submit_sling_job(candidate_pair_list, acq_data)
+	if len(candidate_pair_list)>=MIN_MAX:
+	    for candidate in candidate_pair_list:
+   	    	#logger.info("candidate slave_acqs is of type : %s of length : %s" %(type(candidate["slave_acqs"]), len(candidate["slave_acqs"])))
+	    	#logger.info("candidate master_acqs is of type : %s of length : %s" %(type(candidate["master_acqs"]), len(candidate["master_acqs"])))
+	    	projects.append(acq_data['project'])
+	    	spyddder_extract_versions.append(acq_data['spyddder_extract_version'])
+	    	acquisition_localizer_versions.append(acq_data['acquisition_localizer_version'])
+	    	standard_product_localizer_versions.append(acq_data['standard_product_localizer_version'])
+	    	standard_product_ifg_versions.append(acq_data['standard_product_ifg_version'])
+	    	job_priorities.append(acq_data['job_priority'])
+	    	master_acquisitions.append(candidate["master_acqs"])
+	    	slave_acquisitions.append(candidate["slave_acqs"])
 
-	#except Exception as err:
-	    #logger.info("Error processing acquisition : %s" %acq_data['acq_id'])
-	    #logger.info(str(err))
 	    
     return master_acquisitions, slave_acquisitions, projects, spyddder_extract_versions, acquisition_localizer_versions, standard_product_localizer_versions, standard_product_ifg_versions,  job_priorities
 
