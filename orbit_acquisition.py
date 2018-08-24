@@ -302,10 +302,10 @@ def get_dem_type(acq):
 def query_aoi_acquisitions(starttime, endtime, platform):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
-    aoi_acq = {}
+    #aoi_acq = {}
+    acq_info = {}
     es_index = "grq_*_*acquisition*"
     for aoi in query_aois(starttime, endtime):
-        acq_info = {}
         logger.info("aoi: {}".format(aoi['id']))
         query = {
             "query": {
@@ -453,6 +453,7 @@ def resolve_aoi_acqs(ctx_file):
 
     #standard_product_version= ctx['standard_product_version']
     project = ctx['project']
+    logger.info("PROJECT : %s" %project)
     priority = ctx["job_priority"]
     job_type, job_version = ctx['job_specification']['id'].split(':') 
     acquisitions = []
