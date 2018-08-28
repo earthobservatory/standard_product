@@ -258,6 +258,8 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 		    logger.info("Success! sling job for slc : %s  with job id : %s COMPLETED!!" %(acq_data['metadata']['identifier'], job_id))
 		    acq_info[acq_id]['job_id'] = job_id
 		    acq_info[acq_id]['job_status'] = job_status
+		    acq_info[acq_id]['localized'] = check_slc_status(acq_data['metadata']['identifier'])
+
 		elif job_status == "job-failed":
 		    download_url = acq_data["metadata"]["download_url"]
            	    logger.info ("Job %s failed. So again smitting sling job for %s" %(acq_info[acq_id]['job_id'], download_url))
