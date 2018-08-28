@@ -265,7 +265,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 	            logger.info(err_msg)
 		    raise RuntimeError(err_msg)
 
-                    '''
+		    '''
 		    download_url = acq_data["metadata"]["download_url"]
 	
             	    job_id = submit_sling_job(project, spyddder_extract_version, acquisition_localizer_version, acq_data, job_priority)
