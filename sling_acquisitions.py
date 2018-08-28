@@ -261,8 +261,13 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 		    acq_info[acq_id]['localized'] = check_slc_status(acq_data['metadata']['identifier'])
 
 		elif job_status == "job-failed":
+		    err_msg = "Error : Sling jobs %^s FAILED. So existing out of the sciflo!!....." %job_id
+	            logger.info(err_msg)
+		    raise RuntimeError(err_msg)
+
+                    '''
 		    download_url = acq_data["metadata"]["download_url"]
-           	    logger.info ("Job %s failed. So again smitting sling job for %s" %(acq_info[acq_id]['job_id'], download_url))
+	
             	    job_id = submit_sling_job(project, spyddder_extract_version, acquisition_localizer_version, acq_data, job_priority)
             	    acq_info[acq_id]['job_id'] = job_id
 		    logger.info("New Job Id : %s" %acq_info[acq_id]['job_id'])
@@ -270,6 +275,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
             	    acq_info[acq_id]['job_id'] = new_job_id
             	    acq_info[acq_id]['job_status'] = job_status
 		    logger.info("After checking job status, New Job Id : %s and status is %s" %(acq_info[acq_id]['job_id'], acq_info[acq_id]['job_status']))
+		    '''
 		else:
 		    acq_info[acq_id]['job_id'] = job_id
                     acq_info[acq_id]['job_status'] = job_status
