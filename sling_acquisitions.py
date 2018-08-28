@@ -261,7 +261,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 		    acq_info[acq_id]['localized'] = check_slc_status(acq_data['metadata']['identifier'])
 
 		elif job_status == "job-failed":
-		    err_msg = "Error : Sling jobs %^s FAILED. So existing out of the sciflo!!....." %job_id
+		    err_msg = "Error : Sling job %s FAILED. So existing out of the sciflo!!....." %job_id
 	            logger.info(err_msg)
 		    raise RuntimeError(err_msg)
 
