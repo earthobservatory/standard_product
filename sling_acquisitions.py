@@ -263,7 +263,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
 		elif job_status == "job-failed":
 		    download_url = acq_data["metadata"]["download_url"]
            	    logger.info ("Job %s failed. So again smitting sling job for %s" %(acq_info[acq_id]['job_id'], download_url))
-            	    job_id = submit_sling_job(project, spyddder_extract_version, acquisition_localizer_versions, acq_data, job_priority)
+            	    job_id = submit_sling_job(project, spyddder_extract_version, acquisition_localizer_version, acq_data, job_priority)
             	    acq_info[acq_id]['job_id'] = job_id
 		    logger.info("New Job Id : %s" %acq_info[acq_id]['job_id'])
             	    job_status, new_job_id  = get_job_status(job_id)
