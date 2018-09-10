@@ -76,8 +76,19 @@ def query_aois(starttime, endtime):
                                     "match": {
 					    "dataset_type": "area_of_interest"
                                         }
+                                },
+                                {
+                                    "match": {
+                                            "metadata.user_tags": "standard_product"
+                                        }
                                 }
-                            ]
+                            ],
+                 	    "must_not": {
+                		"term": {
+                    		    "metadata.user_tags": "inactive"
+                		}
+            		    }
+			  
                         }
                     },
         {
@@ -97,8 +108,18 @@ def query_aois(starttime, endtime):
                         "lte": endtime
                       }
                     }
+                  },
+                  {
+                      "match": {
+                          "metadata.user_tags": "standard_product"
+                      }
                   }
-                ]
+                ],
+       	    	"must_not": {
+                    "term": {
+                        "metadata.user_tags": "inactive"
+                    }
+                }
               }
             },
             "filter": {
@@ -124,9 +145,19 @@ def query_aois(starttime, endtime):
                       "endtime": {
                         "gte": starttime
                       }
-                    }
+                     }
+                  },
+                  {
+                      "match": {
+                          "metadata.user_tags": "standard_product"
+                      }
                   }
-                ]
+                ],
+           	"must_not": {
+                    "term": {
+                        "metadata.user_tags": "inactive"
+                    }
+                }
               }
             },
             "filter": {
