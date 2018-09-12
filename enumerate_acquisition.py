@@ -14,6 +14,7 @@ from shapely.geometry import Polygon
 #import isce
 #from UrlUtils import UrlUtils as UU
 
+BASE_PATH = os.path.dirname(__file__)
 
 covth = 0.98
 MIN_MAX = 2
@@ -577,85 +578,6 @@ def enumerate_acquisations_array(acq_array):
     return master_acquisitions, slave_acquisitions, projects, spyddder_extract_versions, acquisition_localizer_versions, standard_product_localizer_versions, standard_product_ifg_versions,  job_priorities
 
 
-def submit_localize_job( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, acquisition_localizer_version, standard_product_localizer_version, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
-    """Map function for create interferogram job json creation."""
-
-    if wuid is None or job_num is None:
-        raise RuntimeError("Need to specify workunit id and job num.")
-
-
-
-    # set job type and disk space reqs
-    disk_usage = "300GB"
-
-    # set job queue based on project
-    job_queue = "%s-job_worker-large" % project
-    logger.info("submit_localize_job : Queue : %s" %job_queue)
-
-    localizer_job_type = "job-standard_product_localizer:%s" % standard_product_localizer_version
-    master_ids_str=""
-    slave_ids_str=""
-
-    logger.info("master acq type : %s of length %s"  %(type(master_acquisitions), len(master_acquisitions)))
-    logger.info("slave acq type : %s of length %s" %(type(slave_acquisitions), len(master_acquisitions)))
-
-
-    for acq in master_acquisitions:
-	#logger.info("master acq : %s" %acq)
-	if master_ids_str=="":
-	    master_ids_str= acq
-	else:
-	    master_ids_str += " "+acq	
-    
-    for acq in slave_acquisitions:
-	#logger.info("slave acq : %s" %acq)
-        if slave_ids_str=="":
-            slave_ids_str= acq
-        else:
-            slave_ids_str += " "+acq 
-
-    logger.info("Master Acquisitions_str : %s" %master_ids_str)
-    logger.info("Slave Acquisitions_str : %s" %slave_ids_str)
-
-    job_hash = hashlib.md5(json.dumps([
-        job_priority,
-        master_ids_str,
-        slave_ids_str
-    ])).hexdigest()
-    
-    return {
-        "job_name": "%s-%s" % (localizer_job_type, job_hash[0:4]),
-        "job_type": localizer_job_type,
-        "job_queue": job_queue,
-        "container_mappings": {
-            "/home/ops/.netrc": "/home/ops/.netrc",
-            "/home/ops/.aws": "/home/ops/.aws"
-            #"/home/ops/ariamh/conf/settings.conf": "/home/ops/ariamh/conf/settings.conf"
-        },    
-        "soft_time_limit": 86400,
-        "time_limit": 86700,
-        "payload": {
-            # sciflo tracking info
-            "_sciflo_wuid": wuid,
-            "_sciflo_job_num": job_num,
-
-            # job params
-            "project": project,
-            "master_acquisitions": master_ids_str,
-	    "slave_acquisitions": slave_ids_str,
-	    "spyddder_extract_version" : spyddder_extract_version,
-	    "acquisition_localizer_version" : acquisition_localizer_version,
-	    "standard_product_ifg_version" : standard_product_ifg_version,
-	    "job_priority" : job_priority,
-
-            # v2 cmd
-            "_command": "/home/ops/verdi/ops/standard_product/sciflo_stage_iw_slc.sh",
-
-            # disk usage
-            "_disk_usage": disk_usage
-
-        }
-    }
     
 def enumerate_acquisations_standard_product(acq_id):
     
@@ -691,4 +613,4 @@ def enumerate_acquisations_standard_product(acq_id):
 
 if __name__ == "__main__":
     acq_id = "acquisition-S1A_IW_SLC__1SDV_20180807T135955_20180807T140022_023141_02837E_DA79"
-    enumerate_acquisations_standard_product(acq_id)
+    enumerate_acquisatio1ns_standard_product(acq_id)
