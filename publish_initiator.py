@@ -166,12 +166,15 @@ def get_track(info):
 
     tracks = {}
     for id in info:
+        logger.info(id)
         h = info[id]
         fields = h["_source"]
         track = fields['metadata']['trackNumber']
+        logger.info(track)
         tracks.setdefault(track, []).append(id)
     if len(tracks) != 1:
-        raise RuntimeError("Failed to find SLCs for only 1 track.")
+        print(tracks)
+        raise RuntimeError("Failed to find SLCs for only 1 track : %s" %tracks)
     return track
 
 
@@ -267,26 +270,43 @@ def publish_initiator( master_acquisitions, slave_acquisitions, project, spyddde
     disk_usage = "300GB"
 
     # query docs
-    uu = UU()
-    logger.info("rest_url: {}".format(uu.rest_url))
-    logger.info("dav_url: {}".format(uu.dav_url))
-    logger.info("version: {}".format(uu.version))
-    logger.info("grq_index_prefix: {}".format(uu.grq_index_prefix))
-
-    # get normalized rest url
-    rest_url = uu.rest_url[:-1] if uu.rest_url.endswith('/') else uu.rest_url
-
-    # get index name and url
-    url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, uu.grq_index_prefix)
-    logger.info("idx: {}".format(uu.grq_index_prefix))
-    logger.info("url: {}".format(url))
+    es_url = app.conf.GRQ_ES_URL
+    grq_index_prefix = "grq"
+    rest_url = es_url[:-1] if es_url.endswith('/') else es_url
+    url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, grq_index_prefix)
 
     # get metadata
-    master_md = { i:get_metadata(i, rest_url, url) for i in master_ids }
+    master_md = { i:get_metadata(i, rest_url, url) for i in master_acquisitions }
     #logger.info("master_md: {}".format(json.dumps(master_md, indent=2)))
-    slave_md = { i:get_metadata(i, rest_url, url) for i in slave_ids }
+    slave_md = { i:get_metadata(i, rest_url, url) for i in slave_acquisitions }
     #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
 
+    # get tracks
+    track = get_track(master_md)
+    logger.info("master_track: {}".format(track))
+    slave_track = get_track(slave_md)
+    logger.info("slave_track: {}".format(slave_track))
+    if track != slave_track:
+        raise RuntimeError("Slave track {} doesn't match master track {}.".format(slave_track, track))
+
+    ref_scence = master_md
+    if len(master_ids)==1:
+	ref_scence = master_md
+    elif len(slave_ids)==1:
+	ref_scence = slave_md
+    elif len(master_ids) > 1 and  len(slave_ids)>1:
+	raise RuntimeError("Single Scene Reference Required.")
+ 
+
+    dem_type = get_dem_type(master_md)
+
+    # get dem_type
+    dem_type = get_dem_type(master_md)
+    logger.info("master_dem_type: {}".format(dem_type))
+    slave_dem_type = get_dem_type(slave_md)
+    logger.info("slave_dem_type: {}".format(slave_dem_type))
+    if dem_type != slave_dem_type:
+	dem_type = "SRTM+v3"
 
 
  
@@ -324,7 +344,7 @@ def publish_initiator( master_acquisitions, slave_acquisitions, project, spyddde
         slave_ids_str
     ])).hexdigest()
 
-    id = "standard-product-ifg-acq-%s" %  id_hash[0:4])
+    id = "standard-product-ifg-acq-%s" %id_hash[0:4]
     prod_dir = id
     os.makedirs(prod_dir, 0o755)
 
@@ -343,6 +363,8 @@ def publish_initiator( master_acquisitions, slave_acquisitions, project, spyddde
     md['_disk_usage'] = disk_usage
     md['soft_time_limit'] =  86400
     md['time_limit'] = 86700
+    md['dem_type'] = dem_type
+    md['track'] = track
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
