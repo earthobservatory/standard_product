@@ -174,7 +174,7 @@ def get_track(info):
         tracks.setdefault(track, []).append(id)
     if len(tracks) != 1:
         print(tracks)
-        raise RuntimeError("Failed to find SLCs for only 1 track : %s" %tracks)
+        #raise RuntimeError("Failed to find SLCs for only 1 track : %s" %tracks)
     return track
 
 
