@@ -46,6 +46,113 @@ def query_es(query, es_index=None):
     return hits
 
 
+def query_aois_old(starttime, endtime):
+    """Query ES for active AOIs that intersect starttime and endtime."""
+
+    es_index = "grq_*_area_of_interest"
+    query = {
+        "query": {
+            "bool": {
+                "should": [
+                    {
+                        "bool": {
+                            "must": [
+                                {
+                                    "range": {
+                                        "starttime": {
+                                            "lte": endtime
+                                        }
+                                    }
+                                },
+                                {
+                                    "range": {
+                                        "endtime": {
+                                            "gte": starttime
+                                        }
+                                    }
+                                },
+				{
+                                    "match": {
+					    "dataset_type": "area_of_interest"
+                                        }
+                                }
+                            ]
+                        }
+                    },
+        {
+        "filtered": {
+            "query": {
+
+              "bool": {
+                "must": [
+                  {
+                    "match": {
+                      "dataset_type": "area_of_interest"
+                      }
+                  },
+                  {
+                    "range": {
+                      "starttime": {
+                        "lte": endtime
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "filter": {
+              "missing": {
+                "field": "endtime"
+              }
+            }
+          }
+        },
+        {
+        "filtered": {
+            "query": {
+
+              "bool": {
+                "must": [
+                  {
+                    "match": {
+                      "dataset_type": "area_of_interest"
+                      }
+                  },
+                  {
+                    "range": {
+                      "endtime": {
+                        "gte": starttime
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "filter": {
+              "missing": {
+                "field": "starttime"
+              }
+            }
+          }
+        }
+          
+      ]
+    }
+  },
+        "partial_fields" : {
+            "partial" : {
+                "include" : [ "id", "starttime", "endtime", "location", 
+                              "metadata.user_tags", "metadata.priority" ]
+            }
+        }
+    }
+
+    # filter inactive
+    hits = [i['fields']['partial'][0] for i in query_es(query) 
+            if 'inactive' not in i['fields']['partial'][0].get('metadata', {}).get('user_tags', [])]
+    #logger.info("hits: {}".format(json.dumps(hits, indent=2)))
+    #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
+    return hits
 
 def query_aois(starttime, endtime):
     """Query ES for active AOIs that intersect starttime and endtime."""

@@ -52,14 +52,10 @@ def query_grq( doc_id):
         es_url = app.conf['JOBS_ES_URL']
         es_index = "job_status-current"
     '''
-
-    uu = UU()
-    logger.info("rest_url: {}".format(uu.rest_url))
-    logger.info("grq_index_prefix: {}".format(uu.grq_index_prefix))
-
     # get normalized rest url
-    es_url = uu.rest_url[:-1] if uu.rest_url.endswith('/') else uu.rest_url
-    es_index = uu.grq_index_prefix
+    es_url = app.conf.GRQ_ES_URL
+    #rest_url = es_url[:-1] if es_url.endswith('/') else es_url
+    es_index = "grq"
 
     query = {
         "query": {
@@ -137,7 +133,7 @@ def get_metadata(id, rest_url, url):
             }
         }
     }
-    #logger.info("query: {}".format(json.dumps(query, indent=2)))
+    logger.info("query: {}".format(json.dumps(query, indent=2)))
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
@@ -174,7 +170,8 @@ def get_track(info):
         tracks.setdefault(track, []).append(id)
     if len(tracks) != 1:
         print(tracks)
-        #raise RuntimeError("Failed to find SLCs for only 1 track : %s" %tracks)
+        
+        raise RuntimeError("Failed to find SLCs for only 1 track : %s" %tracks)
     return track
 
 
@@ -248,11 +245,7 @@ def create_dataset_json(id, version, met_file, ds_file):
     ds = {
         'creation_timestamp': "%sZ" % datetime.utcnow().isoformat(),
         'version': version,
-        'label': id,
-        'location': {
-            'type': 'Polygon',
-            'coordinates': coordinates
-        }
+        'label': id
     }
 
     # write out dataset json
@@ -261,7 +254,14 @@ def create_dataset_json(id, version, met_file, ds_file):
 
 
 def publish_initiator( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, acquisition_localizer_version, standard_product_localizer_version, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
-   
+    for i in range(len(master_acquisitions)):
+        publish_initiator_pair( master_acquisitions[i], slave_acquisitions[i], project[i], spyddder_extract_version[i], acquisition_localizer_version[i], standard_product_localizer_version[i], standard_product_ifg_version[i], job_priority[i])
+
+def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, acquisition_localizer_version, standard_product_localizer_version, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
+  
+    logger.info("MASTER : %s " %master_acquisitions)
+    logger.info("SLAVE : %s" %slave_acquisitions) 
+    logger.info("project: %s" %project)
 
     #version = get_version()
     version = "v2.0.0"
@@ -290,11 +290,11 @@ def publish_initiator( master_acquisitions, slave_acquisitions, project, spyddde
         raise RuntimeError("Slave track {} doesn't match master track {}.".format(slave_track, track))
 
     ref_scence = master_md
-    if len(master_ids)==1:
+    if len(master_acquisitions)==1:
 	ref_scence = master_md
-    elif len(slave_ids)==1:
+    elif len(slave_acquisitions)==1:
 	ref_scence = slave_md
-    elif len(master_ids) > 1 and  len(slave_ids)>1:
+    elif len(master_acquisitions) > 1 and  len(slave_acquisitions)>1:
 	raise RuntimeError("Single Scene Reference Required.")
  
 
@@ -345,14 +345,14 @@ def publish_initiator( master_acquisitions, slave_acquisitions, project, spyddde
     ])).hexdigest()
 
     id = "standard-product-ifg-acq-%s" %id_hash[0:4]
-    prod_dir = id
+    prod_dir =  id
     os.makedirs(prod_dir, 0o755)
 
     met_file = os.path.join(prod_dir, "{}.met.json".format(id))
     ds_file = os.path.join(prod_dir, "{}.dataset.json".format(id))
   
-    with open(met_file) as f: md = json.load(f)
-
+    #with open(met_file) as f: md = json.load(f)
+    md = {}
     md['project'] =  project,
     md['master_acquisitions'] = master_ids_str
     md['slave_acquisitions'] = slave_ids_str

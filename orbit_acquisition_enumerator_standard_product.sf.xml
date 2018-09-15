@@ -68,7 +68,7 @@
         <sf:operator>
           <sf:description></sf:description>
           <sf:op>
-            <sf:binding job_queue="jobs_processed" async="true">python:?publish_initiator.publish_initiator</sf:binding>
+            <sf:binding>python:?publish_initiator.publish_initiator</sf:binding>
           </sf:op>
         </sf:operator>
       </sf:process>
