@@ -147,6 +147,8 @@ def resolve_source(ctx_file):
 
     # build args
     project = ctx["project"]
+    dem_type= ctx["dem_type"]
+    track = ctx["track"]
     master_acqs = [i.strip() for i in ctx['master_acquisitions'].split()]
     slave_acqs = [i.strip() for i in ctx['slave_acquisitions'].split()]
     logger.info("master_acqs : %s" %master_acqs)
@@ -222,10 +224,10 @@ def resolve_source(ctx_file):
     standard_product_ifg_versions.append(standard_product_ifg_version)
 
     #return acq_infoes, spyddder_extract_versions, acquisition_localizer_versions, standard_product_ifg_versions, projects, job_priorities, job_types, job_versions
-    return acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version
+    return acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version, dem_type, track
 
 
-def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version):
+def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version, dem_type, track):
     '''
 	This function checks if any ACQ that has not been ingested yet and sling them.
     '''
@@ -326,14 +328,17 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     job_types = []
     job_versions = []
     standard_product_ifg_versions = []
+    dem_types = []
+    tracks = []
 
     acq_infoes.append(acq_info)
     projects.append(project)
     job_priorities.append(job_priority)
     standard_product_ifg_versions.append(standard_product_ifg_version)
-   
+    dem_types.append(dem_type)
+    tracks.append(track)
 
-    return acq_infoes, projects, standard_product_ifg_versions, job_priorities 
+    return acq_infoes, projects, standard_product_ifg_versions, job_priorities, dem_types, tracks
 
 
 
@@ -349,6 +354,115 @@ def check_all_job_completed(acq_info):
 		all_done = False
 		break
     return all_done
+
+
+
+def create_dataset_json(id, version, met_file, ds_file):
+    """Write dataset json."""
+
+
+    # get metadata
+    with open(met_file) as f:
+        md = json.load(f)
+
+
+    ds = {
+        'creation_timestamp': "%sZ" % datetime.utcnow().isoformat(),
+        'version': version,
+        'label': id
+    }
+
+    # write out dataset json
+    with open(ds_file, 'w') as f:
+        json.dump(ds, f, indent=2)
+
+
+def publish_localized_info( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track, wuid=None, job_num=None):
+    for i in range(len(project)):
+        publish_data( acq_info[i], project[i], standard_product_ifg_version[i], job_priority[i], dem_type[i], track[i])
+
+def publish_data( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track, wuid=None, job_num=None):
+    """Map function for create interferogram job json creation."""
+
+    logger.info("\n\n\n PUBLISH IFG JOB!!!")
+    master_ids_str=""
+    master_ids_list=[]
+
+    slave_ids_str=""
+    slave_ids_list=[]
+
+    #version = get_version()
+    version = "v2.0.0"
+
+    logger.info("project : %s" %project)
+
+    for acq in acq_info.keys():
+	acq_data = acq_info[acq]['acq_data']
+	acq_type = acq_info[acq]['acq_type']
+	identifier =  acq_data["metadata"]["identifier"]
+        logger.info("identifier : %s" %identifier)
+	if acq_type == "master":
+	    master_ids_list.append(identifier)
+	    if master_ids_str=="":
+		master_ids_str=identifier
+	    else:
+		master_ids_str += " "+identifier
+
+	elif acq_type == "slave":
+            slave_ids_list.append(identifier)
+            if slave_ids_str=="":
+                slave_ids_str=identifier
+            else:
+                slave_ids_str += " "+identifier
+
+
+    logger.info("master_ids_str : %s" %master_ids_str)
+    logger.info("slave_ids_str : %s" %slave_ids_str)
+    # set job type and disk space reqs
+    disk_usage = "300GB"
+
+    # set job queue based on project
+    job_queue = "%s-job_worker-large" % project
+   
+    job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
+
+    id_hash = hashlib.md5(json.dumps([
+	job_priority,
+	master_ids_str,
+	slave_ids_str
+    ])).hexdigest()
+
+
+    id = "standard-product-ifg-cfg-%s" %id_hash[0:4]
+    prod_dir =  id
+    os.makedirs(prod_dir, 0o755)
+
+    met_file = os.path.join(prod_dir, "{}.met.json".format(id))
+    ds_file = os.path.join(prod_dir, "{}.dataset.json".format(id))
+  
+    #with open(met_file) as f: md = json.load(f)
+    md = {}
+    md['project'] =  project,
+    md['master_acquisitions'] = master_ids_str
+    md['slave_acquisitions'] = slave_ids_str
+    md['standard_product_ifg_version'] = standard_product_ifg_version
+    md['job_priority'] = job_priority
+    md['azimuth_looks'] = 19
+    md['range_looks'] = 7
+    md['filter_strength'] =  0.5
+    md['precise_orbit_only'] = 'true'
+    md['auto_bbox'] = 'true'
+    md['_disk_usage'] = disk_usage
+    md['soft_time_limit'] =  86400
+    md['time_limit'] = 86700
+    md['dem_type'] = dem_type
+    md['track'] = track
+
+    with open(met_file, 'w') as f: json.dump(md, f, indent=2)
+
+
+    print("creating dataset file : %s" %ds_file)
+    create_dataset_json(id, version, met_file, ds_file)
 
 def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""

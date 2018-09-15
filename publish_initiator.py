@@ -359,7 +359,7 @@ def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, sp
     md['spyddder_extract_version'] = spyddder_extract_version
     md['acquisition_localizer_version'] = acquisition_localizer_version
     md['standard_product_ifg_version'] = standard_product_ifg_version
-    md['job_priority'] = job_priority,
+    md['job_priority'] = job_priority
     md['_disk_usage'] = disk_usage
     md['soft_time_limit'] =  86400
     md['time_limit'] = 86700
