@@ -4,6 +4,22 @@ import os, sys, time, json, requests, logging
 from hysds_commons.job_utils import resolve_hysds_job
 from hysds.celery import app
 
+
+class ACQ:
+    def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, pv ):
+	self.acq_id=acq_id,
+	self.download_url = download_url
+	self.tracknumber = tracknumber
+        self.location= location
+	self.starttime = starttime
+	self.endtime = endtime
+	self.pv = pv
+	self.direction = direction
+        self.orbitnumber = orbitnumber
+        #print("%s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, pv))
+
+
+
 # set logger
 log_format = "[%(asctime)s: %(levelname)s/%(name)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)

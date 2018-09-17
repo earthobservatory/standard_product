@@ -10,6 +10,7 @@ from osgeo import ogr, osr
 from pprint import pformat
 from collections import OrderedDict
 from shapely.geometry import Polygon
+from util import ACQ
 
 #import isce
 #from UrlUtils import UrlUtils as UU
@@ -19,6 +20,8 @@ BASE_PATH = os.path.dirname(__file__)
 covth = 0.98
 MIN_MAX = 2
 
+
+'''
 class ACQ:
     def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, pv ):
 	self.acq_id=acq_id,
@@ -31,7 +34,7 @@ class ACQ:
 	self.direction = direction
         self.orbitnumber = orbitnumber
         #print("%s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, pv))
-
+'''
 
 
 

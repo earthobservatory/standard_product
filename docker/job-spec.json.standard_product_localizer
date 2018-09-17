@@ -20,27 +20,7 @@
       "destination": "context"
     },
     {
-      "name": "master_acquisitions",
-      "destination": "context"
-    },
-    {
-      "name": "slave_acquisitions",
-      "destination": "context"
-    },
-    {
-      "name": "spyddder_extract_version",
-      "destination": "context"
-    },
-    {   
-      "name": "acquisition_localizer_version",
-      "destination": "context"
-    },
-    {
-      "name": "standard_product_ifg_version",
-      "destination": "context"
-    },
-    {
-      "name": "job_priority",
+      "name": "input_metadata",
       "destination": "context"
     }
   ]

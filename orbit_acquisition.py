@@ -1,9 +1,10 @@
 #!/usr/bin/env python 
 import os, sys, time, json, requests, logging
-
+import re, traceback, argparse, copy, bisect
 from hysds_commons.job_utils import resolve_hysds_job
 from hysds.celery import app
-
+import util
+from util import ACQ
 
 # set logger
 log_format = "[%(asctime)s: %(levelname)s/%(name)s/%(funcName)s] %(message)s"
@@ -18,6 +19,11 @@ logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
+SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
+                    r'_(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
+                    r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +
+                    r'_(?P<end_year>\d{4})(?P<end_month>\d{2})(?P<end_day>\d{2})' +
+                    r'T(?P<end_hour>\d{2})(?P<end_min>\d{2})(?P<end_sec>\d{2})_.*$')
 
 BASE_PATH = os.path.dirname(__file__)
 
@@ -46,7 +52,9 @@ def query_es(query, es_index=None):
     return hits
 
 
-def query_aois_old(starttime, endtime):
+
+
+def query_aois(starttime, endtime):
     """Query ES for active AOIs that intersect starttime and endtime."""
 
     es_index = "grq_*_area_of_interest"
@@ -154,7 +162,7 @@ def query_aois_old(starttime, endtime):
     #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
     return hits
 
-def query_aois(starttime, endtime):
+def query_aois_new(starttime, endtime):
     """Query ES for active AOIs that intersect starttime and endtime."""
 
     es_index = "grq_*_area_of_interest"
@@ -429,6 +437,45 @@ def get_query2(acq):
     return query
 
 
+def group_acqs_by_track(frames):
+    grouped = {}
+    acq_info = {}
+    #print("frame length : %s" %len(frames))
+    for acq in frames:
+	acq_data = acq#['fields']['partial'][0]
+	acq_id = acq['id']
+        #print("acq_id : %s : %s" %(type(acq_id), acq_id))
+	match = SLC_RE.search(acq_id)
+        if not match:
+	    logger.info("No Match : %s" %acq_id)
+	    continue
+	download_url = acq_data['metadata']['download_url'] 
+	track = acq_data['metadata']['trackNumber']
+	location = acq_data['metadata']['location']
+	starttime = acq_data['starttime']
+	endtime = acq_data['endtime']
+        direction = acq_data['metadata']['direction']
+        orbitnumber = acq_data['metadata']['orbitNumber']
+        pv = acq_data['metadata']['processing_version']
+	this_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, pv)
+        acq_info[acq_id] = this_acq
+       
+        #logger.info("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
+	#logger.info(grouped)
+        bisect.insort(grouped.setdefault(track, []), acq_id)
+	'''
+	if track in grouped.keys():
+	    if orbitnumber in grouped[track].keys():
+		if pv in grouped[track][orbitnumber].keys():
+		    grouped[track][orbitnumber][pv] = grouped[track][orbitnumber][pv].append(slave_acq)
+		else:
+		    slave_acqs = [slave_acq]
+ 		    slave_pv = {}
+		
+		    grouped[track][orbitnumber] = 
+	'''	    
+    return {"grouped": grouped, "acq_info" : acq_info}
+
 
 def get_dem_type(acq):
     dem_type = "SRTM+v3"
@@ -437,13 +484,26 @@ def get_dem_type(acq):
 	    dem_type="Ned1"
     return dem_type
 
+
+def get_covered_acquisitions(aoi, acqs):
+    
+    for acq in acqs:
+        grouped_matched = group_acqs_by_track(acqs)
+        matched_ids = grouped_matched["acq_info"].keys()
+    
+
+
+    return acqs
+
 def query_aoi_acquisitions(starttime, endtime, platform):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
     #aoi_acq = {}
     acq_info = {}
     es_index = "grq_*_*acquisition*"
-    for aoi in query_aois(starttime, endtime):
+    aois = query_aois(starttime, endtime)
+    logger.info("No of AOIs : %s " %len(aois))
+    for aoi in aois:
         logger.info("aoi: {}".format(aoi['id']))
         query = {
             "query": {
@@ -489,14 +549,20 @@ def query_aoi_acquisitions(starttime, endtime, platform):
             },
             "partial_fields" : {
                 "partial" : {
-                    "include" : [ "id", "dataset_type", "dataset", "metadata", "city", "continent" ]
+                    "include" : [ "id", "dataset_type", "dataset", "metadata", "city", "continent", "starttime", "endtime"]
                 }
             }
         }
-        #print(query)
+        logger.info(query)
         acqs = [i['fields']['partial'][0] for i in query_es(query, es_index)]
         logger.info("Found {} acqs for {}: {}".format(len(acqs), aoi['id'],
                     json.dumps([i['id'] for i in acqs], indent=2)))
+
+        logger.info("ALL ACQ of AOI : \n%s" %acqs)
+
+        acqs = get_covered_acquisitions(aoi, acqs)
+
+
         for acq in acqs:
             aoi_priority = aoi.get('metadata', {}).get('priority', 0)
             # ensure highest priority is assigned if multiple AOIs resolve the acquisition

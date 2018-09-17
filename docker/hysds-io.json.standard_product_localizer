@@ -10,30 +10,9 @@
       "default": "grfn",
       "enumerables": ["aria", "grfn", "mem", "urgent-response", "dwr"]
     },
-    { 
-      "name": "master_acquisitions",
-      "from": "submitter"
-    },
-    { 
-      "name": "slave_acquisitions",
-      "from": "submitter"
-    },
-    { 
-      "name": "spyddder_extract_version",
-      "from": "submitter"
-    },
     {
-      "name": "acquisition_localizer_version",
-      "from": "submitter"
-    },
-    {
-      "name": "standard_product_ifg_version",
-      "from": "submitter"
-    },
-    { 
-      "name": "job_priority",
-      "from": "submitter"
+      "name": "input_metadata",
+      "from": "dataset_jpath:_source.metadata"
     }
-
   ]
 }
