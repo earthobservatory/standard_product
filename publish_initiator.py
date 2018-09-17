@@ -320,7 +320,8 @@ def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, sp
     logger.info("master acq type : %s of length %s"  %(type(master_acquisitions), len(master_acquisitions)))
     logger.info("slave acq type : %s of length %s" %(type(slave_acquisitions), len(master_acquisitions)))
 
-
+    if type(project) is list:
+        project = project[0]
     for acq in master_acquisitions:
         #logger.info("master acq : %s" %acq)
         if master_ids_str=="":

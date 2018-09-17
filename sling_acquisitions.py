@@ -146,19 +146,21 @@ def resolve_source(ctx_file):
     
 
     # build args
-    project = ctx["project"]
-    dem_type= ctx["dem_type"]
-    track = ctx["track"]
-    master_acqs = [i.strip() for i in ctx['master_acquisitions'].split()]
-    slave_acqs = [i.strip() for i in ctx['slave_acquisitions'].split()]
+    project = ctx["input_metadata"]["project"]
+    if type(project) is list:
+        project = project[0]
+    dem_type= ctx["input_metadata"]["dem_type"]
+    track = ctx["input_metadata"]["track"]
+    master_acqs = [i.strip() for i in ctx["input_metadata"]['master_acquisitions'].split()]
+    slave_acqs = [i.strip() for i in ctx["input_metadata"]['slave_acquisitions'].split()]
     logger.info("master_acqs : %s" %master_acqs)
     logger.info("slave_acqs : %s" %slave_acqs)
     
-    spyddder_extract_version = ctx["spyddder_extract_version"]
-    acquisition_localizer_version = ctx["acquisition_localizer_version"]
-    standard_product_ifg_version = ctx["standard_product_ifg_version"]
-    job_priority = ctx["job_priority"]
-    job_type, job_version = ctx['context']['job_specification']['id'].split(':') 
+    spyddder_extract_version = ctx["input_metadata"]["spyddder_extract_version"]
+    acquisition_localizer_version = ctx["input_metadata"]["acquisition_localizer_version"]
+    standard_product_ifg_version = ctx["input_metadata"]["standard_product_ifg_version"]
+    job_priority = ctx["input_metadata"]["job_priority"]
+    job_type, job_version = ctx['job_specification']['id'].split(':') 
 
     queues = []  # where should we get the queue value
     identifiers = []
