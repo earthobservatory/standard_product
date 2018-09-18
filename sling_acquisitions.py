@@ -396,8 +396,10 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     #version = get_version()
     version = "v2.0.0"
 
+    if type(project) is list:
+        project = project[0]
     logger.info("project : %s" %project)
-
+    
     for acq in acq_info.keys():
 	acq_data = acq_info[acq]['acq_data']
 	acq_type = acq_info[acq]['acq_type']
@@ -445,10 +447,10 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     #with open(met_file) as f: md = json.load(f)
     md = {}
     md['project'] =  project,
-    md['master_acquisitions'] = master_ids_str
-    md['slave_acquisitions'] = slave_ids_str
+    md['master_ids'] = master_ids_str
+    md['slave_ids'] = slave_ids_str
     md['standard_product_ifg_version'] = standard_product_ifg_version
-    md['job_priority'] = job_priority
+    md['priority'] = job_priority
     md['azimuth_looks'] = 19
     md['range_looks'] = 7
     md['filter_strength'] =  0.5
