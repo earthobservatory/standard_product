@@ -446,6 +446,7 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
   
     #with open(met_file) as f: md = json.load(f)
     md = {}
+    md['id'] = id
     md['project'] =  project,
     md['master_ids'] = master_ids_str
     md['slave_ids'] = slave_ids_str

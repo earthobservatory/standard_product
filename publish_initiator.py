@@ -354,6 +354,7 @@ def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, sp
   
     #with open(met_file) as f: md = json.load(f)
     md = {}
+    md['id'] = id
     md['project'] =  project,
     md['master_acquisitions'] = master_ids_str
     md['slave_acquisitions'] = slave_ids_str
