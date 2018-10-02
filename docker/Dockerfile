@@ -23,6 +23,7 @@ USER root
 COPY . /home/ops/verdi/ops/standard_product
 
 RUN pip install shapely
+RUN pip3 install shapely
 
 # as ops user
 USER ops
@@ -37,6 +38,7 @@ RUN set -ex \
 RUN set -ex \
  && sudo chown -R ops:ops /home/ops/verdi/ops/standard_product \
  && mv /home/ops/verdi/ops/standard_product/spyddder-man /home/ops/verdi/ops/ \
+ && mv /home/ops/verdi/ops/standard_product/lightweight_water_mask /home/ops/verdi/ops/ \
  && mv /home/ops/verdi/ops/standard_product/ariamh/ /home/ops/
 
 
