@@ -9,11 +9,11 @@ ARG gid
 
 # provision
 USER root
-RUN set -ex && \
-  usermod -u ${id} ops && \
-  groupmod -g ${gid} ops && \
-  chown -R ops:ops /home/ops/ /data && \
-  usermod -g ${gid} ops
+#RUN set -ex && \
+ # usermod -u ${id} ops && \
+  #groupmod -g ${gid} ops && \
+  #chown -R ops:ops /home/ops/ /data && \
+  #usermod -g ${gid} ops
 
 # copy config
 #COPY .aws /home/ops/.aws
