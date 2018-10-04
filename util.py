@@ -1,20 +1,25 @@
 #!/usr/bin/env python 
 import os, sys, time, json, requests, logging
 
-from hysds_commons.job_utils import resolve_hysds_job
-from hysds.celery import app
+#from hysds_commons.job_utils import resolve_hysds_job
+#from hysds.celery import app
+from shapely.geometry import Polygon
+from shapely.ops import cascaded_union
 
+
+
+GRQ_URL="http://100.64.134.208:9200/"
 
 class ACQ:
     def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, pv ):
-	self.acq_id=acq_id,
-	self.download_url = download_url
-	self.tracknumber = tracknumber
+        self.acq_id=acq_id,
+        self.download_url = download_url
+        self.tracknumber = tracknumber
         self.location= location
-	self.starttime = starttime
-	self.endtime = endtime
-	self.pv = pv
-	self.direction = direction
+        self.starttime = starttime
+        self.endtime = endtime
+        self.pv = pv
+        self.direction = direction
         self.orbitnumber = orbitnumber
         #print("%s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, pv))
 
@@ -38,11 +43,12 @@ BASE_PATH = os.path.dirname(__file__)
 MOZART_ES_ENDPOINT = "MOZART"
 GRQ_ES_ENDPOINT = "GRQ"
 
+
 def dataset_exists(id, index_suffix):
     """Query for existence of dataset by ID."""
 
     # es_url and es_index
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_URL
     es_index = "grq_*_{}".format(index_suffix.lower())
     
     # query
@@ -77,7 +83,7 @@ def get_dataset(id, index_suffix):
     """Query for existence of dataset by ID."""
 
     # es_url and es_index
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_URL
     es_index = "grq_*_{}".format(index_suffix.lower())
     #es_index = "grq"
 
@@ -115,7 +121,7 @@ def get_dataset(id):
     """Query for existence of dataset by ID."""
 
     # es_url and es_index
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_URL
     #es_index = "grq_*_{}".format(index_suffix.lower())
     es_index = "grq"
 
@@ -255,7 +261,7 @@ def check_ES_status(doc_id):
         time.sleep(sleep_seconds)
         #result = ES.search(index=es_index, body=query)
 
-	r = requests.post(search_url, data=json.dumps(query))
+        r = requests.post(search_url, data=json.dumps(query))
 
         if r.status_code != 200:
             print("Failed to query %s:\n%s" % (es_url, r.text))
@@ -270,7 +276,7 @@ def check_ES_status(doc_id):
     return True
 
 def get_complete_grq_data(id):
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_URL
     es_index = "grq"
     query = {
       "query": {
@@ -306,7 +312,7 @@ def get_complete_grq_data(id):
     return result['hits']['hits']
 
 def get_partial_grq_data(id):
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_URL
     es_index = "grq"
 
     query = {
@@ -341,7 +347,7 @@ def get_partial_grq_data(id):
     return result['hits']['hits'][0]
 
 def get_acquisition_data(id):
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_URL
     es_index = "grq_*_*acquisition*"
     query = {
       "query": {
@@ -392,7 +398,7 @@ def get_acquisition_data(id):
 def query_es(query, es_index):
     """Query ES."""
 
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_URL
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
     #logger.info("url: {}".format(url))

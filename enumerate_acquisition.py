@@ -1,6 +1,6 @@
 import os, sys, re, requests, json, logging, traceback, argparse, copy, bisect
 import util
-from hysds.celery import app
+#from hysds.celery import app
 import os, sys, re, requests, json, logging, traceback, argparse, copy, bisect
 import hashlib
 from itertools import product, chain
@@ -16,7 +16,7 @@ from util import ACQ
 #from UrlUtils import UrlUtils as UU
 
 BASE_PATH = os.path.dirname(__file__)
-
+GRQ_ES_URL = "http://100.64.134.208:9200/"
 covth = 0.98
 MIN_MAX = 2
 
@@ -65,7 +65,8 @@ RSP_ID_TMPL = "S1-SLCP_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}
 
 
 def run_acq_query(query):
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_ES_URL
+    
     es_index = "grq_*_*acquisition*"
 
     if es_url.endswith('/'):
@@ -202,8 +203,8 @@ def ref_truncated(ref_scene, matched_footprints, covth=.99):
     matched_union = None
     matched_geoms_tr = []
     matched_union_tr = None
-    ids = matched_footprints.keys()
-    ids.sort()
+    ids = sorted(matched_footprints.keys())
+    #ids.sort()
     #logger.info("ids: %s" % len(ids))
     for id in ids:
         geom = ogr.CreateGeometryFromJson(json.dumps(matched_footprints[id]))
@@ -303,30 +304,30 @@ def group_acqs_by_orbitnumber(frames):
     acq_info = {}
     #print("frame length : %s" %len(frames))
     for acq in frames:
-	acq_data = acq['fields']['partial'][0]
-	acq_id = acq['_id']
+        acq_data = acq['fields']['partial'][0]
+        acq_id = acq['_id']
         #print("acq_id : %s : %s" %(type(acq_id), acq_id))
-	match = SLC_RE.search(acq_id)
+        match = SLC_RE.search(acq_id)
         if not match:
-	    logger.info("No Match : %s" %acq_id)
-	    continue
-	download_url = acq_data['metadata']['download_url'] 
-	track = acq_data['metadata']['trackNumber']
-	location = acq_data['location']
-	starttime = acq_data['starttime']
-	endtime = acq_data['endtime']
+            logger.info("No Match : %s" %acq_id)
+            continue
+        download_url = acq_data['metadata']['download_url'] 
+        track = acq_data['metadata']['trackNumber']
+        location = acq_data['location']
+        starttime = acq_data['starttime']
+        endtime = acq_data['endtime']
         direction = acq_data['metadata']['direction']
         orbitnumber = acq_data['metadata']['orbitNumber']
         pv = acq_data['metadata']['processing_version']
-	slave_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, pv)
+        slave_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, pv)
         acq_info[acq_id] = slave_acq
        
         #logger.info("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
 	#logger.info(grouped)
         bisect.insort(grouped.setdefault(track, {}).setdefault(orbitnumber, {}).setdefault(pv, []), acq_id)
-	'''
-	if track in grouped.keys():
-	    if orbitnumber in grouped[track].keys():
+        '''
+        if track in grouped.keys():
+            if orbitnumber in grouped[track].keys():
 		if pv in grouped[track][orbitnumber].keys():
 		    grouped[track][orbitnumber][pv] = grouped[track][orbitnumber][pv].append(slave_acq)
 		else:
@@ -334,7 +335,7 @@ def group_acqs_by_orbitnumber(frames):
  		    slave_pv = {}
 		
 		    grouped[track][orbitnumber] = 
-	'''	    
+        '''	    
     return {"grouped": grouped, "acq_info" : acq_info}
 
 
@@ -406,8 +407,8 @@ def group_frames_by_track_date(frames):
 def switch_references(candidate_pair_list, master_acq, slaves):
     logger.info("swithch reference initial  candidate_pair_list: %s" %candidate_pair_list)
     for slave in slaves:
-	query = get_overlapping_masters_query(master_acq, slave)
-	candidate_pair_list = find_candidate_pair(candidate_pair_list, slave, query, False, master_acq)
+        query = get_overlapping_masters_query(master_acq, slave)
+        candidate_pair_list = find_candidate_pair(candidate_pair_list, slave, query, False, master_acq)
         logger.info("swithch reference returning  candidate_pair_list: %s" %candidate_pair_list)
         return candidate_pair_list
 
@@ -416,8 +417,8 @@ def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=No
     logger.info("find_candidate_pair candidate_pair_list: %s" %candidate_pair_list)
     
     if len(candidate_pair_list)>=MIN_MAX:
-     	logger.info("returning as Min_MAX satisfied")
-  	return candidate_pair_list
+        logger.info("returning as Min_MAX satisfied")
+        return candidate_pair_list
     
     matched_acqs = process_query(query)
     #for acq in matched_acqs:
@@ -428,11 +429,11 @@ def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=No
     matched_ids = grouped_matched["acq_info"].keys()
     
     if must_acq is not None:
-	logger.info(grouped_matched["grouped"])
-	if must_acq.acq_id not in matched_ids:
-	    logger.info("ERROR : master acq : %s not in matched acq list of the slave : "%must_acq.acq_id)
-	else:
-	    logger.info("ERROR : master acq : %s in matched acq list of the slave : "%must_acq.acq_id)
+        logger.info(grouped_matched["grouped"])
+        if must_acq.acq_id not in matched_ids:
+            logger.info("ERROR : master acq : %s not in matched acq list of the slave : "%must_acq.acq_id)
+        else:
+            logger.info("ERROR : master acq : %s in matched acq list of the slave : "%must_acq.acq_id)
 	
     
     logger.info(grouped_matched["acq_info"].keys())
@@ -443,77 +444,75 @@ def find_candidate_pair(candidate_pair_list, ref_acq, query, switch, must_acq=No
     orbit_count =0
     track_count = 0
     for track in grouped_matched["grouped"]:
-	track_count = track_count+1
-	logger.info("\n\n\nTRACK : %s" %track)
-	for orbitnumber in sorted( grouped_matched["grouped"][track], reverse=True):
- 	    orbit_count= orbit_count+1
-	    logger.info("SortedOrbitNumber : %s" %orbitnumber)
-	    for pv in grouped_matched["grouped"][track][orbitnumber]:
-		logger.info("\tpv : %s" %pv)
-	 	pv_count = pv_count +1
+        track_count = track_count+1
+        logger.info("\n\n\nTRACK : %s" %track)
+        for orbitnumber in sorted( grouped_matched["grouped"][track], reverse=True):
+            orbit_count= orbit_count+1
+            logger.info("SortedOrbitNumber : %s" %orbitnumber)
+            for pv in grouped_matched["grouped"][track][orbitnumber]:
+                logger.info("\tpv : %s" %pv)
+                pv_count = pv_count +1
                 matched_acq_ids=grouped_matched["grouped"][track][orbitnumber][pv]
-		matched_acqs = []
-		for acq in matched_acq_ids:
-                    
-		    slc_count=slc_count+1
-		    logger.info("]\t\tTypeCheck %s : %s" %(type(acq), type(acq[0])))
-		    if acq.strip() in grouped_matched["acq_info"].keys():
-	            	acq_info =grouped_matched["acq_info"][acq.strip()]
-		    	matched_acqs.append(acq_info) 
-		    else:
-			logger.info("Key does not exists : %s" %acq.strip())   
-		overlapped_matches = find_overlap_match(ref_acq, matched_acqs)
-		if len(overlapped_matches)>0:
-		    logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
-		    union_loc = get_union_geometry(overlapped_matches)
-		    logger.info("union loc : %s" %union_loc)
-
-		    is_ref_truncated = ref_truncated(ref_acq, overlapped_matches, covth=.99)
-		    is_covered = is_within(ref_acq.location["coordinates"], union_loc["coordinates"])
-		    is_overlapped, overlap = is_overlap(ref_acq.location["coordinates"], union_loc["coordinates"])
-		    logger.info("is_ref_truncated : %s" %is_ref_truncated)
-		    logger.info("is_within : %s" %is_covered)
-		    logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
-		    matched_acqs=[]
-		    matched_acqs2=[]
-	            for acq_id in overlapped_matches.keys():
-			    matched_acqs2.append(acq_id[0])
-                            matched_acqs.append(grouped_matched["acq_info"][acq_id[0]])
+                matched_acqs = []
+                for acq in matched_acq_ids:
+                    slc_count=slc_count+1
+                    logger.info("]\t\tTypeCheck %s : %s" %(type(acq), type(acq[0])))
+                    if acq.strip() in grouped_matched["acq_info"].keys():
+                        acq_info =grouped_matched["acq_info"][acq.strip()]
+                        matched_acqs.append(acq_info) 
+                    else:
+                        logger.info("Key does not exists : %s" %acq.strip())   
+                overlapped_matches = find_overlap_match(ref_acq, matched_acqs)
+                if len(overlapped_matches)>0:
+                    logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
+                    union_loc = get_union_geometry(overlapped_matches)
+                    logger.info("union loc : %s" %union_loc)
+                    is_ref_truncated = ref_truncated(ref_acq, overlapped_matches, covth=.99)
+                    is_covered = is_within(ref_acq.location["coordinates"], union_loc["coordinates"])
+                    is_overlapped, overlap = is_overlap(ref_acq.location["coordinates"], union_loc["coordinates"])
+                    logger.info("is_ref_truncated : %s" %is_ref_truncated)
+                    logger.info("is_within : %s" %is_covered)
+                    logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
+                    matched_acqs=[]
+                    matched_acqs2=[]
+                    for acq_id in overlapped_matches.keys():
+                        matched_acqs2.append(acq_id[0])
+                        matched_acqs.append(grouped_matched["acq_info"][acq_id[0]])
         	    #logger.info("overlap area : %s" %overlap)
-        	    if is_overlapped and overlap>=0.95: # and overlap >=covth:
-			logger.info("MATCHED we have found a match :" )
-			if switch:
-			    master_acqs=[ref_acq.acq_id[0]]
-			    slave_acqs=matched_acqs2
-			else:
-			    master_acqs=matched_acqs2
-			    slave_acqs=[ref_acq.acq_id[0]]
-			logger.info("find_candidate_pair, before adding to  candidate_pair_list: %s" %candidate_pair_list)
-                 	logger.info("\n\n\nmaster urls : %s" %master_acqs)
-			logger.info("slave urls : %s" %slave_acqs)
-			candidate_pair_list.append({"master_acqs" : master_acqs, "slave_acqs" : slave_acqs})
-			logger.info("find_candidate_pair, after adding to  candidate_pair_list: %s" %candidate_pair_list)
-			logger.info("find_candidate_pair, after adding to  candidate_pair_list: %s" %len(candidate_pair_list))
-			if len(candidate_pair_list)>=MIN_MAX:
-			    logger.info("returning as Min_MAX satisfied")
-			    return candidate_pair_list
-			#return {"master_acqs" : master_acqs, "slave_acqs" : slave_acqs}
-		    else:
-			logger.info("we have NOT found a match. So switching slaves...")
-			if switch:
+                    if is_overlapped and overlap>=0.95: # and overlap >=covth:
+                        logger.info("MATCHED we have found a match :" )
+                        if switch:
+                            master_acqs=[ref_acq.acq_id[0]]
+                            slave_acqs=matched_acqs2
+                        else:
+                            master_acqs=matched_acqs2
+                            slave_acqs=[ref_acq.acq_id[0]]
+                        logger.info("find_candidate_pair, before adding to  candidate_pair_list: %s" %candidate_pair_list)
+                        logger.info("\n\n\nmaster urls : %s" %master_acqs)
+                        logger.info("slave urls : %s" %slave_acqs)
+                        candidate_pair_list.append({"master_acqs" : master_acqs, "slave_acqs" : slave_acqs})
+                        logger.info("find_candidate_pair, after adding to  candidate_pair_list: %s" %candidate_pair_list)
+                        logger.info("find_candidate_pair, after adding to  candidate_pair_list: %s" %len(candidate_pair_list))
+                        if len(candidate_pair_list)>=MIN_MAX:
+                            logger.info("returning as Min_MAX satisfied")
+                            return candidate_pair_list
+                        #return {"master_acqs" : master_acqs, "slave_acqs" : slave_acqs}
+                    else:
+                        logger.info("we have NOT found a match. So switching slaves...")
+                        if switch:
                             candidate_pair_list = switch_references(candidate_pair_list, ref_acq, matched_acqs)
 			    
-			    if len(candidate_pair_list)>=MIN_MAX:
+                            if len(candidate_pair_list)>=MIN_MAX:
                                 return candidate_pair_list
 			    
 
-		else:
-		    logger.info("No Overlapped Acq for track: %s orbit_number: %s process version: %s" %(track, orbitnumber, pv))
+                else:
+                    logger.info("No Overlapped Acq for track: %s orbit_number: %s process version: %s" %(track, orbitnumber, pv))
     return candidate_pair_list
 
 def process_query(query):
 
-    rest_url = app.conf.GRQ_ES_URL
+    rest_url = GRQ_ES_URL
     #dav_url =  "https://aria-dav.jpl.nasa.gov"
     #version = "v1.1"
     grq_index_prefix = "grq"
@@ -561,21 +560,21 @@ def enumerate_acquisations_array(acq_array):
     logger.info("\n\n\nenumerate_acquisations_array Length : %s" %len(acq_array))
     logger.info(acq_array)
     for acq_data in acq_array:
-  	logger.info("%s : %s" %(type(acq_data), acq_data))
-	logger.info("\n\n Processing Acquisition : %s for project : %s" %(acq_data['acq_id'], acq_data['project']))
-	candidate_pair_list =  enumerate_acquisations_standard_product(acq_data['acq_id'])
-	if len(candidate_pair_list)>=MIN_MAX:
-	    for candidate in candidate_pair_list:
-   	    	#logger.info("candidate slave_acqs is of type : %s of length : %s" %(type(candidate["slave_acqs"]), len(candidate["slave_acqs"])))
-	    	#logger.info("candidate master_acqs is of type : %s of length : %s" %(type(candidate["master_acqs"]), len(candidate["master_acqs"])))
-	    	projects.append(acq_data['project'])
-	    	spyddder_extract_versions.append(acq_data['spyddder_extract_version'])
-	    	acquisition_localizer_versions.append(acq_data['acquisition_localizer_version'])
-	    	standard_product_localizer_versions.append(acq_data['standard_product_localizer_version'])
-	    	standard_product_ifg_versions.append(acq_data['standard_product_ifg_version'])
-	    	job_priorities.append(acq_data['job_priority'])
-	    	master_acquisitions.append(candidate["master_acqs"])
-	    	slave_acquisitions.append(candidate["slave_acqs"])
+        logger.info("%s : %s" %(type(acq_data), acq_data))
+        logger.info("\n\n Processing Acquisition : %s for project : %s" %(acq_data['acq_id'], acq_data['project']))
+        candidate_pair_list =  enumerate_acquisations_standard_product(acq_data['acq_id'])
+        if len(candidate_pair_list)>=MIN_MAX:
+            for candidate in candidate_pair_list:
+                #logger.info("candidate slave_acqs is of type : %s of length : %s" %(type(candidate["slave_acqs"]), len(candidate["slave_acqs"])))
+                #logger.info("candidate master_acqs is of type : %s of length : %s" %(type(candidate["master_acqs"]), len(candidate["master_acqs"])))
+                projects.append(acq_data['project'])
+                spyddder_extract_versions.append(acq_data['spyddder_extract_version'])
+                acquisition_localizer_versions.append(acq_data['acquisition_localizer_version'])
+                standard_product_localizer_versions.append(acq_data['standard_product_localizer_version'])
+                standard_product_ifg_versions.append(acq_data['standard_product_ifg_version'])
+                job_priorities.append(acq_data['job_priority'])
+                master_acquisitions.append(candidate["master_acqs"])
+                slave_acquisitions.append(candidate["slave_acqs"])
 
 	    
     return master_acquisitions, slave_acquisitions, projects, spyddder_extract_versions, acquisition_localizer_versions, standard_product_localizer_versions, standard_product_ifg_versions,  job_priorities
