@@ -701,7 +701,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
 
         #logger.info("ALL ACQ of AOI : \n%s" %acqs)
 
-        acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
+        #acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
 
 
         for acq in acqs:
@@ -773,9 +773,9 @@ def get_processing_version_from_scihub(slc):
 
 def get_processing_version_from_asf(slc):
 
-    ipf_string = None
+    ipf = None
 
-   try:
+    try:
         # query the asf search api to find the download url for the .iso.xml file
         request_string = 'https://api.daac.asf.alaska.edu/services/search/param?platform=SA,SB&processingLevel=METADATA_SLC&granule_list=%s&output=json' %slc
         response = requests.get(request_string)
@@ -791,10 +791,14 @@ def get_processing_version_from_asf(slc):
         root = ElementTree.fromstring(response.text.encode('utf-8'))
         ns = {'gmd': 'http://www.isotc211.org/2005/gmd', 'gmi': 'http://www.isotc211.org/2005/gmi', 'gco': 'http://www.isotc211.org/2005/gco'}
         ipf_string = root.find('gmd:composedOf/gmd:DS_DataSet/gmd:has/gmi:MI_Metadata/gmd:dataQualityInfo/gmd:DQ_DataQuality/gmd:lineage/gmd:LI_Lineage/gmd:processStep/gmd:LI_ProcessStep/gmd:description/gco:CharacterString', ns).text
+
+        if ipf_string:
+            ipf = ipf_string.split('version')[1].split(')')[0].strip()
     except Exception as err:
         logger.info("get_processing_version_from_asf : %s" %str(err))
-     
-    return ipf_string
+ 
+        
+    return ipf
 
 
 
@@ -867,6 +871,8 @@ def resolve_aoi_acqs(ctx_file):
         pv = None
         if "processing_version" in  acq['metadata']:
             pv = acq['metadata']['processing_version']
+            pv2 = get_processing_version(acq['metadata']['identifier'])
+            logger.info("pv : %s, pv2 : %s" %(pv, pv2))
         else:
             pv = get_processing_version(acq['metadata']['identifier'])
         logging.info("\n\nPrinting AOI : %s, Acq : %s" %(aoi, id))
