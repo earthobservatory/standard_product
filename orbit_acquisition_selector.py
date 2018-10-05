@@ -447,46 +447,6 @@ def get_query2(acq):
     return query
 
 
-def group_acqs_by_track(frames):
-    grouped = {}
-    acq_info = {}
-    #print("frame length : %s" %len(frames))
-    for acq in frames:
-        #logger.info("ACQ : %s" %acq)
-        acq_data = acq # acq['fields']['partial'][0]
-        acq_id = acq['id']
-        #print("acq_id : %s : %s" %(type(acq_id), acq_id))
-        match = SLC_RE.search(acq_id)
-        if not match:
-            logger.info("No Match : %s" %acq_id)
-            continue
-        download_url = acq_data['metadata']['download_url'] 
-        track = acq_data['metadata']['trackNumber']
-        location = acq_data['metadata']['location']
-        starttime = acq_data['starttime']
-        endtime = acq_data['endtime']
-        direction = acq_data['metadata']['direction']
-        orbitnumber = acq_data['metadata']['orbitNumber']
-        pv = acq_data['metadata']['processing_version']
-        this_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, pv)
-        acq_info[acq_id] = this_acq
-       
-        #logger.info("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
-	#logger.info(grouped)
-        bisect.insort(grouped.setdefault(track, []), acq_id)
-        '''
-        if track in grouped.keys():
-	    if orbitnumber in grouped[track].keys():
-		if pv in grouped[track][orbitnumber].keys():
-		    grouped[track][orbitnumber][pv] = grouped[track][orbitnumber][pv].append(slave_acq)
-		else:
-		    slave_acqs = [slave_acq]
- 		    slave_pv = {}
-		
-		    grouped[track][orbitnumber] = 
-	'''	    
-    return {"grouped": grouped, "acq_info" : acq_info}
-
 
 def get_dem_type(acq):
     dem_type = "SRTM+v3"
@@ -558,7 +518,7 @@ def get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location):
     land_percentage = 0
     logger.info("tstart : %s  tend : %s" %(tstart, tend))
     geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
-    intersection, int_env = get_intersection(aoi_location, geojson)
+    intersection, int_env = util.get_intersection(aoi_location, geojson)
     logger.info("intersection : %s" %intersection)
     land_percentage = lightweight_water_mask.get_land_percentage(intersection)
     logger.info("get_land_percentage(geojson) : %s " %land_percentage)
@@ -574,7 +534,6 @@ def get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location):
 
 def get_area_from_acq_location(geojson):
     logger.info("geojson : %s" %geojson)
-    #geojson = {'type': 'Polygon', 'coordinates': [[[103.15855743232284, 69.51079998415891], [102.89429022592347, 69.19035954199457], [102.63670032476269, 68.86960457132169], [102.38549346807442, 68.5485482943004], [102.14039201693016, 68.22720313138305], [96.26595865368236, 68.7157534947759], [96.42758479823551, 69.0417647836668], [96.59286420765027, 69.36767025780232], [96.76197281310075, 69.69346586050469], [96.93509782364329, 70.019147225528]]]}
     land_percentage = lightweight_water_mask.get_land_percentage(geojson)
     water_percentage = lightweight_water_mask.get_water_percentage(geojson)
 
@@ -586,18 +545,24 @@ def get_area_from_acq_location(geojson):
 
     return land_percentage, water_percentage
 
+def update_grq(acq_id, pv):
+    pass
 
  
 def get_covered_acquisitions(aoi, acqs, orbit_file):
     
     logger.info("AOI : %s" %aoi['location'])
-    grouped_matched = group_acqs_by_track(acqs)
+    grouped_matched = util.group_acqs_by_track(acqs)
     matched_ids = grouped_matched["acq_info"].keys()
            
     logger.info("grouped_matched : %s" %grouped_matched)
     logger.info("matched_ids : %s" %matched_ids)
 
+
+    selected_track_acqs = {}
+
     for track in grouped_matched["grouped"]:
+        selected = False
         starttimes = []
         endtimes = []
         polygons = []
@@ -609,11 +574,11 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
             starttimes.append(acq.starttime)
             endtimes.append(acq.endtime) 
             polygons.append(acq.location)
-            land, water = get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi['location'])
+            #land, water = get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi['location'])
             logger.info("acq.location : %s\n" %acq.location)    
             intersection, int_env = get_intersection(aoi['location'], acq.location)
             logger.info("intersection : %s" %intersection)
-            land_a, area_a = get_area_from_acq_location(acq.location)
+            #land_a, area_a = get_area_from_acq_location(acq.location)
         logger.info("%s : %s\n" %(track, grouped_matched["grouped"][track])) 
         logger.info("starttimes : %s" %starttimes)
         logger.info("endtimes : %s" %endtimes)
@@ -628,19 +593,33 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
         #get highest entime plus 10 minutes as endtime
         endtime = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
         logger.info("endtime : %s" %endtime)
-        
+
+        #ADD THE SELECTION LOGIC HERE
+        selected = True
+
+        if selected:
+            logger.info("SELECTED")
+            selected_acqs = []
+            for acq_id in track_acq_ids:
+                acq = grouped_matched["acq_info"][acq_id]
+                if not acq.pv:
+                    acq.pv = get_processing_version(acq.identifier)
+                    update_grq(acq_id, acq.pv)
+                logger.info("APPENDING : %s" %acq_id)
+                selected_acqs.append(acq)
+            selected_track_acqs[track] = selected_acqs      
 
         
 
     #exit (0)
 
-    return acqs
+    return selected_track_acqs
 
 def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
     #aoi_acq = {}
-    acq_info = {}
+    orbit_aoi_data = {}
     es_index = "grq_*_*acquisition*"
     aois = query_aois(starttime, endtime)
     logger.info("No of AOIs : %s " %len(aois))
@@ -701,21 +680,27 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
 
         #logger.info("ALL ACQ of AOI : \n%s" %acqs)
 
-        #acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
+        selected_track_acqs = {}
+        try:
+            selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
+        except Exception as err:
+            logger.info("Error from get_covered_acquisitions: %s " %str(err))
 
-
-        for acq in acqs:
-            aoi_priority = aoi.get('metadata', {}).get('priority', 0)
-            # ensure highest priority is assigned if multiple AOIs resolve the acquisition
-            if acq['id'] in acq_info and acq_info[acq['id']].get('priority', 0) > aoi_priority:
-                continue
-            acq['aoi'] = aoi['id']
-            acq['aoi_location'] =  aoi['location']
-            acq['priority'] = aoi_priority
-            acq_info[acq['id']] = acq
+        #for acq in acqs:
+        aoi_data = {}
+        aoi_priority = aoi.get('metadata', {}).get('priority', 0)
+        # ensure highest priority is assigned if multiple AOIs resolve the acquisition
+        #if acq['id'] in acq_info and acq_info[acq['id']].get('priority', 0) > aoi_priority:
+            #continue
+        aoi_data['aoi_id'] = aoi['id']
+        aoi_data['aoi_location'] =  aoi['location']
+        aoi_data['priority'] = aoi_priority
+        aoi_data['selected_track_acqs'] = selected_track_acqs
+        orbit_aoi_data[aoi['id']] = aoi_data
+        #acq_info[aoi_data['id']] = acq
 	#aoi_acq[aoi] = acq_info 
         #logger.info("Acquistions to localize: {}".format(json.dumps(acq_info, indent=2)))
-    return acq_info
+    return orbit_aoi_data
     
 
 def resolve_s1_slc(identifier, download_url, project):
@@ -837,11 +822,10 @@ def resolve_aoi_acqs(ctx_file):
         logger.info("Orbit File : %s " %orbit_file)
 
 
-    acq_info = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file)
+    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file)
 
 
-    logger.info("resolve_aoi_acqs : total acq's found : %s" %len(acq_info))
-    #logger.info(acq_info)
+    #logger.info(orbit_aoi_data)
     #exit(0)
     
     # build args
@@ -862,6 +846,26 @@ def resolve_aoi_acqs(ctx_file):
     priority = ctx["job_priority"]
     job_type, job_version = ctx['job_specification']['id'].split(':') 
 
+    job_data = {}
+ 
+    job_data["project"] = project
+    job_data["spyddder_extract_version"] = spyddder_extract_version
+    job_data["standard_product_ifg_version"] = standard_product_ifg_version
+    job_data["acquisition_localizer_version"] = acquisition_localizer_version
+    job_data["standard_product_localizer_version"] = standard_product_localizer_version
+    job_data["job_type"] = job_type
+    job_data["job_version"] = job_version
+    job_data["job_priority"] = ctx['job_priority']
+    
+
+    orbit_acq_selections = {}
+    orbit_acq_selections["job_data"] = job_data
+    orbit_acq_selections["orbit_aoi_data"] = orbit_aoi_data
+
+    return orbit_acq_selections
+
+
+    '''
     acquisitions = []
     acquisition_array =[]
 
@@ -906,7 +910,7 @@ def resolve_aoi_acqs(ctx_file):
     #return acquisitions
     return acquisition_array
 
-    '''
+   
         logging.info("acq identifier : %s " %identifier)
 	logging.info("acq city : %s " %acq['city'])
         logging.info("dem_type : %s" %dem_type)
