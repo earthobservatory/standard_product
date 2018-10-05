@@ -482,7 +482,7 @@ def get_acq_orbit_polygon(starttime, endtime, orbit_dir):
     pass
     
 def get_intersection(js1, js2):
-    logger.info("intersection between :\n %s\n%s" %(js1, js2))
+    #logger.info("intersection between :\n %s\n%s" %(js1, js2))
     poly1 = ogr.CreateGeometryFromJson(json.dumps(js1, indent=2, sort_keys=True))
     poly2 = ogr.CreateGeometryFromJson(json.dumps(js2, indent=2, sort_keys=True))
 
@@ -570,6 +570,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
         
         track_acq_ids = grouped_matched["grouped"][track]
         for acq_id in track_acq_ids:
+            logger.info("%s : %s" %(track, acq_id))
             acq = grouped_matched["acq_info"][acq_id]
             starttimes.append(acq.starttime)
             endtimes.append(acq.endtime) 

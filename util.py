@@ -65,6 +65,136 @@ BASE_PATH = os.path.dirname(__file__)
 MOZART_ES_ENDPOINT = "MOZART"
 GRQ_ES_ENDPOINT = "GRQ"
 
+def print_acq(acq):
+    logger.info("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq.acq_id, acq.download_url, acq.tracknumber, acq.location, acq.starttime, acq.endtime, acq.direction, acq.orbitnumber, acq.identifier, acq.pv))
+
+def group_acqs_by_orbit_number_from_metadata(frames):
+    return group_acqs_by_orbit_number(create_acqs_from_metadata(frames))
+
+def group_acqs_by_orbit_number(acqs):
+    grouped = {}
+    acqs_info = {}
+    for acq in acqs:
+        acqs_info[acq.acq_id] = acq
+        bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(acq.orbitnumber, {}).setdefault(acq.pv, []), acq.acq_id)
+        '''
+        if track in grouped.keys():
+            if orbitnumber in grouped[track].keys():
+                if pv in grouped[track][orbitnumber].keys():
+                    grouped[track][orbitnumber][pv] = grouped[track][orbitnumber][pv].append(slave_acq)
+                else:
+                    slave_acqs = [slave_acq]
+                    slave_pv = {}
+                
+                    grouped[track][orbitnumber] = 
+        '''
+    return {"grouped": grouped, "acq_info" : acqs_info}
+
+def update_acq_pv(acq_id, pv):
+    pass
+
+def create_acq_obj_from_metadata(acq):
+    #create ACQ(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv)
+
+    acq_data = acq['fields']['partial'][0]
+    acq_id = acq['_id']
+    #print("acq_id : %s : %s" %(type(acq_id), acq_id))
+    match = SLC_RE.search(acq_id)
+    if not match:
+        logger.info("Error : No Match : %s" %acq_id)
+        return None
+    download_url = acq_data['metadata']['download_url']
+    track = acq_data['metadata']['trackNumber']
+    location = acq_data['location']
+    starttime = acq_data['starttime']
+    endtime = acq_data['endtime']
+    direction = acq_data['metadata']['direction']
+    orbitnumber = acq_data['metadata']['orbitNumber']
+    identifier = acq_data['metadata']['identifier']
+    pv = None
+    if "processing_version" in  acq_data['metadata']:
+        pv = acq_data['metadata']['processing_version']
+    else:
+        pv = get_processing_version(identifier)
+        update_acq_pv(acq_id, pv) 
+    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv)
+
+
+def create_acqs_from_metadata(frames):
+    acqs = []
+    #print("frame length : %s" %len(frames))
+    for acq in frames:
+        acq_obj = create_acq_obj_from_metadata(acq)
+        if acq_obj:
+            acqs.append(acq_obj)
+    return acqs
+
+
+def group_frames_by_track_date(frames):
+    """Classify frames by track and date."""
+
+    hits = {}
+    grouped = {}
+    dates = {}
+    footprints = {}
+    metadata = {}
+    for h in frames: 
+        if h['_id'] in hits: continue
+        fields = h['fields']['partial'][0]
+        #print("h['_id'] : %s" %h['_id'])
+
+        # get product url; prefer S3
+        prod_url = fields['urls'][0]
+        if len(fields['urls']) > 1:
+            for u in fields['urls']:
+                if u.startswith('s3://'):
+                    prod_url = u
+                    break
+        #print("prod_url : %s" %prod_url)
+        hits[h['_id']] = "%s/%s" % (prod_url, fields['metadata']['archive_filename'])
+        match = SLC_RE.search(h['_id'])
+        #print("match : %s" %match)
+        if not match:
+            raise RuntimeError("Failed to recognize SLC ID %s." % h['_id'])
+        day_dt = datetime(int(match.group('start_year')),
+                          int(match.group('start_month')),
+                          int(match.group('start_day')),
+                          0, 0, 0)
+        #print("day_dt : %s " %day_dt)
+
+        bisect.insort(grouped.setdefault(fields['metadata']['trackNumber'], {}) \
+                             .setdefault(day_dt, []), h['_id'])
+        slc_start_dt = datetime(int(match.group('start_year')),
+                                int(match.group('start_month')),
+                                int(match.group('start_day')),
+                                int(match.group('start_hour')),
+                                int(match.group('start_min')),
+                                int(match.group('start_sec')))
+        #print("slc_start_dt : %s" %slc_start_dt)
+
+        slc_end_dt = datetime(int(match.group('end_year')),
+                              int(match.group('end_month')),
+                              int(match.group('end_day')),
+                              int(match.group('end_hour')),
+                              int(match.group('end_min')),
+                              int(match.group('end_sec')))
+
+	#print("slc_end_dt : %s" %slc_end_dt)
+        dates[h['_id']] = [ slc_start_dt, slc_end_dt ]
+        footprints[h['_id']] = fields['location']
+        metadata[h['_id']] = fields['metadata']
+	#break
+    #print("grouped : %s" %grouped)
+    logger.info("grouped keys : %s" %grouped.keys())
+    return {
+        "hits": hits,
+        "grouped": grouped,
+        "dates": dates,
+        "footprints": footprints,
+        "metadata": metadata,
+    }
+
+
 
 def dataset_exists(id, index_suffix):
     """Query for existence of dataset by ID."""
