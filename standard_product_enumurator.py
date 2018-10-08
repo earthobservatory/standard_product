@@ -180,6 +180,7 @@ def enumerate_acquisations(orbit_acq_selections):
         #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
 
         for track in selected_track_acqs.keys():
+          
             slaves_track = {}
             slave_acqs = []
             logger.info("%s : %s\n" %(aoi_id, track))
@@ -190,8 +191,22 @@ def enumerate_acquisations(orbit_acq_selections):
                 query = get_overlapping_slaves_query(acq)
                 matched_acqs = process_query(query)
                 slave_acqs.extend(util.create_acqs_from_metadata(matched_acqs))
-                logger.info(matched_acqs)
+                #logger.info(matched_acqs)
                 
             grouped_matched = util.group_acqs_by_orbit_number(slave_acqs)
             matched_ids = grouped_matched["acq_info"].keys()
             logger.info(grouped_matched["acq_info"].keys())
+
+            orbitnumber_pv = {}
+            logger.info("\n\n\nTRACK : %s" %track)
+            for orbitnumber in sorted( grouped_matched["grouped"][track], reverse=True):
+                pv_list = []
+                #orbit_count= orbit_count+1
+                logger.info("SortedOrbitNumber : %s" %orbitnumber)
+                for pv in grouped_matched["grouped"][track][orbitnumber]:
+                   logger.info("\tpv : %s" %pv)
+                   pv_list.append(pv)
+                orbitnumber_pv[orbitnumber] = list(set(pv_list))
+                
+
+
