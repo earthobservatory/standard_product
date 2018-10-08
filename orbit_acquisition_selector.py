@@ -456,8 +456,9 @@ def get_dem_type(acq):
     return dem_type
 
 def getUpdatedTime(s, m):
-    date = dateutil.parser.parse(s, ignoretz=True)
-    new_date = date + timedelta(minutes = m)
+    #date = dateutil.parser.parse(s, ignoretz=True)
+    #new_date = s + timedelta(minutes = m)
+    new_date = s + timedelta(minutes = m)
     return new_date
 
 def get_union_geometry(geojsons):
@@ -548,6 +549,18 @@ def get_area_from_acq_location(geojson):
 def update_grq(acq_id, pv):
     pass
 
+def isTrackSelected(land, water, land_area, water_area):
+    selected = False
+    total_acq_land = 0
+
+    for acq_land in land:
+        total_acq_land+= acq_land
+
+    if ((total_acq_land*100)/land)> 98:
+        selected = True
+
+    return selected
+        
  
 def get_covered_acquisitions(aoi, acqs, orbit_file):
     
@@ -567,35 +580,49 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
         endtimes = []
         polygons = []
         orbit_polygons = []
+        land_area = []
+        water_area = []
         
         track_acq_ids = grouped_matched["grouped"][track]
+        #logger.info("%s : %s\n" %(track, grouped_matched["grouped"][track]))
         for acq_id in track_acq_ids:
             logger.info("%s : %s" %(track, acq_id))
             acq = grouped_matched["acq_info"][acq_id]
-            starttimes.append(acq.starttime)
-            endtimes.append(acq.endtime) 
+            starttimes.append(get_time(acq.starttime))
+            endtimes.append(get_time(acq.endtime)) 
             polygons.append(acq.location)
-            #land, water = get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi['location'])
+            #land, water = util.get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi['location'])
+            #land_area.append(land)
+            #water_area.append(water)
             logger.info("acq.location : %s\n" %acq.location)    
-            intersection, int_env = get_intersection(aoi['location'], acq.location)
+            intersection, int_env = util.get_intersection(aoi['location'], acq.location)
             logger.info("intersection : %s" %intersection)
-            #land_a, area_a = get_area_from_acq_location(acq.location)
-        logger.info("%s : %s\n" %(track, grouped_matched["grouped"][track])) 
+            #land_a, area_a = util.get_area_from_acq_location(acq.location)
         logger.info("starttimes : %s" %starttimes)
         logger.info("endtimes : %s" %endtimes)
-        
         #get lowest starttime minus 10 minutes as starttime
-        starttime = getUpdatedTime(sorted(starttimes)[0], -10)
-        logger.info("starttime : %s" %starttime)
+        tstart = getUpdatedTime(sorted(starttimes)[0], -10)
+        logger.info("tstart : %s" %tstart)
+        tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
+        logger.info("tend : %s" %tend)
+        land, water = util.get_area_from_orbit_file(tstart, tend, orbit_file, aoi['location'])
+        
+        ''' WE WILL NOT USE UNION GEOJSON
         union_geojson = get_union_geometry(polygons)
         logger.info("union_geojson : %s" %union_geojson)
         intersection, int_env = get_intersection(aoi['location'], union_geojson)
         logger.info("union intersection : %s" %intersection)
         #get highest entime plus 10 minutes as endtime
-        endtime = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
+        tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
         logger.info("endtime : %s" %endtime)
+        land, water = util.get_area_from_orbit_file(tstart, tend, orbit_file, aoi['location'])
+        '''
+
 
         #ADD THE SELECTION LOGIC HERE
+
+        selected = False
+        #selected = isTrackSelected(land, water, land_area, water_area)
         selected = True
 
         if selected:
@@ -684,9 +711,9 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
         selected_track_acqs = {}
         try:
             selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
-        except Exception as err:
+        except Exception as  err:
             logger.info("Error from get_covered_acquisitions: %s " %str(err))
-
+            traceback.print_exc()
         #for acq in acqs:
         aoi_data = {}
         aoi_priority = aoi.get('metadata', {}).get('priority', 0)
