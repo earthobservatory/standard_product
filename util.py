@@ -72,6 +72,7 @@ def group_acqs_by_orbit_number_from_metadata(frames):
     return group_acqs_by_orbit_number(create_acqs_from_metadata(frames))
 
 def group_acqs_by_orbit_number(acqs):
+    #logger.info(acqs)
     grouped = {}
     acqs_info = {}
     for acq in acqs:
@@ -93,6 +94,70 @@ def group_acqs_by_orbit_number(acqs):
 def update_acq_pv(acq_id, pv):
     pass
 
+
+def water_mask_test(acq_info, grouped_matched_orbit_number,  aoi, orbit_file):
+
+    passed = False
+    starttimes = []
+    endtimes = []
+    polygons = []
+    land_area = []
+    water_area = []
+    for pv in grouped_matched_orbit_number:
+        acq_ids = grouped_matched_orbit_number[pv]
+        for acq_id in acq_ids:
+            logger.info("%s : %s" %(pv, acq_id))
+            acq = acq_info[acq_id]
+            starttimes.append(get_time(acq.starttime))
+            endtimes.append(get_time(acq.endtime)) 
+            polygons.append(acq.location)
+            #land, water = get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi['location'])
+            #land_area.append(land)
+            #water_area.append(water)
+            logger.info("acq.location : %s\n" %acq.location)    
+            intersection, int_env = get_intersection(aoi['location'], acq.location)
+            logger.info("intersection : %s" %intersection)
+            #land_a, area_a = get_area_from_acq_location(acq.location)
+    logger.info("starttimes : %s" %starttimes)
+    logger.info("endtimes : %s" %endtimes)
+    #get lowest starttime minus 10 minutes as starttime
+    tstart = getUpdatedTime(sorted(starttimes)[0], -10)
+    logger.info("tstart : %s" %tstart)
+    tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
+    logger.info("tend : %s" %tend)
+    land, water = get_area_from_orbit_file(tstart, tend, orbit_file, aoi['location'])
+        
+    ''' WE WILL NOT USE UNION GEOJSON
+    union_geojson = get_union_geometry(polygons)
+    logger.info("union_geojson : %s" %union_geojson)
+    intersection, int_env = get_intersection(aoi['location'], union_geojson)
+    logger.info("union intersection : %s" %intersection)
+    #get highest entime plus 10 minutes as endtime
+    tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
+    logger.info("endtime : %s" %endtime)
+    land, water = util.get_area_from_orbit_file(tstart, tend, orbit_file, aoi['location'])
+    '''
+
+
+    #ADD THE SELECTION LOGIC HERE
+
+    passed = False
+    #passed = isTrackSelected(land, water, land_area, water_area)
+    passed = True
+    return passed
+
+def isTrackSelected(land, water, land_area, water_area):
+    selected = False
+    total_acq_land = 0
+
+    for acq_land in land:
+        total_acq_land+= acq_land
+
+    if ((total_acq_land*100)/land)> 98:
+        selected = True
+
+    return selected
+
 def get_ipf_count(acqs):
     pv_list = []
     for acq in acqs:
@@ -109,9 +174,9 @@ def get_ipf_count(acqs):
 
 def create_acq_obj_from_metadata(acq):
     #create ACQ(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv)
-    #logger.info(acq)
-    acq_data = acq['fields']['partial'][0]
-    acq_id = acq['_id']
+    #logger.info("ACQ = %s\n" %acq)
+    acq_data = acq #acq['fields']['partial'][0]
+    acq_id = acq['id']
     #print("acq_id : %s : %s" %(type(acq_id), acq_id))
     match = SLC_RE.search(acq_id)
     if not match:
@@ -119,7 +184,7 @@ def create_acq_obj_from_metadata(acq):
         return None
     download_url = acq_data['metadata']['download_url']
     track = acq_data['metadata']['trackNumber']
-    location = acq_data['location']
+    location = acq_data['metadata']['location']
     starttime = acq_data['starttime']
     endtime = acq_data['endtime']
     direction = acq_data['metadata']['direction']
@@ -606,6 +671,11 @@ def group_acqs_by_track(frames):
 
 
 def getUpdatedTime(s, m):
+    #date = dateutil.parser.parse(s, ignoretz=True)
+    new_date = s + timedelta(minutes = m)
+    return new_date
+
+def getUpdatedTimeStr(s, m):
     date = dateutil.parser.parse(s, ignoretz=True)
     new_date = date + timedelta(minutes = m)
     return new_date

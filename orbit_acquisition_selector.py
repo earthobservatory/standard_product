@@ -461,38 +461,7 @@ def getUpdatedTime(s, m):
     new_date = s + timedelta(minutes = m)
     return new_date
 
-def get_union_geometry(geojsons):
-    """Return polygon of union of acquisition footprints."""
 
-    # geometries are in lat/lon projection
-    #src_srs = osr.SpatialReference()
-    #src_srs.SetWellKnownGeogCS("WGS84")
-    #src_srs.ImportFromEPSG(4326)
-
-    # get union geometry of all scenes
-    geoms = []
-    union = None
-    for geojson in geojsons:
-        geom = ogr.CreateGeometryFromJson(json.dumps(geojson))
-        geoms.append(geom)
-        union = geom if union is None else union.Union(geom)
-    union_geojson =  json.loads(union.ExportToJson())
-    return union_geojson
-
-def get_acq_orbit_polygon(starttime, endtime, orbit_dir):
-    pass
-    
-def get_intersection(js1, js2):
-    #logger.info("intersection between :\n %s\n%s" %(js1, js2))
-    poly1 = ogr.CreateGeometryFromJson(json.dumps(js1, indent=2, sort_keys=True))
-    poly2 = ogr.CreateGeometryFromJson(json.dumps(js2, indent=2, sort_keys=True))
-
-    intersection = poly1.Intersection(poly2)
-    return json.loads(intersection.ExportToJson()), intersection.GetEnvelope()
-
-
-def get_combined_polygon():
-    pass
 
 def get_time(t):
     try:
@@ -501,53 +470,6 @@ def get_time(t):
         t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S.%f').strftime("%Y-%m-%d %H:%M:%S")
         return datetime.strptime(t1, '%Y-%m-%d %H:%M:%S')
 
-def get_groundTrack_footprint(tstart, tend, orbit_file):
-    mission = MISSION
-    gt_footprint = []
-    gt_footprint_temp= groundTrack.get_ground_track(tstart, tend, mission, orbit_file)
-    for g in gt_footprint_temp:
-        gt_footprint.append(list(g))
-
-    gt_footprint.append(gt_footprint[0])
-
-    logger.info("gt_footprint : %s:" %gt_footprint)
-    geojson = {"type":"Polygon", "coordinates": [gt_footprint]}
-    return geojson
-
-def get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location):
-    water_percentage = 0
-    land_percentage = 0
-    logger.info("tstart : %s  tend : %s" %(tstart, tend))
-    geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
-    intersection, int_env = util.get_intersection(aoi_location, geojson)
-    logger.info("intersection : %s" %intersection)
-    land_percentage = lightweight_water_mask.get_land_percentage(intersection)
-    logger.info("get_land_percentage(geojson) : %s " %land_percentage)
-    water_percentage = lightweight_water_mask.get_water_percentage(intersection)
-
-    logger.info("covers_land : %s " %lightweight_water_mask.covers_land(geojson))
-    logger.info("covers_water : %s "%lightweight_water_mask.covers_water(geojson))
-    logger.info("get_land_percentage(geojson) : %s " %land_percentage)
-    logger.info("get_water_percentage(geojson) : %s " %water_percentage)    
-    
-
-    return land_percentage, water_percentage
-
-def get_area_from_acq_location(geojson):
-    logger.info("geojson : %s" %geojson)
-    land_percentage = lightweight_water_mask.get_land_percentage(geojson)
-    water_percentage = lightweight_water_mask.get_water_percentage(geojson)
-
-    logger.info("covers_land : %s " %lightweight_water_mask.covers_land(geojson))
-    logger.info("covers_water : %s "%lightweight_water_mask.covers_water(geojson))
-    logger.info("get_land_percentage(geojson) : %s " %land_percentage)
-    logger.info("get_water_percentage(geojson) : %s " %water_percentage)                                    
-    
-
-    return land_percentage, water_percentage
-
-def update_grq(acq_id, pv):
-    pass
 
 def isTrackSelected(land, water, land_area, water_area):
     selected = False
@@ -561,81 +483,41 @@ def isTrackSelected(land, water, land_area, water_area):
 
     return selected
         
+
  
 def get_covered_acquisitions(aoi, acqs, orbit_file):
-    
+    #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
+
     logger.info("AOI : %s" %aoi['location'])
-    grouped_matched = util.group_acqs_by_track(acqs)
+    grouped_matched = util.group_acqs_by_orbit_number_from_metadata(acqs) #group_acqs_by_track(acqs)
     matched_ids = grouped_matched["acq_info"].keys()
            
-    logger.info("grouped_matched : %s" %grouped_matched)
+    #logger.info("grouped_matched : %s" %grouped_matched)
     logger.info("matched_ids : %s" %matched_ids)
 
 
     selected_track_acqs = {}
 
+    
+
     for track in grouped_matched["grouped"]:
-        selected = False
-        starttimes = []
-        endtimes = []
-        polygons = []
-        orbit_polygons = []
-        land_area = []
-        water_area = []
-        
-        track_acq_ids = grouped_matched["grouped"][track]
-        #logger.info("%s : %s\n" %(track, grouped_matched["grouped"][track]))
-        for acq_id in track_acq_ids:
-            logger.info("%s : %s" %(track, acq_id))
-            acq = grouped_matched["acq_info"][acq_id]
-            starttimes.append(get_time(acq.starttime))
-            endtimes.append(get_time(acq.endtime)) 
-            polygons.append(acq.location)
-            #land, water = util.get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi['location'])
-            #land_area.append(land)
-            #water_area.append(water)
-            logger.info("acq.location : %s\n" %acq.location)    
-            intersection, int_env = util.get_intersection(aoi['location'], acq.location)
-            logger.info("intersection : %s" %intersection)
-            #land_a, area_a = util.get_area_from_acq_location(acq.location)
-        logger.info("starttimes : %s" %starttimes)
-        logger.info("endtimes : %s" %endtimes)
-        #get lowest starttime minus 10 minutes as starttime
-        tstart = getUpdatedTime(sorted(starttimes)[0], -10)
-        logger.info("tstart : %s" %tstart)
-        tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
-        logger.info("tend : %s" %tend)
-        land, water = util.get_area_from_orbit_file(tstart, tend, orbit_file, aoi['location'])
-        
-        ''' WE WILL NOT USE UNION GEOJSON
-        union_geojson = get_union_geometry(polygons)
-        logger.info("union_geojson : %s" %union_geojson)
-        intersection, int_env = get_intersection(aoi['location'], union_geojson)
-        logger.info("union intersection : %s" %intersection)
-        #get highest entime plus 10 minutes as endtime
-        tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
-        logger.info("endtime : %s" %endtime)
-        land, water = util.get_area_from_orbit_file(tstart, tend, orbit_file, aoi['location'])
-        '''
-
-
-        #ADD THE SELECTION LOGIC HERE
-
-        selected = False
-        #selected = isTrackSelected(land, water, land_area, water_area)
-        selected = True
-
-        if selected:
-            logger.info("SELECTED")
-            selected_acqs = []
-            for acq_id in track_acq_ids:
-                acq = grouped_matched["acq_info"][acq_id]
-                if not acq.pv:
-                    acq.pv = get_processing_version(acq.identifier)
-                    update_grq(acq_id, acq.pv)
-                logger.info("APPENDING : %s" %acq_id)
-                selected_acqs.append(acq)
-            selected_track_acqs[track] = selected_acqs      
+        selected_orbitnumber_acqs = {}
+        for orbitnumber in grouped_matched["grouped"][track]:
+            selected = util.water_mask_test(grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi, orbit_file)
+            if selected:
+                logger.info("SELECTED")
+                selected_acqs = []
+                for pv in grouped_matched["grouped"][track][orbitnumber]:
+                    for acq_id in grouped_matched["grouped"][track][orbitnumber][pv]:
+                        acq = grouped_matched["acq_info"][acq_id]
+                        
+                        if not acq.pv:
+                            acq.pv = pv #util.get_processing_version(acq.identifier)
+                            #util.update_grq(acq_id, acq.pv)
+                        logger.info("APPENDING : %s" %acq_id)
+                        selected_acqs.append(acq)
+                selected_orbitnumber_acqs[orbitnumber] = selected_acqs
+        selected_track_acqs[track] = selected_orbitnumber_acqs     
 
         
 
@@ -775,46 +657,6 @@ def resolve_s1_slc(identifier, download_url, project):
         raise RuntimeError("Got status code {} from {}: {}".format(r.status_code, vertex_url, r.url))
     return url, queue
 
-def get_processing_version(slc):
-    return get_processing_version_from_asf(slc)
-
-def get_processing_version_from_scihub(slc):
-
-    ipf_string = None
-
-    return ipf_string
-
-def get_processing_version_from_asf(slc):
-
-    ipf = None
-
-    try:
-        # query the asf search api to find the download url for the .iso.xml file
-        request_string = 'https://api.daac.asf.alaska.edu/services/search/param?platform=SA,SB&processingLevel=METADATA_SLC&granule_list=%s&output=json' %slc
-        response = requests.get(request_string)
-
-        response.raise_for_status()
-        results = json.loads(response.text)
-
-        # download the .iso.xml file, assumes earthdata login credentials are in your .netrc file
-        response = requests.get(results[0][0]['downloadUrl'])
-        response.raise_for_status()
-
-        # parse the xml file to extract the ipf version string
-        root = ElementTree.fromstring(response.text.encode('utf-8'))
-        ns = {'gmd': 'http://www.isotc211.org/2005/gmd', 'gmi': 'http://www.isotc211.org/2005/gmi', 'gco': 'http://www.isotc211.org/2005/gco'}
-        ipf_string = root.find('gmd:composedOf/gmd:DS_DataSet/gmd:has/gmi:MI_Metadata/gmd:dataQualityInfo/gmd:DQ_DataQuality/gmd:lineage/gmd:LI_Lineage/gmd:processStep/gmd:LI_ProcessStep/gmd:description/gco:CharacterString', ns).text
-
-        if ipf_string:
-            ipf = ipf_string.split('version')[1].split(')')[0].strip()
-    except Exception as err:
-        logger.info("get_processing_version_from_asf : %s" %str(err))
- 
-        
-    return ipf
-
-
-
 
 class DatasetExists(Exception):
     """Exception class for existing dataset."""
@@ -884,7 +726,7 @@ def resolve_aoi_acqs(ctx_file):
     job_data["job_type"] = job_type
     job_data["job_version"] = job_version
     job_data["job_priority"] = ctx['job_priority']
-    
+    job_data['orbit_file'] = orbit_file   
 
     orbit_acq_selections = {}
     orbit_acq_selections["job_data"] = job_data
