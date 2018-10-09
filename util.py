@@ -93,9 +93,23 @@ def group_acqs_by_orbit_number(acqs):
 def update_acq_pv(acq_id, pv):
     pass
 
+def get_ipf_count(acqs):
+    pv_list = []
+    for acq in acqs:
+        if acq.pv:
+            pv_list.append(acq.pv)
+        else:
+            pv = get_processing_version(acq.identifier)
+            if pv:
+                update_grq(acq.acq_id, acq.pv)
+                pv_list.append(pv)
+
+    return len(list(set(pv_list)))
+
+
 def create_acq_obj_from_metadata(acq):
     #create ACQ(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv)
-
+    #logger.info(acq)
     acq_data = acq['fields']['partial'][0]
     acq_id = acq['_id']
     #print("acq_id : %s : %s" %(type(acq_id), acq_id))
@@ -681,6 +695,56 @@ def get_area_from_acq_location(geojson):
     
 
     return land_percentage, water_percentage
+
+
+
+def get_processing_version(slc):
+    pv = get_processing_version_from_scihub(slc)
+    if not pv:
+        pv = get_processing_version_from_asf(slc)
+    return pv
+
+def get_processing_version_from_scihub(slc):
+
+    ipf_string = None
+
+    return ipf_string
+
+def get_processing_version_from_asf(slc):
+
+    ipf = None
+
+    try:
+        # query the asf search api to find the download url for the .iso.xml file
+        request_string = 'https://api.daac.asf.alaska.edu/services/search/param?platform=SA,SB&processingLevel=METADATA_SLC&granule_list=%s&output=json' %slc
+        response = requests.get(request_string)
+
+        response.raise_for_status()
+        results = json.loads(response.text)
+
+        # download the .iso.xml file, assumes earthdata login credentials are in your .netrc file
+        response = requests.get(results[0][0]['downloadUrl'])
+        response.raise_for_status()
+
+        # parse the xml file to extract the ipf version string
+        root = ElementTree.fromstring(response.text.encode('utf-8'))
+        ns = {'gmd': 'http://www.isotc211.org/2005/gmd', 'gmi': 'http://www.isotc211.org/2005/gmi', 'gco': 'http://www.isotc211.org/2005/gco'}
+        ipf_string = root.find('gmd:composedOf/gmd:DS_DataSet/gmd:has/gmi:MI_Metadata/gmd:dataQualityInfo/gmd:DQ_DataQuality/gmd:lineage/gmd:LI_Lineage/gmd:processStep/gmd:LI_ProcessStep/gmd:description/gco:CharacterString', ns).text
+
+        if ipf_string:
+            ipf = ipf_string.split('version')[1].split(')')[0].strip()
+    except Exception as err:
+        logger.info("get_processing_version_from_asf : %s" %str(err))
+ 
+        
+    return ipf
+
+def print_acquisitions(aoi_id, acqs):
+    logger.info("PRINT_ACQS")
+    for acq in acqs:
+        #aoi_id = acq_data['aoi_id']
+        logger.info("aoi : %s track: %s orbitnumber : %s pv: %s acq_id : %s" %(aoi_id, acq.tracknumber, acq.orbitnumber, acq.pv, acq.acq_id))
+    logger.info("\n")
 
 '''
 def query_es(query, es_index):

@@ -183,19 +183,27 @@ def enumerate_acquisations(orbit_acq_selections):
           
             slaves_track = {}
             slave_acqs = []
-            logger.info("%s : %s\n" %(aoi_id, track))
+            logger.info("Enumeration %s : %s\n" %(aoi_id, track))
+            
             selected_acqs = selected_track_acqs[track]
+            master_track_ipf_count = util.get_ipf_count(selected_acqs)
+
+            util.print_acquisitions(aoi_id, selected_acqs)
+
             for acq in selected_acqs:
-                logger.info("\n%s\t%s\t%s\t%s\t%s\t%s\t%s" %(acq.tracknumber, acq.starttime, acq.endtime, acq.pv, acq.direction, acq.orbitnumber, acq.identifier))
+                logger.info("\nMASTER ACQ : %s\t%s\t%s\t%s\t%s\t%s\t%s" %(acq.tracknumber, acq.starttime, acq.endtime, acq.pv, acq.direction, acq.orbitnumber, acq.identifier))
                 ref_hits = []
                 query = get_overlapping_slaves_query(acq)
-                matched_acqs = process_query(query)
-                slave_acqs.extend(util.create_acqs_from_metadata(matched_acqs))
+                matched_acqs = util.create_acqs_from_metadata(process_query(query))
+                logger.info("\nSLAVE ACQS")
+                util.print_acquisitions(aoi_id, matched_acqs)
+     
+                slave_acqs.extend(matched_acqs)
                 #logger.info(matched_acqs)
                 
             grouped_matched = util.group_acqs_by_orbit_number(slave_acqs)
-            matched_ids = grouped_matched["acq_info"].keys()
-            logger.info(grouped_matched["acq_info"].keys())
+            #matched_ids = grouped_matched["acq_info"].keys()
+            #logger.info(grouped_matched["acq_info"].keys())
 
             orbitnumber_pv = {}
             logger.info("\n\n\nTRACK : %s" %track)
@@ -206,7 +214,16 @@ def enumerate_acquisations(orbit_acq_selections):
                 for pv in grouped_matched["grouped"][track][orbitnumber]:
                    logger.info("\tpv : %s" %pv)
                    pv_list.append(pv)
-                orbitnumber_pv[orbitnumber] = list(set(pv_list))
+                orbitnumber_pv[orbitnumber] = len(list(set(pv_list)))
                 
+
+            if master_track_ipf_count == 1:
+                for orbitnumber in sorted( grouped_matched["grouped"][track], reverse=True):
+                    slave_ipf_count = orbitnumber_pv[orbitnumber]
+                                    
+            elif master_track_ipf_count > 1:
+                for orbitnumber in sorted( grouped_matched["grouped"][track], reverse=True):
+                    slave_ipf_count = orbitnumber_pv[orbitnumber]
+
 
 
