@@ -44,6 +44,7 @@ BASE_PATH = os.path.dirname(__file__)
 GRQ_ES_URL = "http://100.64.134.208:9200/"
 covth = 0.98
 MIN_MAX = 2
+es_index = "grq_*_*acquisition*"
 
 
 def get_overlapping_slaves_query(master):
@@ -197,7 +198,14 @@ def enumerate_acquisations(orbit_acq_selections):
                     logger.info("\nMASTER ACQ : %s\t%s\t%s\t%s\t%s\t%s\t%s" %(acq.tracknumber, acq.starttime, acq.endtime, acq.pv, acq.direction, acq.orbitnumber, acq.identifier))
                     ref_hits = []
                     query = get_overlapping_slaves_query(acq)
-                    matched_acqs = util.create_acqs_from_metadata(process_query(query))
+       
+                    acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
+                    logger.info("Found {} slave acqs : {}".format(len(acqs),
+                    json.dumps([i['id'] for i in acqs], indent=2)))
+
+
+                    #matched_acqs = util.create_acqs_from_metadata(process_query(query))
+                    matched_acqs = util.create_acqs_from_metadata(acqs)
                     logger.info("\nSLAVE ACQS")
                     util.print_acquisitions(aoi_id, matched_acqs)
      

@@ -386,6 +386,31 @@ def get_dataset(id):
     print(result['hits']['total'])
     return result
 
+def query_es2(query, es_index=None):
+    """Query ES."""
+    es_url = "http://100.64.134.208:9200/"
+    #es_url = app.conf.GRQ_ES_URL
+    rest_url = es_url[:-1] if es_url.endswith('/') else es_url
+    url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
+    if es_index:
+        url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
+    #logger.info("url: {}".format(url))
+    r = requests.post(url, data=json.dumps(query))
+    r.raise_for_status()
+    scan_result = r.json()
+    #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
+    count = scan_result['hits']['total']
+    scroll_id = scan_result['_scroll_id']
+    hits = []
+    while True:
+        r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        res = r.json()
+        scroll_id = res['_scroll_id']
+        if len(res['hits']['hits']) == 0: break
+        hits.extend(res['hits']['hits'])
+    return hits
+
+
 def query_es(endpoint, doc_id):
     """
     This function queries ES
