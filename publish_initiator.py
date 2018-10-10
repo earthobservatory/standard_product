@@ -369,12 +369,7 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     
 
 
-    id_hash = hashlib.md5(json.dumps([
-        job_priority,
-        str(random.randint(100, 999)),
-        str(random.randint(100, 9999)),
-    ])).hexdigest()
-
+    id_hash = str(random.randint(100, 999999))
     try:
 
         id_hash = hashlib.md5(json.dumps([
@@ -383,12 +378,9 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
             slave_ids_str2
         ])).hexdigest()
     except Exception as err:
-        id_hash = hashlib.md5(json.dumps([
-            job_priority,
-            str(random.randint(100, 999)),
-            str(random.randint(100, 9999)),
-        ])).hexdigest()
+        logger.info(str(err))
         
+
 
     id = "standard-product-ifg-acq-%s" %id_hash[0:4]
     prod_dir =  id
