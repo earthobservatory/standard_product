@@ -2,8 +2,9 @@ import os, sys, re, requests, json, logging, traceback, argparse, copy, bisect
 import hashlib
 from itertools import product, chain
 from datetime import datetime, timedelta
-from hysds.celery import app
-
+#from hysds.celery import app
+import random
+from random import randint
 
 # set logger and custom filter to handle being run from sciflo
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
@@ -17,6 +18,7 @@ class LogFilter(logging.Filter):
 logger = logging.getLogger('enumerate_acquisations')
 logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
+
 
 
 RESORB_RE = re.compile(r'_RESORB_')
@@ -33,6 +35,8 @@ RSP_ID_TMPL = "S1-SLCP_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}
 BASE_PATH = os.path.dirname(__file__)
 MOZART_ES_ENDPOINT = "MOZART"
 GRQ_ES_ENDPOINT = "GRQ"
+GRQ_ES_URL = "http://100.64.134.208:9200/"
+
 
 def query_grq( doc_id):
     """
@@ -53,7 +57,7 @@ def query_grq( doc_id):
         es_index = "job_status-current"
     '''
     # get normalized rest url
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_ES_URL
     #rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     es_index = "grq"
 
@@ -105,20 +109,20 @@ def get_dem_type(info):
 
     dems = {}
     for id in info:
-	dem_type = "SRTM+v3"
+        dem_type = "SRTM+v3"
         h = info[id]
         fields = h["_source"]
-	try:
-	    if 'city' in fields:
-	        if fields['city'][0]['country_name'] is not None and fields['city'][0]['country_name'].lower() == "united states":
+        try:
+            if 'city' in fields:
+                if fields['city'][0]['country_name'] is not None and fields['city'][0]['country_name'].lower() == "united states":
                     dem_type="Ned1"
                 dems.setdefault(dem_type, []).append(id)
-	except:
-	    dem_type = "SRTM+v3"
+        except:
+            dem_type = "SRTM+v3"
 
     if len(dems) != 1:
-	logger.info("There are more than one type of dem, so selecting SRTM+v3")
-	dem_type = "SRTM+v3"
+        logger.info("There are more than one type of dem, so selecting SRTM+v3")
+        dem_type = "SRTM+v3"
     return dem_type
 
 
@@ -253,12 +257,32 @@ def create_dataset_json(id, version, met_file, ds_file):
         json.dump(ds, f, indent=2)
 
 
+def publish_initiator(candidate_pair_list, job_data):
+    for candidate_pair in candidate_pair_list:
+        publish_initiator_pair(candidate_pair, job_data)
+    
+'''
 def publish_initiator( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, acquisition_localizer_version, standard_product_localizer_version, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
     for i in range(len(master_acquisitions)):
         publish_initiator_pair( master_acquisitions[i], slave_acquisitions[i], project[i], spyddder_extract_version[i], acquisition_localizer_version[i], standard_product_localizer_version[i], standard_product_ifg_version[i], job_priority[i])
 
 def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, spyddder_extract_version, acquisition_localizer_version, standard_product_localizer_version, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
+'''
+def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
   
+
+    master_acquisitions = candidate_pair["master_acqs"]
+    slave_acquisitions = candidate_pair["slave_acqs"]
+    project = job_data["project"] 
+    spyddder_extract_version = job_data["spyddder_extract_version"] 
+    standard_product_ifg_version = job_data["standard_product_ifg_version"] 
+    acquisition_localizer_version = job_data["acquisition_localizer_version"]
+    standard_product_localizer_version = job_data["standard_product_localizer_version"] 
+    #job_data["job_type"] = job_type
+    #job_data["job_version"] = job_version
+    job_priority = job_data["job_priority"] 
+
+
     logger.info("MASTER : %s " %master_acquisitions)
     logger.info("SLAVE : %s" %slave_acquisitions) 
     logger.info("project: %s" %project)
@@ -270,7 +294,7 @@ def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, sp
     disk_usage = "300GB"
 
     # query docs
-    es_url = app.conf.GRQ_ES_URL
+    es_url = GRQ_ES_URL
     grq_index_prefix = "grq"
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, grq_index_prefix)
@@ -291,11 +315,11 @@ def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, sp
 
     ref_scence = master_md
     if len(master_acquisitions)==1:
-	ref_scence = master_md
+        ref_scence = master_md
     elif len(slave_acquisitions)==1:
-	ref_scence = slave_md
+        ref_scence = slave_md
     elif len(master_acquisitions) > 1 and  len(slave_acquisitions)>1:
-	raise RuntimeError("Single Scene Reference Required.")
+        raise RuntimeError("Single Scene Reference Required.")
  
 
     dem_type = get_dem_type(master_md)
@@ -306,7 +330,7 @@ def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, sp
     slave_dem_type = get_dem_type(slave_md)
     logger.info("slave_dem_type: {}".format(slave_dem_type))
     if dem_type != slave_dem_type:
-	dem_type = "SRTM+v3"
+        dem_type = "SRTM+v3"
 
 
  
@@ -336,14 +360,35 @@ def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, sp
         else:
             slave_ids_str += " "+acq
 
+    master_ids_str2 = master_ids_str.replace(' ', '').strip()
+    slave_ids_str2 = slave_ids_str.replace(' ', '').strip()
     logger.info("Master Acquisitions_str : %s" %master_ids_str)
     logger.info("Slave Acquisitions_str : %s" %slave_ids_str)
+    logger.info("Master Acquisitions_str2 : %s" %master_ids_str2)
+    logger.info("Slave Acquisitions_str2 : %s" %slave_ids_str2)
+    
+
 
     id_hash = hashlib.md5(json.dumps([
         job_priority,
-        master_ids_str,
-        slave_ids_str
+        str(random.randint(100, 999)),
+        str(random.randint(100, 9999)),
     ])).hexdigest()
+
+    try:
+
+        id_hash = hashlib.md5(json.dumps([
+            job_priority,
+            master_ids_str2,
+            slave_ids_str2
+        ])).hexdigest()
+    except Exception as err:
+        id_hash = hashlib.md5(json.dumps([
+            job_priority,
+            str(random.randint(100, 999)),
+            str(random.randint(100, 9999)),
+        ])).hexdigest()
+        
 
     id = "standard-product-ifg-acq-%s" %id_hash[0:4]
     prod_dir =  id
@@ -401,13 +446,13 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
 
     for acq in master_acquisitions:
 	#logger.info("master acq : %s" %acq)
-	if master_ids_str=="":
-	    master_ids_str= acq
-	else:
-	    master_ids_str += " "+acq	
+        if master_ids_str=="":
+            master_ids_str= acq
+        else:
+            master_ids_str += " "+acq	
     
     for acq in slave_acquisitions:
-	#logger.info("slave acq : %s" %acq)
+        #logger.info("slave acq : %s" %acq)
         if slave_ids_str=="":
             slave_ids_str= acq
         else:

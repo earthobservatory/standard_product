@@ -3,6 +3,7 @@
 import os, sys, time, json, requests, logging
 import orbit_acquisition_selector
 import standard_product_enumurator
+import publish_initiator
 
 
 
@@ -21,7 +22,7 @@ def main():
         print("\n\nSLAVE ACQS : ")
         for acq in  candidate_pair["slave_acqs"]:
             print(acq)
-
+    publish_initiator.publish_initiator(candidate_pair_list, orbit_acq_selections["job_data"])
 
 if __name__ == "__main__":
     sys.exit(main())
