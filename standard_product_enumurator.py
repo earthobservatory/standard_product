@@ -47,96 +47,6 @@ MIN_MAX = 2
 es_index = "grq_*_*acquisition*"
 
 
-def get_overlapping_slaves_query(master):
-    query = {
-            "query": {
-                "filtered": {
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {
-                                    "term": {
-                                        "dataset.raw": "acquisition-S1-IW_SLC"
-                                    }
-				
-                                }
-                            ]
-                        }
-                    },
-                    "filter": {
- 			"bool": {
-			    "must": [
-				{
-                                "geo_shape": {
-                                    "location": {
-                                      "shape": master.location
-                                    }
-                                }},
-				{	
-                                "range" : {
-                                    "endtime" : {
-                                        "lte" : master.starttime
-                
-                                    }
-                                }},
-				{ "term": { "trackNumber": master.tracknumber }},
-				{ "term": { "direction": master.direction }}
-			    ],
-			"must_not": { "term": { "orbitNumber": master.orbitnumber }}
-			}
-                    }
-                }
-            },
-            "partial_fields" : {
-                "partial" : {
-                        "exclude": "city"
-                }
-            }
-        }    
-
-    return query
-
-def get_overlapping_masters_query(master, slave):
-    query = {
-            "query": {
-                "filtered": {
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {
-                                    "term": {
-                                        "dataset.raw": "acquisition-S1-IW_SLC"
-                                    }
-				
-                                }
-                            ]
-                        }
-                    },
-                    "filter": {
- 			"bool": {
-			    "must": [
-				{
-                                "geo_shape": {
-                                    "location": {
-                                      "shape": master.location
-                                    }
-                                }},
-				{ "term": { "direction": master.direction }},
-	                        { "term": { "orbitNumber": master.orbitnumber }},
-			        { "term": { "trackNumber": master.tracknumber }}
-			    ]
-			}
-                    }
-                }
-            },
-            "partial_fields" : {
-                "partial" : {
-                        "exclude": "city"
-                }
-            }
-        }    
-
-    return query
 
 def process_query(query):
 
@@ -170,7 +80,6 @@ def process_query(query):
     return ref_hits
 
 
-
 def enumerate_acquisations(orbit_acq_selections):
     job_data = orbit_acq_selections["job_data"]
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
@@ -186,7 +95,6 @@ def enumerate_acquisations(orbit_acq_selections):
 
         for track in selected_track_acqs.keys():
             for orbitnumber in selected_track_acqs[track].keys():
-          
                 slaves_track = {}
                 slave_acqs = []
                 logger.info("Enumeration %s : %s\n" %(aoi_id, track))
@@ -199,7 +107,7 @@ def enumerate_acquisations(orbit_acq_selections):
                 for acq in master_acqs:
                     logger.info("\nMASTER ACQ : %s\t%s\t%s\t%s\t%s\t%s\t%s" %(acq.tracknumber, acq.starttime, acq.endtime, acq.pv, acq.direction, acq.orbitnumber, acq.identifier))
                     ref_hits = []
-                    query = get_overlapping_slaves_query(acq)
+                    query = util.get_overlapping_slaves_query(acq)
        
                     acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
                     logger.info("Found {} slave acqs : {}".format(len(acqs),
@@ -240,15 +148,36 @@ def enumerate_acquisations(orbit_acq_selections):
                     for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
                         slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
                         if slave_ipf_count == 1:
-                           for acq in master_acqs:
-                               matched, candidate_pair = check_match(acq, slave_acqs_orbitnumber, "master")
-                               if matched:
-                                   candidate_pair_list.append(candidate_pair)
+                            for acq in master_acqs:
+                                query = util.get_overlapping_slaves_query_orbit(acq, slave_orbitnumber)
+                                slave_acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
+                                logger.info("Found {} slave acqs : {}".format(len(slave_acqs),
+                                json.dumps([i['id'] for i in slave_acqs], indent=2)))
+                                if len(slave_acqs)>0:
+                                    try:
+                                        matched_slave_acqs = util.create_acqs_from_metadata(slave_acqs)
+
+                                        matched, candidate_pair = check_match(acq, matched_slave_acqs, "master")
+                                        if matched and len(candidate_pair)>0:
+                                            candidate_pair_list.append(candidate_pair)
+
+                                    except Exception as err:
+                                        logger.info(str(err))
+                                        traceback.print_exc()
+
                         elif slave_ipf_count> 1:
-                            for acq in slave_acqs_orbitnumbe:
+                            for acq in slave_acqs_orbitnumber:
                                 matched = check_match(acq, master_acqs, "slave")
                                 if matched:
-                                   candidate_pair_list.append(candidate_pair)
+                                    candidate_pair_list.append(candidate_pair)
+                                '''
+                                query = util.get_overlapping_slaves_query_orbit(acq)
+                                query = util.get_overlapping_masters_query(master, acq):
+                                slave_acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
+                                logger.info("Found {} slave acqs : {}".format(len(acqs),
+                                json.dumps([i['id'] for i in acqs], indent=2)))
+                                matched_slave_acqs = util.create_acqs_from_metadata(slave_acqs)
+                                '''
 
 
                 elif master_track_ipf_count > 1:
@@ -256,9 +185,21 @@ def enumerate_acquisations(orbit_acq_selections):
                         slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
                         if slave_ipf_count == 1:
                             for acq in master_acqs:
-                                matched, candidate_pair = check_match(acq, slave_acqs_orbitnumber, "master")
-                                if matched:
-                                    candidate_pair_list.append(candidate_pair)
+                                query = util.get_overlapping_slaves_query_orbit(acq)
+                                slave_acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
+                                logger.info("Found {} slave acqs : {}".format(len(slave_acqs),
+                                json.dumps([i['id'] for i in slave_acqs], indent=2)))
+                                if len(slave_acqs)>0:
+                                    try:
+                                        matched_slave_acqs = util.create_acqs_from_metadata(slave_acqs)
+
+                                        matched, candidate_pair = check_match(acq, matched_slave_acqs, "master")
+                                        if matched and len(candidate_pair)>0:
+                                            candidate_pair_list.append(candidate_pair)
+                                    
+                                    except Exception as err:
+                                        logger.info(str(err))
+                                        traceback.print_exc()
     return candidate_pair_list
 
    
@@ -298,14 +239,15 @@ def check_match(ref_acq, matched_acqs, ref_type = "master"):
         logger.info("is_within : %s" %is_covered)
         logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
         matched_acqs=[]
-        matched_acqs2=[]
+        for acq_id in overlapped_matches.keys():
+            matched_acqs.append(acq_id[0])
         if is_overlapped and overlap>=0.98: # and overlap >=covth:
             logger.info("MATCHED")
             matched = True
             if ref_type == "master":
-                candidate_pair = {"master_acqs" : [ref_acq], "slave_acqs" : matched_acqs}
+                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : matched_acqs}
             else:
-                candidate_pair = {"master_acqs" : matched_acqs, "slave_acqs" : [ref_acq]}
+                candidate_pair = {"master_acqs" : matched_acqs, "slave_acqs" : [ref_acq.acq_id[0]]}
         return matched, candidate_pair
             
- 
+

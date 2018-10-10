@@ -395,6 +395,7 @@ def get_dataset(id):
 
 def query_es2(query, es_index=None):
     """Query ES."""
+    logger.info(query)
     es_url = "http://100.64.134.208:9200/"
     #es_url = app.conf.GRQ_ES_URL
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
@@ -950,6 +951,149 @@ def print_acquisitions(aoi_id, acqs):
         #aoi_id = acq_data['aoi_id']
         logger.info("aoi : %s track: %s orbitnumber : %s pv: %s acq_id : %s" %(aoi_id, acq.tracknumber, acq.orbitnumber, acq.pv, acq.acq_id))
     logger.info("\n")
+
+
+def get_overlapping_slaves_query(master):
+    query = {
+            "query": {
+                "filtered": {
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {
+                                    "term": {
+                                        "dataset.raw": "acquisition-S1-IW_SLC"
+                                    }
+				
+                                }
+                            ]
+                        }
+                    },
+                    "filter": {
+ 			"bool": {
+			    "must": [
+				{
+                                "geo_shape": {
+                                    "location": {
+                                      "shape": master.location
+                                    }
+                                }},
+				{	
+                                "range" : {
+                                    "endtime" : {
+                                        "lte" : master.starttime
+                
+                                    }
+                                }},
+				{ "term": { "trackNumber": master.tracknumber }},
+				{ "term": { "direction": master.direction }}
+			    ],
+			"must_not": { "term": { "orbitNumber": master.orbitnumber }}
+			}
+                    }
+                }
+            },
+            "partial_fields" : {
+                "partial" : {
+                        "exclude": "city"
+                }
+            }
+        }    
+
+    return query
+
+def get_overlapping_masters_query(master, slave):
+    query = {
+            "query": {
+                "filtered": {
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {
+                                    "term": {
+                                        "dataset.raw": "acquisition-S1-IW_SLC"
+                                    }
+				
+                                }
+                            ]
+                        }
+                    },
+                    "filter": {
+ 			"bool": {
+			    "must": [
+				{
+                                "geo_shape": {
+                                    "location": {
+                                      "shape": master.location
+                                    }
+                                }},
+				{ "term": { "direction": master.direction }},
+	                        { "term": { "orbitNumber": master.orbitnumber }},
+			        { "term": { "trackNumber": master.tracknumber }}
+			    ]
+			}
+                    }
+                }
+            },
+            "partial_fields" : {
+                "partial" : {
+                        "exclude": "city"
+                }
+            }
+        }    
+
+    return query
+
+def get_overlapping_slaves_query_orbit(master, orbitnumber):
+    query = {
+            "query": {
+                "filtered": {
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {
+                                    "term": {
+                                        "dataset.raw": "acquisition-S1-IW_SLC"
+                                    }
+				
+                                }
+                            ]
+                        }
+                    },
+                    "filter": {
+ 			"bool": {
+			    "must": [
+				{
+                                "geo_shape": {
+                                    "location": {
+                                      "shape": master.location
+                                    }
+                                }},
+				{	
+                                "range" : {
+                                    "endtime" : {
+                                        "lte" : master.starttime
+                
+                                    }
+                                }},
+				{ "term": { "trackNumber": master.tracknumber }},
+                                { "term": { "orbitNumber": orbitnumber }},
+				{ "term": { "direction": master.direction }}
+			    ],
+			"must_not": { "term": { "orbitNumber": master.orbitnumber }}
+			}
+                    }
+                }
+            },
+            "partial_fields" : {
+                "partial" : {
+                        "exclude": "city"
+                }
+            }
+        }    
+
+    return query
+
 
 '''
 def query_es(query, es_index):
