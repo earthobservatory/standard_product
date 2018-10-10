@@ -10,7 +10,7 @@ import datetime
 import dateutil.parser
 from datetime import datetime, timedelta
 import groundTrack
-from osgeo import ogr
+from osgeo import ogr, osr
 import lightweight_water_mask
 
 
@@ -95,7 +95,14 @@ def update_acq_pv(acq_id, pv):
     pass
 
 
-def water_mask_test(acq_info, grouped_matched_orbit_number,  aoi, orbit_file):
+def water_mask_test(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file):
+    try:
+        return water_mask_covered(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file)
+    except Exception as err:
+        traceback.print_exc()
+    return True
+
+def water_mask_covered(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file):
 
     passed = False
     starttimes = []
@@ -111,11 +118,11 @@ def water_mask_test(acq_info, grouped_matched_orbit_number,  aoi, orbit_file):
             starttimes.append(get_time(acq.starttime))
             endtimes.append(get_time(acq.endtime)) 
             polygons.append(acq.location)
-            #land, water = get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi['location'])
+            #land, water = get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi_location)
             #land_area.append(land)
             #water_area.append(water)
             logger.info("acq.location : %s\n" %acq.location)    
-            intersection, int_env = get_intersection(aoi['location'], acq.location)
+            intersection, int_env = get_intersection(aoi_location, acq.location)
             logger.info("intersection : %s" %intersection)
             #land_a, area_a = get_area_from_acq_location(acq.location)
     logger.info("starttimes : %s" %starttimes)
@@ -125,7 +132,7 @@ def water_mask_test(acq_info, grouped_matched_orbit_number,  aoi, orbit_file):
     logger.info("tstart : %s" %tstart)
     tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
     logger.info("tend : %s" %tend)
-    land, water = get_area_from_orbit_file(tstart, tend, orbit_file, aoi['location'])
+    land, water = get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location)
         
     ''' WE WILL NOT USE UNION GEOJSON
     union_geojson = get_union_geometry(polygons)
@@ -704,6 +711,109 @@ def getUpdatedTimeStr(s, m):
     date = dateutil.parser.parse(s, ignoretz=True)
     new_date = date + timedelta(minutes = m)
     return new_date
+
+def is_overlap(geojson1, geojson2):
+    '''returns True if there is any overlap between the two geojsons. The geojsons
+    are just a list of coordinate tuples'''
+    p3=0
+    p1=Polygon(geojson1[0])
+    p2=Polygon(geojson2[0])
+    if p1.intersects(p2):
+        p3 = p1.intersection(p2).area/p1.area
+    return p1.intersects(p2), p3
+
+
+def is_within(geojson1, geojson2):
+    '''returns True if there is any overlap between the two geojsons. The geojsons
+    are just a list of coordinate tuples'''
+    p1=Polygon(geojson1[0])
+    p2=Polygon(geojson2[0])
+    return p1.within(p2)
+
+
+def find_overlap_match(master_acq, slave_acqs):
+    #logger.info("\n\nmaster info : %s : %s : %s :%s" %(master_acq.tracknumber, master_acq.orbitnumber, master_acq.pv, master_acq.acq_id))
+    #logger.info("slave info : ")
+    master_loc = master_acq.location["coordinates"]
+
+    #logger.info("\n\nmaster_loc : %s" %master_loc)
+    overlapped_matches = {}
+    for slave in slave_acqs:
+        logger.info("SLAVE : %s" %slave.location)
+        slave_loc = slave.location["coordinates"]
+        #logger.info("\n\nslave_loc : %s" %slave_loc)
+        is_over, overlap = is_overlap(master_loc, slave_loc)
+        logger.info("is_overlap : %s" %is_over)
+        logger.info("overlap area : %s" %overlap)
+        if is_over:
+            overlapped_matches[slave.acq_id] = slave.location
+            logger.info("Overlapped slave : %s" %slave.acq_id)
+
+    return overlapped_matches
+
+def ref_truncated(ref_scene, matched_footprints, covth=.99):
+    """Return True if reference scene will be truncated."""
+
+    # geometries are in lat/lon projection
+    src_srs = osr.SpatialReference()
+    src_srs.SetWellKnownGeogCS("WGS84")
+    #src_srs.ImportFromEPSG(4326)
+
+    # use projection with unit as meters
+    tgt_srs = osr.SpatialReference()
+    tgt_srs.ImportFromEPSG(3857)
+
+    # create transformer
+    transform = osr.CoordinateTransformation(src_srs, tgt_srs)
+    
+    # get polygon to fill if specified
+    ref_geom = ogr.CreateGeometryFromJson(json.dumps(ref_scene.location))
+    ref_geom_tr = ogr.CreateGeometryFromJson(json.dumps(ref_scene.location))
+    ref_geom_tr.Transform(transform)
+    ref_geom_tr_area = ref_geom_tr.GetArea() # in square meters
+    logger.info("Reference GeoJSON: %s" % ref_geom.ExportToJson())
+
+    # get union geometry of all matched scenes
+    matched_geoms = []
+    matched_union = None
+    matched_geoms_tr = []
+    matched_union_tr = None
+    ids = sorted(matched_footprints.keys())
+    #ids.sort()
+    #logger.info("ids: %s" % len(ids))
+    for id in ids:
+        geom = ogr.CreateGeometryFromJson(json.dumps(matched_footprints[id]))
+        geom_tr = ogr.CreateGeometryFromJson(json.dumps(matched_footprints[id]))
+        geom_tr.Transform(transform)
+        matched_geoms.append(geom)
+        matched_geoms_tr.append(geom_tr)
+        if matched_union is None:
+            matched_union = geom
+            matched_union_tr = geom_tr
+        else:
+            matched_union = matched_union.Union(geom)
+            matched_union_tr = matched_union_tr.Union(geom_tr)
+    matched_union_geojson =  json.loads(matched_union.ExportToJson())
+    logger.info("Matched union GeoJSON: %s" % json.dumps(matched_union_geojson))
+    
+    # check matched_union disjointness
+    if len(matched_union_geojson['coordinates']) > 1:
+        logger.info("Matched union is a disjoint geometry.")
+        return True
+            
+    # check that intersection of reference and stitched scenes passes coverage threshold
+    ref_int = ref_geom.Intersection(matched_union)
+    ref_int_tr = ref_geom_tr.Intersection(matched_union_tr)
+    ref_int_tr_area = ref_int_tr.GetArea() # in square meters
+    logger.info("Reference intersection GeoJSON: %s" % ref_int.ExportToJson())
+    logger.info("area (m^2) for intersection: %s" % ref_int_tr_area)
+    cov = ref_int_tr_area/ref_geom_tr_area
+    logger.info("coverage: %s" % cov)
+    if cov < covth:
+        logger.info("Matched union doesn't cover at least %s%% of the reference footprint." % (covth*100.))
+        return True
+   
+    return False
 
 def get_union_geometry(geojsons):
     """Return polygon of union of acquisition footprints."""

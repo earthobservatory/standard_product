@@ -503,7 +503,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
     for track in grouped_matched["grouped"]:
         selected_orbitnumber_acqs = {}
         for orbitnumber in grouped_matched["grouped"][track]:
-            selected = util.water_mask_test(grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi, orbit_file)
+            selected = util.water_mask_test(grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi['location'], orbit_file)
             if selected:
                 logger.info("SELECTED")
                 selected_acqs = []

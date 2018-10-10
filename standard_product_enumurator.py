@@ -177,6 +177,8 @@ def enumerate_acquisations(orbit_acq_selections):
 
     orbit_file = job_data['orbit_file']
 
+    candidate_pair_list = []
+
     for aoi_id in orbit_aoi_data.keys():
         aoi_data = orbit_aoi_data[aoi_id]
         selected_track_acqs = aoi_data['selected_track_acqs'] 
@@ -189,12 +191,12 @@ def enumerate_acquisations(orbit_acq_selections):
                 slave_acqs = []
                 logger.info("Enumeration %s : %s\n" %(aoi_id, track))
             
-                selected_acqs = selected_track_acqs[track][orbitnumber]
-                master_track_ipf_count = util.get_ipf_count(selected_acqs)
+                master_acqs = selected_track_acqs[track][orbitnumber]
+                master_track_ipf_count = util.get_ipf_count(master_acqs)
 
-                util.print_acquisitions(aoi_id, selected_acqs)
+                util.print_acquisitions(aoi_id, master_acqs)
 
-                for acq in selected_acqs:
+                for acq in master_acqs:
                     logger.info("\nMASTER ACQ : %s\t%s\t%s\t%s\t%s\t%s\t%s" %(acq.tracknumber, acq.starttime, acq.endtime, acq.pv, acq.direction, acq.orbitnumber, acq.identifier))
                     ref_hits = []
                     query = get_overlapping_slaves_query(acq)
@@ -212,29 +214,98 @@ def enumerate_acquisations(orbit_acq_selections):
                     slave_acqs.extend(matched_acqs)
                     #logger.info(matched_acqs)
                 
-                grouped_matched = util.group_acqs_by_orbit_number(slave_acqs)
+                slave_grouped_matched = util.group_acqs_by_orbit_number(slave_acqs)
                 #matched_ids = grouped_matched["acq_info"].keys()
                 #logger.info(grouped_matched["acq_info"].keys())
-
+                 
                 orbitnumber_pv = {}
                 logger.info("\n\n\nTRACK : %s" %track)
-                for orbitnumber in sorted( grouped_matched["grouped"][track], reverse=True):
+                slave_acqs_orbitnumber = []
+                for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
+                    selected = util.water_mask_test(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_data['aoi_location'], orbit_file)
+                    if not selected:
+                        continue
                     pv_list = []
                     #orbit_count= orbit_count+1
-                    logger.info("SortedOrbitNumber : %s" %orbitnumber)
-                    for pv in grouped_matched["grouped"][track][orbitnumber]:
+                    #logger.info("SortedOrbitNumber : %s" %orbitnumber)
+                    for pv in slave_grouped_matched["grouped"][track][slave_orbitnumber]:
                        logger.info("\tpv : %s" %pv)
                        pv_list.append(pv)
-                    orbitnumber_pv[orbitnumber] = len(list(set(pv_list)))
+                       slave_ids= slave_grouped_matched["grouped"][track][slave_orbitnumber][pv]
+                       for slave_id in slave_ids:
+                           slave_acqs_orbitnumber.append(slave_grouped_matched["acq_info"][slave_id])
+                    orbitnumber_pv[slave_orbitnumber] = len(list(set(pv_list)))
                 
-
                 if master_track_ipf_count == 1:
-                    for orbitnumber in sorted( grouped_matched["grouped"][track], reverse=True):
-                        slave_ipf_count = orbitnumber_pv[orbitnumber]
-                                    
+                    for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
+                        slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
+                        if slave_ipf_count == 1:
+                           for acq in master_acqs:
+                               matched, candidate_pair = check_match(acq, slave_acqs_orbitnumber, "master")
+                               if matched:
+                                   candidate_pair_list.append(candidate_pair)
+                        elif slave_ipf_count> 1:
+                            for acq in slave_acqs_orbitnumbe:
+                                matched = check_match(acq, master_acqs, "slave")
+                                if matched:
+                                   candidate_pair_list.append(candidate_pair)
+
+
                 elif master_track_ipf_count > 1:
-                    for orbitnumber in sorted( grouped_matched["grouped"][track], reverse=True):
-                        slave_ipf_count = orbitnumber_pv[orbitnumber]
+                    for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
+                        slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
+                        if slave_ipf_count == 1:
+                            for acq in master_acqs:
+                                matched, candidate_pair = check_match(acq, slave_acqs_orbitnumber, "master")
+                                if matched:
+                                    candidate_pair_list.append(candidate_pair)
+    return candidate_pair_list
 
+   
+def get_union_geometry(acq_dict):
+    """Return polygon of union of acquisition footprints."""
 
+    # geometries are in lat/lon projection
+    #src_srs = osr.SpatialReference()
+    #src_srs.SetWellKnownGeogCS("WGS84")
+    #src_srs.ImportFromEPSG(4326)
 
+    # get union geometry of all scenes
+    geoms = []
+    union = None
+    #logger.info(acq_dict)
+    ids = sorted(acq_dict.keys())
+    for id in ids:
+        geom = ogr.CreateGeometryFromJson(json.dumps(acq_dict[id]))
+        geoms.append(geom)
+        union = geom if union is None else union.Union(geom)
+    union_geojson =  json.loads(union.ExportToJson())
+    return union_geojson
+
+def check_match(ref_acq, matched_acqs, ref_type = "master"):
+    matched = False
+    candidate_pair = {}
+    overlapped_matches = util.find_overlap_match(ref_acq, matched_acqs)
+    if len(overlapped_matches)>0:
+        logger.info("Overlapped Acq exists")
+        #logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
+        union_loc = get_union_geometry(overlapped_matches)
+        logger.info("union loc : %s" %union_loc)
+        is_ref_truncated = util.ref_truncated(ref_acq, overlapped_matches, covth=.99)
+        is_covered = util.is_within(ref_acq.location["coordinates"], union_loc["coordinates"])
+        is_overlapped, overlap = util.is_overlap(ref_acq.location["coordinates"], union_loc["coordinates"])
+        logger.info("is_ref_truncated : %s" %is_ref_truncated)
+        logger.info("is_within : %s" %is_covered)
+        logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
+        matched_acqs=[]
+        matched_acqs2=[]
+        if is_overlapped and overlap>=0.98: # and overlap >=covth:
+            logger.info("MATCHED")
+            matched = True
+            if ref_type == "master":
+                candidate_pair = {"master_acqs" : [ref_acq], "slave_acqs" : matched_acqs}
+            else:
+                candidate_pair = {"master_acqs" : matched_acqs, "slave_acqs" : [ref_acq]}
+        return matched, candidate_pair
+            
+ 
