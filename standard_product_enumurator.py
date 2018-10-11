@@ -79,8 +79,123 @@ def process_query(query):
 
     return ref_hits
 
-
 def enumerate_acquisations(orbit_acq_selections):
+
+
+    logger.info("\n\n\nENUMERATE\n")
+    job_data = orbit_acq_selections["job_data"]
+    orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
+
+    reject_pairs = {}
+    orbit_file = job_data['orbit_file']
+
+    candidate_pair_list = []
+
+    for aoi_id in orbit_aoi_data.keys():
+        aoi_data = orbit_aoi_data[aoi_id]
+        selected_track_acqs = aoi_data['selected_track_acqs'] 
+        #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
+
+        for track in selected_track_acqs.keys():
+            min_max_count, track_candidate_pair_list = get_candidate_pair_list(selected_track_acqs[track], reject_pairs)
+           
+            if min_max_count >= MIN_MAX and len(track_candidate_pair_list) > 0:
+                candidate_pair_list.extend(track_candidate_pair_list)
+            
+    return candidate_pair_list
+
+def reject_list_check(candidate_pair, reject_list):
+    passed = False
+    if not reject_list:
+        passed = True
+    else:
+        ''' IMPLEMENT LOGIC HERE '''
+        passed = True
+    return passed
+
+def get_candidate_pair_list(selected_track_acqs, reject_pairs):
+    logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
+    candidate_pair_list = []
+    orbit_ipf_dict = {}
+    min_max_count = 0
+    
+    for orbitnumber in selected_track_acqs.keys():
+        orbit_ipf_dict[orbitnumber] = util.get_ipf_count(selected_track_acqs[orbitnumber])
+
+    number_of_orbits = len(orbit_ipf_dict.keys())
+    for orbitnumber in sorted(selected_track_acqs.keys(), reverse=True):
+        logger.info(orbitnumber)
+
+    if number_of_orbits <=1:
+        logger.info("Returning as number of orbit is : %s" %number_of_orbits)
+        return 0, candidate_pair_list
+    elif number_of_orbits == 2:
+        master_orbit_number = sorted(orbit_ipf_dict.keys(), reverse=True)[0]
+        logger.info("master_orbit_number : %s" %master_orbit_number)
+        slave_orbit_number = sorted(orbit_ipf_dict.keys(), reverse=True)[1]
+        logger.info("slave_orbit_number : %s" %slave_orbit_number)
+        master_ipf_count = orbit_ipf_dict[master_orbit_number]
+        master_acqs = selected_track_acqs[master_orbit_number]
+        slave_ipf_count = orbit_ipf_dict[slave_orbit_number]
+        slave_acqs = selected_track_acqs[slave_orbit_number]
+        result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs)
+        if result and len(orbit_candidate_pair_list)>0:
+            candidate_pair_list.extend(orbit_candidate_pair_list)
+            min_max_count = min_max_count + 1
+            if min_max_count>=MIN_MAX:
+                return min_max_count, candidate_pair_list
+        
+    elif number_of_orbits > 2:
+
+        for i in range(number_of_orbits-2):
+            logger.info("\n\nProcessing : %s" %i)
+            logger.info("OrbitNumbers : %s" %orbit_ipf_dict.keys())
+            master_orbit_number = sorted(orbit_ipf_dict.keys(), reverse=True)[i]
+            logger.info("master_orbit_number : %s" %master_orbit_number) 
+            master_acqs = selected_track_acqs[master_orbit_number]
+            master_ipf_count = orbit_ipf_dict[master_orbit_number]
+            j = i+1
+
+            while j<number_of_orbits:
+                slave_orbit_number = sorted(orbit_ipf_dict.keys(), reverse=True)[j]
+                logger.info("slave_orbit_number : %s" %slave_orbit_number)
+                slave_ipf_count = orbit_ipf_dict[slave_orbit_number]
+                slave_acqs = selected_track_acqs[slave_orbit_number]
+                result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs)
+                if result and len(orbit_candidate_pair_list)>0:
+                    candidate_pair_list.extend(orbit_candidate_pair_list)
+                    min_max_count = min_max_count + 1
+                    if min_max_count>=MIN_MAX:
+                        return min_max_count, candidate_pair_list
+    return min_max_count, candidate_pair_list
+    
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs):
+    result = False
+    candidate_pair_list = []
+    
+    ref_type = None
+
+    if slave_ipf_count == 1:
+        for acq in master_acqs:
+            result, candidate_pair = check_match(acq, slave_acqs, "master") 
+            if not matched:
+                return False, []
+            elif reject_list_check(candidate_pair, reject_pairs):
+                candidate_pair_list.append(candidate_pair)
+    elif slave_ipf_count > 1 and master_ipf_count == 1:
+        for acq in slave_acqs:
+            result, candidate_pair = check_match(acq, master_acqs, "slave")         
+            if not matched:
+                return False, []
+            elif reject_list_check(candidate_pair, reject_pairs):
+                candidate_pair_list.append(candidate_pair)
+    
+    if len(candidate_pair_list) == 0:
+        result = False
+    return result, candidate_pair
+
+def enumerate_acquisations2(orbit_acq_selections):
+    logger.info("\n\n\nENUMERATE\n")
     job_data = orbit_acq_selections["job_data"]
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
 

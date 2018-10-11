@@ -865,7 +865,7 @@ def get_groundTrack_footprint(tstart, tend, orbit_file):
 
     gt_footprint.append(gt_footprint[0])
 
-    logger.info("gt_footprint : %s:" %gt_footprint)
+    #logger.info("gt_footprint : %s:" %gt_footprint)
     geojson = {"type":"Polygon", "coordinates": [gt_footprint]}
     return geojson
 
