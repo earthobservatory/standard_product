@@ -113,7 +113,7 @@ def reject_list_check(candidate_pair, reject_list):
         passed = True
     return passed
 
-def get_candidate_pair_list(selected_track_acqs, reject_pairs):
+def get_candidate_pair_list2(selected_track_acqs, reject_pairs):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -194,71 +194,115 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
         result = False
     return result, candidate_pair
 
-def enumerate_acquisations2(orbit_acq_selections):
+
+def enumerate_acquisations(orbit_acq_selections):
+
+
     logger.info("\n\n\nENUMERATE\n")
     job_data = orbit_acq_selections["job_data"]
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
 
+    reject_pairs = {}
     orbit_file = job_data['orbit_file']
 
     candidate_pair_list = []
 
     for aoi_id in orbit_aoi_data.keys():
+        logger.info("\n\nProcessing : %s " %aoi_id)
         aoi_data = orbit_aoi_data[aoi_id]
-        selected_track_acqs = aoi_data['selected_track_acqs'] 
+        selected_track_acqs = aoi_data['selected_track_acqs']
         #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
 
         for track in selected_track_acqs.keys():
-            for orbitnumber in selected_track_acqs[track].keys():
-                slaves_track = {}
-                slave_acqs = []
-                logger.info("Enumeration %s : %s\n" %(aoi_id, track))
+            min_max_count, track_candidate_pair_list = get_candidate_pair_list(track, selected_track_acqs[track], aoi_data, reject_pairs)
+            logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
+            if min_max_count>0:
+                print_candidate_pair_list_per_track(track_candidate_pair_list)
+            if min_max_count >= MIN_MAX and len(track_candidate_pair_list) > 0:
+                candidate_pair_list.extend(track_candidate_pair_list)
+
+    return candidate_pair_list
+def print_candidate_pair_list_per_track(candidate_pair_list):
+    if len(candidate_pair_list)>0:
+        for i in range(len(candidate_pair_list)):
+            candidate_pair = candidate_pair_list[i]
+            logger.info("Masters Acqs:")
+            for j in range(len(candidate_pair["master_acqs"])):
+                logger.info(candidate_pair["master_acqs"][j])
+            for j in range(len(candidate_pair["slave_acqs"])):
+                logger.info(candidate_pair["slave_acqs"][j])
+
+
+def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
+    logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
+    candidate_pair_list = []
+    orbit_ipf_dict = {}
+    min_max_count = 0
+    aoi_location = aoi_data['aoi_location']
+    logger.info("aoi_location : %s " %aoi_location)
+
+    for orbitnumber in sorted(selected_track_acqs.keys(), reverse=True):
+        logger.info(orbitnumber)
+   
+        slaves_track = {}
+        slave_acqs = []
             
-                master_acqs = selected_track_acqs[track][orbitnumber]
-                master_track_ipf_count = util.get_ipf_count(master_acqs)
+        master_acqs = selected_track_acqs[orbitnumber]
+        master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
+        #master_ipf_count = util.get_ipf_count(master_acqs)
+        #master_union_geojson = util.get_union_geojson_acqs(master_acqs)
 
-                util.print_acquisitions(aoi_id, master_acqs)
+        #util.print_acquisitions(aoi_data['aoi_id'], master_acqs)
+        query = util.get_overlapping_slaves_query(master_starttime, master_endtime, master_location, track, direction, master_orbitnumber)
 
-                for acq in master_acqs:
-                    logger.info("\nMASTER ACQ : %s\t%s\t%s\t%s\t%s\t%s\t%s" %(acq.tracknumber, acq.starttime, acq.endtime, acq.pv, acq.direction, acq.orbitnumber, acq.identifier))
-                    ref_hits = []
-                    query = util.get_overlapping_slaves_query(acq)
-       
-                    acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
-                    logger.info("Found {} slave acqs : {}".format(len(acqs),
-                    json.dumps([i['id'] for i in acqs], indent=2)))
+        acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
+        logger.info("Found {} slave acqs : {}".format(len(acqs),
+        json.dumps([i['id'] for i in acqs], indent=2)))
 
 
                     #matched_acqs = util.create_acqs_from_metadata(process_query(query))
-                    matched_acqs = util.create_acqs_from_metadata(acqs)
-                    logger.info("\nSLAVE ACQS")
-                    util.print_acquisitions(aoi_id, matched_acqs)
-     
-                    slave_acqs.extend(matched_acqs)
-                    #logger.info(matched_acqs)
-                
-                slave_grouped_matched = util.group_acqs_by_orbit_number(slave_acqs)
-                #matched_ids = grouped_matched["acq_info"].keys()
-                #logger.info(grouped_matched["acq_info"].keys())
+        slave_acqs = util.create_acqs_from_metadata(acqs)
+        logger.info("\nSLAVE ACQS")
+        #util.print_acquisitions(aoi_id, slave_acqs)
+
+
+        slave_grouped_matched = util.group_acqs_by_orbit_number(slave_acqs)
                  
-                orbitnumber_pv = {}
-                logger.info("\n\n\nTRACK : %s" %track)
-                slave_acqs_orbitnumber = []
-                for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
-                    selected = util.water_mask_test(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_data['aoi_location'], orbit_file)
-                    if not selected:
-                        continue
-                    pv_list = []
-                    #orbit_count= orbit_count+1
-                    #logger.info("SortedOrbitNumber : %s" %orbitnumber)
-                    for pv in slave_grouped_matched["grouped"][track][slave_orbitnumber]:
-                       logger.info("\tpv : %s" %pv)
-                       pv_list.append(pv)
-                       slave_ids= slave_grouped_matched["grouped"][track][slave_orbitnumber][pv]
-                       for slave_id in slave_ids:
-                           slave_acqs_orbitnumber.append(slave_grouped_matched["acq_info"][slave_id])
-                    orbitnumber_pv[slave_orbitnumber] = len(list(set(pv_list)))
-                
+        orbitnumber_pv = {}
+        selected_slave_acqs_by_orbitnumber = {}
+        logger.info("\n\n\nTRACK : %s" %track)
+        rejected_slave_orbitnumber = []
+        for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
+            selected_slave_acqs=[]
+            selected = util.water_mask_check(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location)
+            if not selected:
+                logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_orbitnumber)
+                rejected_slave_orbitnumber.append(slave_orbitnumber)
+                continue
+            pv_list = []
+            for pv in slave_grouped_matched["grouped"][track][slave_orbitnumber]:
+                logger.info("\tpv : %s" %pv)
+                pv_list.append(pv)
+                slave_ids= slave_grouped_matched["grouped"][track][slave_orbitnumber][pv]
+                for slave_id in slave_ids:
+                    selected_slave_acqs.append(slave_grouped_matched["acq_info"][slave_id])
+            orbitnumber_pv[slave_orbitnumber] = len(list(set(pv_list)))
+            selected_slave_acqs_by_orbitnumber[slave_orbitnumber] =  selected_slave_acqs
+
+        for slave_orbitnumber in sorted( selected_slave_acqs_by_orbitnumber.keys(), reverse=True):
+            slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
+            slave_acqs = selected_slave_acqs_by_orbitnumber[slave_orbitnumber]
+            
+
+            result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs)            
+            if result and len(orbit_candidate_pair_list)>0:
+                candidate_pair_list.extend(orbit_candidate_pair_list)
+                min_max_count = min_max_count + 1
+                if min_max_count>=MIN_MAX:
+                    return min_max_count, candidate_pair_list
+    return min_max_count, candidate_pair_list
+      
+    '''
                 if master_track_ipf_count == 1:
                     for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
                         slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
@@ -285,14 +329,14 @@ def enumerate_acquisations2(orbit_acq_selections):
                                 matched = check_match(acq, master_acqs, "slave")
                                 if matched:
                                     candidate_pair_list.append(candidate_pair)
-                                '''
+                                
                                 query = util.get_overlapping_slaves_query_orbit(acq)
                                 query = util.get_overlapping_masters_query(master, acq):
                                 slave_acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
                                 logger.info("Found {} slave acqs : {}".format(len(acqs),
                                 json.dumps([i['id'] for i in acqs], indent=2)))
                                 matched_slave_acqs = util.create_acqs_from_metadata(slave_acqs)
-                                '''
+                                
 
 
                 elif master_track_ipf_count > 1:
@@ -316,7 +360,7 @@ def enumerate_acquisations2(orbit_acq_selections):
                                         logger.info(str(err))
                                         traceback.print_exc()
     return candidate_pair_list
-
+    '''
    
 def get_union_geometry(acq_dict):
     """Return polygon of union of acquisition footprints."""

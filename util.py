@@ -95,23 +95,22 @@ def update_acq_pv(acq_id, pv):
     pass
 
 
-def water_mask_test(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file=None):
+def water_mask_check(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file=None):
 
     result = False
+    if not aoi_location:
+        logger.info("water_mask_check FAILED as aoi_location NOT found")
+        return False
     try:
-        if orbit_file:
-            result = water_mask_orbit_file(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file)
-        else:
-            result = water_mask_geojson(acq_info, grouped_matched_orbit_number,  aoi_location)
+        result = water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file)
     except Exception as err:
         traceback.print_exc()
     return result
 
 
-def water_mask_geojson(acq_info, grouped_matched_orbit_number,  aoi_location):
 
 
-def water_mask_orbit_file(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file):
+def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file = None):
 
     passed = False
     starttimes = []
@@ -154,7 +153,7 @@ def water_mask_orbit_file(acq_info, grouped_matched_orbit_number,  aoi_location,
         logger.info("union_geojson : %s" %union_geojson)
         #intersection, int_env = get_intersection(aoi['location'], union_geojson)
         #logger.info("union intersection : %s" %intersection)
-        total_land, total_water = util.get_area_from_orbit_file(union_geojson, aoi_location)
+        total_land, total_water = get_area_from_orbit_file(union_geojson, aoi_location)
     
 
 
@@ -189,6 +188,37 @@ def get_ipf_count(acqs):
                 pv_list.append(pv)
 
     return len(list(set(pv_list)))
+
+def get_union_data_from_acqs(acqs):
+    starttimes = []
+    endtimes = []
+    polygons = []
+    track = None
+    direction = None
+    orbitnumber = None
+    pv_list = []
+
+    for acq in acqs:
+        if acq.pv:
+            pv_list.append(acq.pv)
+        else:
+            pv = get_processing_version(acq.identifier)
+            if pv:
+                update_grq(acq.acq_id, acq.pv)
+                pv_list.append(pv)
+
+        starttimes.append(get_time(acq.starttime))
+        endtimes.append(get_time(acq.endtime)) 
+        polygons.append(acq.location)
+        track = acq.tracknumber
+        direction = acq.direction
+        orbitnumber =acq.orbitnumber
+    starttime = sorted(starttimes)[0]
+    endtime = sorted(endtimes, reverse=True)[0]
+    location = get_union_geometry(polygons)
+    ipf_count = len(list(set(pv_list)))
+
+    return ipf_count, starttime.strftime("%Y-%m-%d %H:%M:%S"), endtime.strftime("%Y-%m-%d %H:%M:%S"), location, track, direction, orbitnumber 
 
 
 def create_acq_obj_from_metadata(acq):
@@ -827,7 +857,16 @@ def ref_truncated(ref_scene, matched_footprints, covth=.99):
         return True
    
     return False
-
+def get_union_geojson_acqs(acqs):
+    geoms = []
+    union = None
+    for acq in acqs:
+        geom = ogr.CreateGeometryFromJson(json.dumps(acq.location))
+        geoms.append(geom)
+        union = geom if union is None else union.Union(geom)
+    union_geojson =  json.loads(union.ExportToJson())
+    return union_geojson
+    
 def get_union_geometry(geojsons):
     """Return polygon of union of acquisition footprints."""
 
@@ -968,6 +1007,9 @@ def print_acquisitions(aoi_id, acqs):
 
 
 def get_overlapping_slaves_query(master):
+    return get_overlapping_slaves_query(master.starttime, master.endtime, master.location, master.tracknumber, master.direction, master.orbitnumber)
+    
+def get_overlapping_slaves_query(starttime, endtime, location, tracknumber, direction, orbitnumber):
     query = {
             "query": {
                 "filtered": {
@@ -989,20 +1031,20 @@ def get_overlapping_slaves_query(master):
 				{
                                 "geo_shape": {
                                     "location": {
-                                      "shape": master.location
+                                      "shape": location
                                     }
                                 }},
 				{	
                                 "range" : {
                                     "endtime" : {
-                                        "lte" : master.starttime
+                                        "lte" : starttime
                 
                                     }
                                 }},
-				{ "term": { "trackNumber": master.tracknumber }},
-				{ "term": { "direction": master.direction }}
+				{ "term": { "trackNumber": tracknumber }},
+				{ "term": { "direction": direction }}
 			    ],
-			"must_not": { "term": { "orbitNumber": master.orbitnumber }}
+			"must_not": { "term": { "orbitNumber": orbitnumber }}
 			}
                     }
                 }
