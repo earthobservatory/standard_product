@@ -95,21 +95,30 @@ def update_acq_pv(acq_id, pv):
     pass
 
 
-def water_mask_test(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file):
+def water_mask_test(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file=None):
+
+    result = False
     try:
-        return water_mask_covered(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file)
+        if orbit_file:
+            result = water_mask_orbit_file(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file)
+        else:
+            result = water_mask_geojson(acq_info, grouped_matched_orbit_number,  aoi_location)
     except Exception as err:
         traceback.print_exc()
-    return True
+    return result
 
-def water_mask_covered(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file):
+
+def water_mask_geojson(acq_info, grouped_matched_orbit_number,  aoi_location):
+
+
+def water_mask_orbit_file(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file):
 
     passed = False
     starttimes = []
     endtimes = []
     polygons = []
-    land_area = []
-    water_area = []
+    acqs_land = []
+    acqs_water = []
     for pv in grouped_matched_orbit_number:
         acq_ids = grouped_matched_orbit_number[pv]
         for acq_id in acq_ids:
@@ -118,49 +127,52 @@ def water_mask_covered(acq_info, grouped_matched_orbit_number,  aoi_location, or
             starttimes.append(get_time(acq.starttime))
             endtimes.append(get_time(acq.endtime)) 
             polygons.append(acq.location)
-            #land, water = get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi_location)
-            #land_area.append(land)
-            #water_area.append(water)
-            logger.info("acq.location : %s\n" %acq.location)    
-            intersection, int_env = get_intersection(aoi_location, acq.location)
-            logger.info("intersection : %s" %intersection)
-            #land_a, area_a = get_area_from_acq_location(acq.location)
-    logger.info("starttimes : %s" %starttimes)
-    logger.info("endtimes : %s" %endtimes)
-    #get lowest starttime minus 10 minutes as starttime
-    tstart = getUpdatedTime(sorted(starttimes)[0], -10)
-    logger.info("tstart : %s" %tstart)
-    tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
-    logger.info("tend : %s" %tend)
-    land, water = get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location)
-        
-    ''' WE WILL NOT USE UNION GEOJSON
-    union_geojson = get_union_geometry(polygons)
-    logger.info("union_geojson : %s" %union_geojson)
-    intersection, int_env = get_intersection(aoi['location'], union_geojson)
-    logger.info("union intersection : %s" %intersection)
-    #get highest entime plus 10 minutes as endtime
-    tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
-    logger.info("endtime : %s" %endtime)
-    land, water = util.get_area_from_orbit_file(tstart, tend, orbit_file, aoi['location'])
-    '''
+            if orbit_file:
+                land, water = get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi_location)
+                acqs_land.append(land)
+                acqs_water.append(water)
+            else:
+                land, water = get_area_from_acq_location(acq.location, aoi_location)
+                acqs_land.append(land)
+                acqs_water.append(water)
+              
+    total_land = 0
+    total_water = 0
+    
+    if orbit_file:
+
+        logger.info("starttimes : %s" %starttimes)
+        logger.info("endtimes : %s" %endtimes)
+        #get lowest starttime minus 10 minutes as starttime
+        tstart = getUpdatedTime(sorted(starttimes)[0], -10)
+        logger.info("tstart : %s" %tstart)
+        tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
+        logger.info("tend : %s" %tend)
+        total_land, total_water = get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location)
+    else:        
+        union_geojson = get_union_geometry(polygons)
+        logger.info("union_geojson : %s" %union_geojson)
+        #intersection, int_env = get_intersection(aoi['location'], union_geojson)
+        #logger.info("union intersection : %s" %intersection)
+        total_land, total_water = util.get_area_from_orbit_file(union_geojson, aoi_location)
+    
 
 
     #ADD THE SELECTION LOGIC HERE
 
     passed = False
-    #passed = isTrackSelected(land, water, land_area, water_area)
-    passed = True
+    passed = isTrackSelected(acqs_land, total_land)
     return passed
 
-def isTrackSelected(land, water, land_area, water_area):
+def isTrackSelected(acqs_land, total_land):
     selected = False
-    total_acq_land = 0
+    sum_of_acq_land = 0
 
-    for acq_land in land:
-        total_acq_land+= acq_land
+    for acq_land in acqs_land:
+        sum_of_acq_land+= acq_land
 
-    if ((total_acq_land*100)/land)> 98:
+    delta = abs(sum_of_acq_land - total_land)
+    if delta/total_land<.01:
         selected = True
 
     return selected
@@ -870,37 +882,39 @@ def get_groundTrack_footprint(tstart, tend, orbit_file):
     return geojson
 
 def get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location):
-    water_percentage = 0
-    land_percentage = 0
+    water_area = 0
+    land_area = 0
     logger.info("tstart : %s  tend : %s" %(tstart, tend))
     geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
     intersection, int_env = get_intersection(aoi_location, geojson)
     logger.info("intersection : %s" %intersection)
-    land_percentage = lightweight_water_mask.get_land_percentage(intersection)
-    logger.info("get_land_percentage(geojson) : %s " %land_percentage)
-    water_percentage = lightweight_water_mask.get_water_percentage(intersection)
+    land_area = lightweight_water_mask.get_land_area(intersection)
+    logger.info("get_land_area(geojson) : %s " %land_area)
+    water_area = lightweight_water_mask.get_water_area(intersection)
 
     logger.info("covers_land : %s " %lightweight_water_mask.covers_land(geojson))
     logger.info("covers_water : %s "%lightweight_water_mask.covers_water(geojson))
-    logger.info("get_land_percentage(geojson) : %s " %land_percentage)
-    logger.info("get_water_percentage(geojson) : %s " %water_percentage)    
+    logger.info("get_land_area(geojson) : %s " %land_area)
+    logger.info("get_water_area(geojson) : %s " %water_area)    
     
 
-    return land_percentage, water_percentage
+    return land_area, water_area
 
-def get_area_from_acq_location(geojson):
+def get_area_from_acq_location(geojson, aoi_location):
     logger.info("geojson : %s" %geojson)
     #geojson = {'type': 'Polygon', 'coordinates': [[[103.15855743232284, 69.51079998415891], [102.89429022592347, 69.19035954199457], [102.63670032476269, 68.86960457132169], [102.38549346807442, 68.5485482943004], [102.14039201693016, 68.22720313138305], [96.26595865368236, 68.7157534947759], [96.42758479823551, 69.0417647836668], [96.59286420765027, 69.36767025780232], [96.76197281310075, 69.69346586050469], [96.93509782364329, 70.019147225528]]]}
-    land_percentage = lightweight_water_mask.get_land_percentage(geojson)
-    water_percentage = lightweight_water_mask.get_water_percentage(geojson)
+    intersection, int_env = get_intersection(aoi_location, geojson)
+    logger.info("intersection : %s" %intersection)
+    land_area = lightweight_water_mask.get_land_area(intersection)
+    water_area = lightweight_water_mask.get_water_area(intersection)
 
     logger.info("covers_land : %s " %lightweight_water_mask.covers_land(geojson))
     logger.info("covers_water : %s "%lightweight_water_mask.covers_water(geojson))
-    logger.info("get_land_percentage(geojson) : %s " %land_percentage)
-    logger.info("get_water_percentage(geojson) : %s " %water_percentage)                                    
+    logger.info("get_land_area(geojson) : %s " %land_area)
+    logger.info("get_water_area(geojson) : %s " %water_area)                                    
     
 
-    return land_percentage, water_percentage
+    return land_area, water_area
 
 
 
