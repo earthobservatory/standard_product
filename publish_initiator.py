@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import random
 #from random import randint
 from osgeo import ogr
-
+import util
 
 # set logger and custom filter to handle being run from sciflo
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
