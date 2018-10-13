@@ -25,6 +25,10 @@ COPY . /home/ops/verdi/ops/standard_product
 RUN pip install shapely
 RUN pip3 install shapely
 
+RUN pip install fiona
+RUN pip3 install fiona
+
+
 # as ops user
 USER ops
 
