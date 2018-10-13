@@ -1174,6 +1174,64 @@ def get_overlapping_slaves_query_orbit(master, orbitnumber):
 
     return query
 
+def create_dataset_json(id, version, met_file, ds_file):
+    """Write dataset json."""
+
+
+    # get metadata
+    with open(met_file) as f:
+        md = json.load(f)
+
+    ds = {
+        'creation_timestamp': "%sZ" % datetime.utcnow().isoformat(),
+        'version': version,
+        'label': id
+    }
+
+    coordinates = None
+
+    try:
+
+        if 'bbox' in md:
+            logger.info("create_dataset_json : met['bbox']: %s" %md['bbox'])
+            coordinates = [
+                    [
+                      [ md['bbox'][0][1], md['bbox'][0][0] ],
+                      [ md['bbox'][3][1], md['bbox'][3][0] ],
+                      [ md['bbox'][2][1], md['bbox'][2][0] ],
+                      [ md['bbox'][1][1], md['bbox'][1][0] ],
+                      [ md['bbox'][0][1], md['bbox'][0][0] ]
+                    ]
+                  ]
+        else:
+            coordinates = md['union_geojson']['coordinates']
+
+    
+        cord_area = util.get_area(coordinates[0])
+        if not cord_area>0:
+            logger.info("creating dataset json. coordinates are not clockwise, reversing it")
+            coordinates = [coordinates[0][::-1]]
+            logger.info(coordinates)
+            cord_area = util.get_area(coordinates[0])
+            if not cord_area>0:
+                logger.info("creating dataset json. coordinates are STILL NOT  clockwise")
+        else:
+            logger.info("creating dataset json. coordinates are already clockwise")
+
+        ds['location'] =  {'type': 'Polygon', 'coordinates': coordinates}
+
+    except Exception as err:
+        logger.warn(str(err))
+        logger.warn("Traceback: {}".format(traceback.format_exc()))
+
+
+    ds['starttime'] = md['starttime']
+    ds['endtime'] = md['endtime']
+
+    # write out dataset json
+    with open(ds_file, 'w') as f:
+        json.dump(ds, f, indent=2)
+
 
 '''
 def query_es(query, es_index):

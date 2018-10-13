@@ -290,8 +290,8 @@ def create_dataset_json(id, version, met_file, ds_file):
         logger.warn("Traceback: {}".format(traceback.format_exc()))
 
 
-    ds['starttime'] = starttime
-    ds['endtime'] = endtime
+    ds['starttime'] = md['starttime']
+    ds['endtime'] = md['endtime']
 
     # write out dataset json
     with open(ds_file, 'w') as f:
@@ -460,7 +460,7 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
     print("creating dataset file : %s" %ds_file)
-    create_dataset_json(id, version, met_file, ds_file)
+    util.create_dataset_json(id, version, met_file, ds_file)
 
 
 
