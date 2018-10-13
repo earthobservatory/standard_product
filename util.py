@@ -153,7 +153,7 @@ def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbi
         logger.info("union_geojson : %s" %union_geojson)
         #intersection, int_env = get_intersection(aoi['location'], union_geojson)
         #logger.info("union intersection : %s" %intersection)
-        total_land, total_water = get_area_from_orbit_file(union_geojson, aoi_location)
+        total_land, total_water = get_area_from_acq_location(union_geojson, aoi_location)
     
 
 

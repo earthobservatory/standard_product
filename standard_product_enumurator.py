@@ -178,14 +178,14 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
     if slave_ipf_count == 1:
         for acq in master_acqs:
             result, candidate_pair = check_match(acq, slave_acqs, "master") 
-            if not matched:
+            if not result:
                 return False, []
             elif reject_list_check(candidate_pair, reject_pairs):
                 candidate_pair_list.append(candidate_pair)
     elif slave_ipf_count > 1 and master_ipf_count == 1:
         for acq in slave_acqs:
             result, candidate_pair = check_match(acq, master_acqs, "slave")         
-            if not matched:
+            if not result:
                 return False, []
             elif reject_list_check(candidate_pair, reject_pairs):
                 candidate_pair_list.append(candidate_pair)
@@ -222,16 +222,22 @@ def enumerate_acquisations(orbit_acq_selections):
                 candidate_pair_list.extend(track_candidate_pair_list)
 
     return candidate_pair_list
+
 def print_candidate_pair_list_per_track(candidate_pair_list):
     if len(candidate_pair_list)>0:
         for i in range(len(candidate_pair_list)):
             candidate_pair = candidate_pair_list[i]
             logger.info("Masters Acqs:")
+            logger.info("%s : %s " %(type(candidate_pair), candidate_pair))
+            #logger.info("Masters Acqs:")
+            #logger.info(candidate_pair["master_acqs"])
+
+            '''
             for j in range(len(candidate_pair["master_acqs"])):
                 logger.info(candidate_pair["master_acqs"][j])
             for j in range(len(candidate_pair["slave_acqs"])):
                 logger.info(candidate_pair["slave_acqs"][j])
-
+            '''
 
 def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
@@ -294,9 +300,9 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
             slave_acqs = selected_slave_acqs_by_orbitnumber[slave_orbitnumber]
             
 
-            result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs)            
-            if result and len(orbit_candidate_pair_list)>0:
-                candidate_pair_list.extend(orbit_candidate_pair_list)
+            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs)            
+            if result:
+                candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
                 if min_max_count>=MIN_MAX:
                     return min_max_count, candidate_pair_list

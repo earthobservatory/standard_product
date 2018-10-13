@@ -50,6 +50,7 @@ def get_land_area(geojson):
     for shapeobj in land_shapes:
         if shapeobj.intersects(geojson) or geojson.contains(shapeobj):
             if shapeobj.contains(geojson):
+                print("RETURNING : %s" %geojson)
                 return get_area(geojson)
             intersecting_land_shapes.append(geojson.intersection(shapeobj))
     area = get_area(MultiPolygon(intersecting_land_shapes))

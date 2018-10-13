@@ -270,9 +270,45 @@ def publish_initiator_pair( master_acquisitions, slave_acquisitions, project, sp
 '''
 def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
   
+    master_ids_str=""
+    slave_ids_str=""
+    job_priority = 0
 
     master_acquisitions = candidate_pair["master_acqs"]
     slave_acquisitions = candidate_pair["slave_acqs"]
+
+    for acq in master_acquisitions:
+        #logger.info("master acq : %s" %acq)
+        if master_ids_str=="":
+            master_ids_str= acq
+        else:
+            master_ids_str += " "+acq
+
+    for acq in slave_acquisitions:
+        #logger.info("slave acq : %s" %acq)
+        if slave_ids_str=="":
+            slave_ids_str= acq
+        else:
+            slave_ids_str += " "+acq
+
+    master_ids_str2 = master_ids_str.replace(' ', '').strip()
+    slave_ids_str2 = slave_ids_str.replace(' ', '').strip()
+    logger.info("Master Acquisitions_str : %s" %master_ids_str)
+    logger.info("Slave Acquisitions_str : %s" %slave_ids_str)
+    logger.info("Master Acquisitions_str2 : %s" %master_ids_str2)
+    logger.info("Slave Acquisitions_str2 : %s" %slave_ids_str2)
+
+
+
+    id_hash = hashlib.md5(json.dumps([
+            job_priority,
+            master_ids_str,
+            slave_ids_str
+    ]).encode("utf8")).hexdigest()
+
+    print(id_hash)
+
+
     project = job_data["project"] 
     spyddder_extract_version = job_data["spyddder_extract_version"] 
     standard_product_ifg_version = job_data["standard_product_ifg_version"] 
@@ -338,8 +374,6 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     logger.info("submit_localize_job : Queue : %s" %job_queue)
 
     localizer_job_type = "job-standard_product_localizer:%s" % standard_product_localizer_version
-    master_ids_str=""
-    slave_ids_str=""
 
     logger.info("master acq type : %s of length %s"  %(type(master_acquisitions), len(master_acquisitions)))
     logger.info("slave acq type : %s of length %s" %(type(slave_acquisitions), len(master_acquisitions)))
@@ -369,6 +403,13 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     
 
 
+    id_hash = hashlib.md5(json.dumps([
+            job_priority,
+            master_ids_str,
+            slave_ids_str
+    ]).encode("utf8")).hexdigest()
+
+    '''
     id_hash = str(random.randint(100, 999999))
     try:
 
@@ -380,7 +421,7 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     except Exception as err:
         logger.info(str(err))
         
-
+    '''
 
     id = "standard-product-ifg-acq-%s" %id_hash[0:4]
     prod_dir =  id
@@ -457,7 +498,7 @@ def submit_localize_job( master_acquisitions, slave_acquisitions, project, spydd
         job_priority,
         master_ids_str,
         slave_ids_str
-    ])).hexdigest()
+    ]).encode("utf8")).hexdigest()
     
     return {
         "job_name": "%s-%s" % (localizer_job_type, job_hash[0:4]),
