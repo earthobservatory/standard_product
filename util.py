@@ -163,6 +163,30 @@ def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbi
     passed = isTrackSelected(acqs_land, total_land)
     return passed
 
+
+def get_area(coords):
+    '''get area of enclosed coordinates- determines clockwise or counterclockwise order'''
+    n = len(coords) # of corners
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += coords[i][1] * coords[j][0]
+        area -= coords[j][1] * coords[i][0]
+    #area = abs(area) / 2.0
+    return area / 2
+
+def get_env_box(env):
+
+    #print("get_env_box env " %env)
+    bbox = [
+        [ env[3], env[0] ],
+        [ env[3], env[1] ],
+        [ env[2], env[1] ],
+        [ env[2], env[0] ],
+    ]
+    print("get_env_box box : %s" %bbox)
+    return bbox
+
 def isTrackSelected(acqs_land, total_land):
     selected = False
     sum_of_acq_land = 0

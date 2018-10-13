@@ -367,7 +367,28 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
                                         traceback.print_exc()
     return candidate_pair_list
     '''
-   
+
+def get_master_slave_union_data(ref_acq, matched_acqs, acq_dict):
+    """Return polygon of union of acquisition footprints."""
+
+    starttimes = []
+    endtimes = []
+
+    starttimes.append(util.get_time(ref_acq.starttime))
+    endtimes.append(util.get_time(ref_acq.endtime))
+
+    for acq in matched_acqs:
+        if acq.acq_id in acq_dict.keys():
+            starttimes.append(util.get_time(acq.starttime))
+            endtimes.append(util.get_time(acq.endtime))
+    
+    acq_dict[ref_acq.acq_id] = ref_acq.location
+
+    starttime = sorted(starttimes)[0]
+    endtime = sorted(endtimes, reverse=True)[0]
+
+    return get_union_geometry(acq_dict), starttime.strftime("%Y-%m-%d %H:%M:%S"), endtime.strftime("%Y-%m-%d %H:%M:%S")
+
 def get_union_geometry(acq_dict):
     """Return polygon of union of acquisition footprints."""
 
@@ -391,8 +412,10 @@ def get_union_geometry(acq_dict):
 def check_match(ref_acq, matched_acqs, ref_type = "master"):
     matched = False
     candidate_pair = {}
+    master_slave_union_loc = None
     overlapped_matches = util.find_overlap_match(ref_acq, matched_acqs)
     if len(overlapped_matches)>0:
+        overlapped_acqs = []
         logger.info("Overlapped Acq exists")
         #logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
         union_loc = get_union_geometry(overlapped_matches)
@@ -403,16 +426,16 @@ def check_match(ref_acq, matched_acqs, ref_type = "master"):
         logger.info("is_ref_truncated : %s" %is_ref_truncated)
         logger.info("is_within : %s" %is_covered)
         logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
-        matched_acqs=[]
         for acq_id in overlapped_matches.keys():
-            matched_acqs.append(acq_id[0])
+            overlapped_acqs.append(acq_id[0])
         if is_overlapped and overlap>=0.98: # and overlap >=covth:
             logger.info("MATCHED")
             matched = True
+            pair_union_loc, starttime, endtime  = get_master_slave_union_data(ref_acq, matched_acqs, overlapped_matches)
             if ref_type == "master":
-                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : matched_acqs}
+                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "union_geojson" : pair_union_loc, "starttime" : starttime, "endtime" : endtime}
             else:
-                candidate_pair = {"master_acqs" : matched_acqs, "slave_acqs" : [ref_acq.acq_id[0]]}
-        return matched, candidate_pair
+                candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "union_geojson" : pair_union_loc, "starttime" : starttime, "endtime" : endtime}
+    return matched, candidate_pair
             
 
