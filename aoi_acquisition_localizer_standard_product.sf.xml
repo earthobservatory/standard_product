@@ -29,6 +29,10 @@
  	  <job_versions/>
           <dem_types/>
           <tracks/>
+          <starttime/>
+          <endtime/>
+          <union_geojson/>
+          <bbox/>
         </sf:outputs>
         <sf:operator>
           <sf:description></sf:description>
@@ -49,6 +53,10 @@
           <job_versions from="@#previous"/>  
           <dem_types from="@#previous"/>
           <tracks from="@#previous"/>
+          <starttime from="@#previous"/> 
+          <endtime from="@#previous"/>
+          <union_geojson from="@#previous"/>
+          <bbox from="@#previous"/>
         </sf:inputs>
         <sf:outputs>
 	  <acq_infoes/> 
@@ -57,6 +65,10 @@
           <job_priorities/>
           <dem_types/>
           <tracks/>
+          <starttimes/> 
+          <endtimes/>
+          <union_geojsona/>
+          <bboxes/>
         </sf:outputs>
         <sf:operator>
           <sf:description></sf:description>
@@ -74,6 +86,10 @@
           <job_priorities from="@#previous"/>
           <dem_types from="@#previous"/>
           <tracks from="@#previous"/>
+          <starttimes from="@#previous"/>
+          <endtimes from="@#previous"/>
+          <union_geojsons from="@#previous"/>
+          <bboxes from="@#previous"/>
         </sf:inputs>
         <sf:outputs>
           <datasets/>
