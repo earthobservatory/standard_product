@@ -1207,12 +1207,12 @@ def create_dataset_json(id, version, met_file, ds_file):
             coordinates = md['union_geojson']['coordinates']
 
     
-        cord_area = util.get_area(coordinates[0])
+        cord_area = get_area(coordinates[0])
         if not cord_area>0:
             logger.info("creating dataset json. coordinates are not clockwise, reversing it")
             coordinates = [coordinates[0][::-1]]
             logger.info(coordinates)
-            cord_area = util.get_area(coordinates[0])
+            cord_area = get_area(coordinates[0])
             if not cord_area>0:
                 logger.info("creating dataset json. coordinates are STILL NOT  clockwise")
         else:
