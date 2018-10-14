@@ -11,6 +11,7 @@ from pprint import pformat
 from collections import OrderedDict
 from shapely.geometry import Polygon
 from util import ACQ
+import gtUtil
 
 #import isce
 #from UrlUtils import UrlUtils as UU
@@ -280,7 +281,7 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
         rejected_slave_orbitnumber = []
         for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
             selected_slave_acqs=[]
-            selected = util.water_mask_check(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location)
+            selected = gtUtil.water_mask_check(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location)
             if not selected:
                 logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_orbitnumber)
                 rejected_slave_orbitnumber.append(slave_orbitnumber)

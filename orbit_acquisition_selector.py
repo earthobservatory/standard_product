@@ -5,6 +5,7 @@ from xml.etree import ElementTree
 #from hysds_commons.job_utils import resolve_hysds_job
 #from hysds.celery import app
 import util
+import gtUtil
 from util import ACQ
 import datetime  
 import dateutil.parser
@@ -503,7 +504,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
     for track in grouped_matched["grouped"]:
         selected_orbitnumber_acqs = {}
         for orbitnumber in grouped_matched["grouped"][track]:
-            selected = util.water_mask_check(grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi['location'], orbit_file)
+            selected = gtUtil.water_mask_check(grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi['location'], orbit_file)
             if selected:
                 logger.info("SELECTED")
                 selected_acqs = []
