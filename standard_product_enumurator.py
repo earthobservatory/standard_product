@@ -387,7 +387,7 @@ def get_master_slave_union_data(ref_acq, matched_acqs, acq_dict):
     starttime = sorted(starttimes)[0]
     endtime = sorted(endtimes, reverse=True)[0]
 
-    return get_union_geometry(acq_dict), starttime.strftime("%Y-%m-%d %H:%M:%S"), endtime.strftime("%Y-%m-%d %H:%M:%S")
+    return get_union_geometry(acq_dict), starttime.strftime("%Y-%m-%dT%H:%M:%S"), endtime.strftime("%Y-%m-%dT%H:%M:%S")
 
 def get_union_geometry(acq_dict):
     """Return polygon of union of acquisition footprints."""
