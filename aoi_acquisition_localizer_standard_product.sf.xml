@@ -67,7 +67,7 @@
           <tracks/>
           <starttimes/> 
           <endtimes/>
-          <union_geojsona/>
+          <union_geojsons/>
           <bboxes/>
         </sf:outputs>
         <sf:operator>

@@ -55,6 +55,63 @@ def get_acq_object(acq_id, acq_type, acq_data, localized=False, job_id=None, job
 
     }
 
+def create_dataset_json(id, version, met_file, ds_file):
+    """Write dataset json."""
+
+
+    # get metadata
+    with open(met_file) as f:
+        md = json.load(f)
+
+    ds = {
+        'creation_timestamp': "%sZ" % datetime.utcnow().isoformat(),
+        'version': version,
+        'label': id
+    }
+
+    coordinates = None
+
+    try:
+
+        if 'bbox' in md:
+            logger.info("create_dataset_json : met['bbox']: %s" %md['bbox'])
+            coordinates = [
+                    [
+                      [ md['bbox'][0][1], md['bbox'][0][0] ],
+                      [ md['bbox'][3][1], md['bbox'][3][0] ],
+                      [ md['bbox'][2][1], md['bbox'][2][0] ],
+                      [ md['bbox'][1][1], md['bbox'][1][0] ],
+                      [ md['bbox'][0][1], md['bbox'][0][0] ]
+                    ]
+                  ]
+        else:
+            coordinates = md['union_geojson']['coordinates']
+
+    
+        cord_area = get_area(coordinates[0])
+        if not cord_area>0:
+            logger.info("creating dataset json. coordinates are not clockwise, reversing it")
+            coordinates = [coordinates[0][::-1]]
+            logger.info(coordinates)
+            cord_area = get_area(coordinates[0])
+            if not cord_area>0:
+                logger.info("creating dataset json. coordinates are STILL NOT  clockwise")
+        else:
+            logger.info("creating dataset json. coordinates are already clockwise")
+
+        ds['location'] =  {'type': 'Polygon', 'coordinates': coordinates}
+
+    except Exception as err:
+        logger.warn(str(err))
+        logger.warn("Traceback: {}".format(traceback.format_exc()))
+
+
+    ds['starttime'] = md['starttime']
+    ds['endtime'] = md['endtime']
+
+    # write out dataset json
+    with open(ds_file, 'w') as f:
+        json.dump(ds, f, indent=2)
 
 def get_job_status(job_id):
     """
@@ -105,6 +162,75 @@ def get_job_status(job_id):
     	return_job_status = result["_source"]["status"]
 
     return return_job_status, return_job_id
+
+def check_ES_status(doc_id):
+    """
+    There is a latency in the update of ES job status after
+    celery signals job completion.
+    To handle that case, we much poll ES (after sciflo returns status after blocking)
+    until the job status is correctly reflected.
+    :param doc_id: ID of the Job ES doc
+    :return: True  if the ES has updated job status within 5 minutes
+            otherwise raise a run time error
+    """
+    es_url = app.conf['JOBS_ES_URL']
+    es_index = "job_status-current"
+    query = {
+        "_source": [
+                   "status"
+               ],
+        "query": {
+            "bool": {
+                "must": [
+                    {"term": {"_id": doc_id}}
+                ]
+            }
+        }
+    }
+
+    #ES = elasticsearch.Elasticsearch(es_url)
+    #result = ES.search(index=es_index, body=query)
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+
+
+    sleep_seconds = 2
+    timeout_seconds = 300
+    # poll ES until job status changes from "job-started" or for the job doc to show up. The poll will timeout soon after 5 mins.
+
+    while len(result["hits"]["hits"]) == 0: #or str(result["hits"]["hits"][0]["_source"]["status"]) == "job-started":
+        if sleep_seconds >= timeout_seconds:
+            if len(result["hits"]["hits"]) == 0:
+                raise RuntimeError("ES taking too long to index job with id %s."%doc_id)
+            else:
+                raise RuntimeError("ES taking too long to update status of job with id %s."%doc_id)
+        time.sleep(sleep_seconds)
+        #result = ES.search(index=es_index, body=query)
+
+        r = requests.post(search_url, data=json.dumps(query))
+
+        if r.status_code != 200:
+            print("Failed to query %s:\n%s" % (es_url, r.text))
+            print("query: %s" % json.dumps(query, indent=2))
+            print("returned: %s" % r.text)
+            r.raise_for_status()
+
+        result = r.json()
+        sleep_seconds = sleep_seconds * 2
+
+    logging.info("Job status updated on ES to %s"%str(result["hits"]["hits"][0]["_source"]["status"]))
+    return True
 
 def check_slc_status(slc_id, index_suffix):
 
@@ -498,7 +624,7 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
 
 
     print("creating dataset file : %s" %ds_file)
-    util.create_dataset_json(id, version, met_file, ds_file)
+    create_dataset_json(id, version, met_file, ds_file)
 
 def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
