@@ -55,6 +55,57 @@ def get_acq_object(acq_id, acq_type, acq_data, localized=False, job_id=None, job
 
     }
 
+def query_es(endpoint, doc_id):
+    """
+    This function queries ES
+    :param endpoint: the value specifies which ES endpoint to send query
+     can be MOZART or GRQ
+    :param doc_id: id of product or job
+    :return: result from elasticsearch
+    """
+    es_url, es_index = None, None
+    if endpoint == GRQ_ES_ENDPOINT:
+        es_url = app.conf["GRQ_ES_URL"]
+        es_index = "grq"
+    if endpoint == MOZART_ES_ENDPOINT:
+        es_url = app.conf['JOBS_ES_URL']
+        es_index = "job_status-current"
+
+    query = {
+        "query": {
+            "bool": {
+                "must": [
+                    {"term": {"_id": doc_id}} # add job status:
+                ]
+            }
+        }
+    }
+
+    #ES = elasticsearch.Elasticsearch(es_url)
+    #result = ES.search(index=es_index, body=query)
+
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+
+    if len(result["hits"]["hits"]) == 0:
+        raise ValueError("Couldn't find record with ID: %s, at ES: %s"%(doc_id, es_url))
+        return
+
+    #LOGGER.debug("Got: {0}".format(json.dumps(result)))
+    return result
+
+
 def create_dataset_json(id, version, met_file, ds_file):
     """Write dataset json."""
 
@@ -125,8 +176,8 @@ def get_job_status(job_id):
     return_job_status = None
 
     #check if Jobs ES has updated job status
-    if util.check_ES_status(job_id):
-        response = util.query_es(endpoint, job_id)
+    if check_ES_status(job_id):
+        response = query_es(endpoint, job_id)
 
     result = response["hits"]["hits"][0]
     message = None  #using this to store information regarding deduped jobs, used later to as error message unless it's value is "success"
@@ -138,7 +189,7 @@ def get_job_status(job_id):
         #query ES for the original job's status
         orig_job_id = result["_source"]["dedup_job"]
         return_job_id = orig_job_id
-        orig_job_info = util.query_es(endpoint, orig_job_id)
+        orig_job_info = query_es(endpoint, orig_job_id)
         """check if original job failed -> this would happen when at the moment of deduplication, the original job
          was in 'running state', but soon afterwards failed. So, by the time the status is checked in this function,
          it may be shown as failed."""
@@ -804,6 +855,75 @@ def submit_sling_job(project, spyddder_extract_version, acquisition_localizer_ve
     logger.info("\nSubmitted sling job with id %s for  %s" %(acq_data["metadata"]["identifier"], mozart_job_id))
 
     return mozart_job_id
+
+def check_ES_status(doc_id):
+    """
+    There is a latency in the update of ES job status after
+    celery signals job completion.
+    To handle that case, we much poll ES (after sciflo returns status after blocking)
+    until the job status is correctly reflected.
+    :param doc_id: ID of the Job ES doc
+    :return: True  if the ES has updated job status within 5 minutes
+            otherwise raise a run time error
+    """
+    es_url = app.conf['JOBS_ES_URL']
+    es_index = "job_status-current"
+    query = {
+        "_source": [
+                   "status"
+               ],
+        "query": {
+            "bool": {
+                "must": [
+                    {"term": {"_id": doc_id}}
+                ]
+            }
+        }
+    }
+
+    #ES = elasticsearch.Elasticsearch(es_url)
+    #result = ES.search(index=es_index, body=query)
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+
+
+    sleep_seconds = 2
+    timeout_seconds = 300
+    # poll ES until job status changes from "job-started" or for the job doc to show up. The poll will timeout soon after 5 mins.
+
+    while len(result["hits"]["hits"]) == 0: #or str(result["hits"]["hits"][0]["_source"]["status"]) == "job-started":
+        if sleep_seconds >= timeout_seconds:
+            if len(result["hits"]["hits"]) == 0:
+                raise RuntimeError("ES taking too long to index job with id %s."%doc_id)
+            else:
+                raise RuntimeError("ES taking too long to update status of job with id %s."%doc_id)
+        time.sleep(sleep_seconds)
+        #result = ES.search(index=es_index, body=query)
+
+        r = requests.post(search_url, data=json.dumps(query))
+
+        if r.status_code != 200:
+            print("Failed to query %s:\n%s" % (es_url, r.text))
+            print("query: %s" % json.dumps(query, indent=2))
+            print("returned: %s" % r.text)
+            r.raise_for_status()
+
+        result = r.json()
+        sleep_seconds = sleep_seconds * 2
+
+    logging.info("Job status updated on ES to %s"%str(result["hits"]["hits"][0]["_source"]["status"]))
+    return True
     
 
 def main():
