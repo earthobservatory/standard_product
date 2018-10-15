@@ -377,18 +377,20 @@ def get_master_slave_union_data(ref_acq, matched_acqs, acq_dict):
 
     starttimes.append(util.get_time(ref_acq.starttime))
     endtimes.append(util.get_time(ref_acq.endtime))
+    union_geojson = get_union_geometry(acq_dict)
+    intersect_geojson, int_env = util.get_intersection(ref_acq.location, union_geojson)
+ 
 
     for acq in matched_acqs:
         if acq.acq_id in acq_dict.keys():
             starttimes.append(util.get_time(acq.starttime))
             endtimes.append(util.get_time(acq.endtime))
     
-    acq_dict[ref_acq.acq_id] = ref_acq.location
 
     starttime = sorted(starttimes)[0]
     endtime = sorted(endtimes, reverse=True)[0]
 
-    return get_union_geometry(acq_dict), starttime.strftime("%Y-%m-%dT%H:%M:%S"), endtime.strftime("%Y-%m-%dT%H:%M:%S")
+    return intersect_geojson, starttime.strftime("%Y-%m-%dT%H:%M:%S"), endtime.strftime("%Y-%m-%dT%H:%M:%S")
 
 def get_union_geometry(acq_dict):
     """Return polygon of union of acquisition footprints."""
