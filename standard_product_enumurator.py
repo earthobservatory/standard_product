@@ -193,6 +193,8 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
     
     if len(candidate_pair_list) == 0:
         result = False
+    else:
+        result = True
     return result, candidate_pair
 
 
