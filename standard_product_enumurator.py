@@ -262,7 +262,7 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
         #master_union_geojson = util.get_union_geojson_acqs(master_acqs)
 
         #util.print_acquisitions(aoi_data['aoi_id'], master_acqs)
-        query = util.get_overlapping_slaves_query(master_starttime, master_endtime, master_location, track, direction, master_orbitnumber)
+        query = util.get_overlapping_slaves_query(master_starttime, master_endtime, aoi_location, track, direction, master_orbitnumber)
 
         acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
         logger.info("Found {} slave acqs : {}".format(len(acqs),

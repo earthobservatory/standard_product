@@ -83,6 +83,22 @@ def get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location):
 
     return land_area, water_area
 
+def get_aoi_area_polygon(geojson, aoi_location):
+    water_area = 0
+    land_area = 0
+    logger.info("tstart : %s  tend : %s" %(tstart, tend))
+    intersection, int_env = util.get_intersection(aoi_location, geojson)
+    logger.info("intersection : %s" %intersection)
+    land_area = lightweight_water_mask.get_land_area(intersection)
+    logger.info("get_land_area(geojson) : %s " %land_area)
+    water_area = lightweight_water_mask.get_water_area(intersection)
+    logger.info("covers_land : %s " %lightweight_water_mask.covers_land(geojson))
+    logger.info("covers_water : %s "%lightweight_water_mask.covers_water(geojson))
+    logger.info("get_land_area(geojson) : %s " %land_area)
+    logger.info("get_water_area(geojson) : %s " %water_area)
+
+
+    return land_area, water_area
 
 
 def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file = None):
@@ -93,6 +109,7 @@ def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbi
     polygons = []
     acqs_land = []
     acqs_water = []
+    gt_polygons = []
     for pv in grouped_matched_orbit_number:
         acq_ids = grouped_matched_orbit_number[pv]
         for acq_id in acq_ids:
@@ -101,56 +118,47 @@ def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbi
             starttimes.append(get_time(acq.starttime))
             endtimes.append(get_time(acq.endtime)) 
             polygons.append(acq.location)
+
             if orbit_file:
-                land, water = get_area_from_orbit_file(get_time(acq.starttime), get_time(acq.endtime), orbit_file, aoi_location)
-                acqs_land.append(land)
-                acqs_water.append(water)
-            else:
-                land, water = get_area_from_acq_location(acq.location, aoi_location)
-                acqs_land.append(land)
-                acqs_water.append(water)
+                gt_geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
+                gt_polygons.append(gt_geojson)
               
     total_land = 0
     total_water = 0
     
     if orbit_file:
+        union_gt_polygon = util.get_union_geometry(gt_polygons)
 
-        logger.info("starttimes : %s" %starttimes)
-        logger.info("endtimes : %s" %endtimes)
         #get lowest starttime minus 10 minutes as starttime
         tstart = getUpdatedTime(sorted(starttimes)[0], -10)
         logger.info("tstart : %s" %tstart)
         tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
         logger.info("tend : %s" %tend)
-        total_land, total_water = get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location)
+        aoi_gt_geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
+        union_land, union_water = get_aoi_area_polygon(union_gt_polygon, aoi_location)
+        aoi_land, aoi_water = get_aoi_area_polygon(aoi_gt_polygon, aoi_location)
+        return isTrackSelected(union_land, aoi_land)
     else:        
-        union_geojson = util.get_union_geometry(polygons)
+        union_polygon = util.get_union_geometry(polygons)
         logger.info("union_geojson : %s" %union_geojson)
-        #intersection, int_env = get_intersection(aoi['location'], union_geojson)
-        #logger.info("union intersection : %s" %intersection)
-        total_land, total_water = get_area_from_acq_location(union_geojson, aoi_location)
-    
+        union_land, union_water = get_aoi_area_polygon(union_polygon, aoi_location)
+        aoi_land, aoi_water = get_aoi_area_polygon(aoi_location, aoi_location)
+
+        return isTrackSelected(union_land, aoi_land)
 
 
-    #ADD THE SELECTION LOGIC HERE
-
-    passed = False
-    passed = isTrackSelected(acqs_land, total_land)
-    return passed
-
-
-def isTrackSelected(acqs_land, total_land):
+def isTrackSelected(union_land, aoi_land):
     selected = False
-    sum_of_acq_land = 0
-
-    for acq_land in acqs_land:
-        sum_of_acq_land+= acq_land
-
-    delta = abs(sum_of_acq_land - total_land)
-    if delta/total_land<.01:
-        selected = True
-
-    return selected
+    logger.info("Area of union of acquisition land = %s" %union_land)
+    logger.info("Area of AOI land = %s" %aoi_land)
+    delta = abs(union_land - aoi_land)
+    pctDelta = delta/total_land
+    logger.info("delta : %s and pctDelta : %s" %(delta, pctDelta))
+    if pctDelta <.02:
+        logger.info("Track is SELECTED !!")
+        return True
+    logger.info("Track is NOT SELECTED !!")
+    return False
 
 def get_area_from_acq_location(geojson, aoi_location):
     logger.info("geojson : %s" %geojson)
