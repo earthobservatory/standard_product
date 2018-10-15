@@ -257,21 +257,7 @@ def create_dataset_json(id, version, met_file, ds_file):
 
     try:
 
-        if 'bbox' in md:
-            logger.info("create_dataset_json : met['bbox']: %s" %md['bbox'])
-            coordinates = [
-                    [
-                      [ md['bbox'][0][1], md['bbox'][0][0] ],
-                      [ md['bbox'][3][1], md['bbox'][3][0] ],
-                      [ md['bbox'][2][1], md['bbox'][2][0] ],
-                      [ md['bbox'][1][1], md['bbox'][1][0] ],
-                      [ md['bbox'][0][1], md['bbox'][0][0] ]
-                    ]
-                  ]
-        else:
-            coordinates = md['union_geojson']['coordinates']
-
-    
+        coordinates = md['union_geojson']['coordinates']
         cord_area = util.get_area(coordinates[0])
         if not cord_area>0:
             logger.info("creating dataset json. coordinates are not clockwise, reversing it")
@@ -317,7 +303,7 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
 
     master_acquisitions = candidate_pair["master_acqs"]
     slave_acquisitions = candidate_pair["slave_acqs"]
-    union_geojson = candidate_pair["union_geojson"]
+    union_geojson = candidate_pair["intersect_geojson"]
     starttime = candidate_pair["starttime"]
     endtime = candidate_pair["endtime"]
 

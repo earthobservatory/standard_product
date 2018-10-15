@@ -124,20 +124,7 @@ def create_dataset_json(id, version, met_file, ds_file):
 
     try:
 
-        if 'bbox' in md:
-            logger.info("create_dataset_json : met['bbox']: %s" %md['bbox'])
-            coordinates = [
-                    [
-                      [ md['bbox'][0][1], md['bbox'][0][0] ],
-                      [ md['bbox'][3][1], md['bbox'][3][0] ],
-                      [ md['bbox'][2][1], md['bbox'][2][0] ],
-                      [ md['bbox'][1][1], md['bbox'][1][0] ],
-                      [ md['bbox'][0][1], md['bbox'][0][0] ]
-                    ]
-                  ]
-        else:
-            coordinates = md['union_geojson']['coordinates']
-
+        coordinates = md['union_geojson']['coordinates']
     
         cord_area = get_area(coordinates[0])
         if not cord_area>0:

@@ -369,7 +369,7 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
     return candidate_pair_list
     '''
 
-def get_master_slave_union_data(ref_acq, matched_acqs, acq_dict):
+def get_master_slave_intersect_data(ref_acq, matched_acqs, acq_dict):
     """Return polygon of union of acquisition footprints."""
 
     starttimes = []
@@ -434,11 +434,11 @@ def check_match(ref_acq, matched_acqs, ref_type = "master"):
         if is_overlapped and overlap>=0.98: # and overlap >=covth:
             logger.info("MATCHED")
             matched = True
-            pair_union_loc, starttime, endtime  = get_master_slave_union_data(ref_acq, matched_acqs, overlapped_matches)
+            pair_intersection_loc, starttime, endtime  = get_master_slave_intersect_data(ref_acq, matched_acqs, overlapped_matches)
             if ref_type == "master":
-                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "union_geojson" : pair_union_loc, "starttime" : starttime, "endtime" : endtime}
+                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime}
             else:
-                candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "union_geojson" : pair_union_loc, "starttime" : starttime, "endtime" : endtime}
+                candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime}
     return matched, candidate_pair
             
 
