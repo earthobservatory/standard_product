@@ -606,6 +606,19 @@ def is_overlap(geojson1, geojson2):
         p3 = p1.intersection(p2).area/p1.area
     return p1.intersects(p2), p3
 
+def find_overlap_within_aoi(loc1, loc2, aoi_loc):
+    '''returns True if there is any overlap between the two geojsons. The geojsons
+    are just a list of coordinate tuples'''
+    geojson1 = get_intersection(loc1, aoi_loc)["coordinates"]
+    geojson1 = get_intersection(loc1, aoi_loc)["coordinates"]
+    p3=0
+    p1=Polygon(geojson1[0])
+    p2=Polygon(geojson2[0])
+    if p1.intersects(p2):
+        p3 = p1.intersection(p2).area/p1.area
+    return p1.intersects(p2), p3
+
+
 
 def is_within(geojson1, geojson2):
     '''returns True if there is any overlap between the two geojsons. The geojsons
@@ -798,6 +811,80 @@ def print_acquisitions(aoi_id, acqs):
         logger.info("aoi : %s track: %s orbitnumber : %s pv: %s acq_id : %s" %(aoi_id, acq.tracknumber, acq.orbitnumber, acq.pv, acq.acq_id))
     logger.info("\n")
 
+
+def get_track(info):
+    """Get track number."""
+
+    tracks = {}
+    for id in info:
+        logger.info(id)
+        h = info[id]
+        fields = h["_source"]
+        track = fields['metadata']['trackNumber']
+        logger.info(track)
+        tracks.setdefault(track, []).append(id)
+    if len(tracks) != 1:
+        print(tracks)
+        
+        raise RuntimeError("Failed to find SLCs for only 1 track : %s" %tracks)
+    return track
+
+def get_bool_param(ctx, param):
+    """Return bool param from context."""
+
+    if param in ctx and isinstance(ctx[param], bool): return ctx[param]
+    return True if ctx.get(param, 'true').strip().lower() == 'true' else False
+
+def get_metadata(id, rest_url, url):
+    """Get SLC metadata."""
+
+    # query hits
+    query = {
+        "query": {
+            "term": {
+                "_id": id
+            }
+        }
+    }
+    logger.info("query: {}".format(json.dumps(query, indent=2)))
+    r = requests.post(url, data=json.dumps(query))
+    r.raise_for_status()
+    scan_result = r.json()
+    count = scan_result['hits']['total']
+    scroll_id = scan_result['_scroll_id']
+    hits = []
+    while True:
+        r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        res = r.json()
+        scroll_id = res['_scroll_id']
+        if len(res['hits']['hits']) == 0: break
+        hits.extend(res['hits']['hits'])
+    if len(hits) == 0:
+        raise RuntimeError("Failed to find {}.".format(id))
+    return hits[0]
+
+def get_dem_type(info):
+    """Get dem type."""
+
+    dem_type = "SRTM+v3"
+
+    dems = {}
+    for id in info:
+        dem_type = "SRTM+v3"
+        h = info[id]
+        fields = h["_source"]
+        try:
+            if 'city' in fields:
+                if fields['city'][0]['country_name'] is not None and fields['city'][0]['country_name'].lower() == "united states":
+                    dem_type="Ned1"
+                dems.setdefault(dem_type, []).append(id)
+        except:
+            dem_type = "SRTM+v3"
+
+    if len(dems) != 1:
+        logger.info("There are more than one type of dem, so selecting SRTM+v3")
+        dem_type = "SRTM+v3"
+    return dem_type
 
 def get_overlapping_slaves_query(master):
     return get_overlapping_slaves_query(master.starttime, master.endtime, master.location, master.tracknumber, master.direction, master.orbitnumber)
@@ -1003,6 +1090,145 @@ def create_dataset_json(id, version, met_file, ds_file):
 
 
 '''
+
+def get_query(acq):
+    query = {
+    	"query": {
+    	    "filtered": {
+      		"filter": {
+        	    "and": [
+          		{
+            		    "term": {
+              			"system_version.raw": "v1.1"
+            		    }
+          		}, 
+          		{
+            		    "ids": {
+              			"values": [acq['identifier']]
+            		    }
+          		}, 
+          		{
+            		    "geo_shape": {
+              			"location": {
+                		    "shape": acq['metadata']['location']
+              			}
+            		    }
+          		}
+        	    ]
+      		}, 
+      		"query": {
+        	    "bool": {
+          		"must": [
+            		    {
+              			"term": {
+                		    "dataset.raw": "S1-IW_SLC"
+              			}
+            		    }
+          		]
+        	    }
+      		}
+    	    }
+  	}, 
+  	"partial_fields": {
+    	    "partial": {
+      		"exclude": "city"
+    	    }
+  	}
+    }
+
+    
+    return query
+
+def get_query(acq):
+    query = {
+    	"query": {
+    	    "filtered": {
+      		"filter": {
+        	    "and": [
+          		{
+            		    "geo_shape": {
+              			"location": {
+                		    "shape": acq['metadata']['location']
+              			}
+            		    }
+          		}
+        	    ]
+      		}, 
+      		"query": {
+        	    "bool": {
+          		"must": [
+            		    {
+              			"term": {
+                		    "dataset.raw": "acquisition-S1-IW_SLC"
+              			}
+			
+            		    }
+          		]
+        	    }
+      		}
+    	    }
+  	}, 
+  	"partial_fields": {
+    	    "partial": {
+      		"exclude": "city"
+    	    }
+  	}
+    }
+
+    
+    return query
+
+def get_query2(acq):
+    query = {
+    	"query": {
+    	    "filtered": {
+      		"filter": {
+        	    "and": [
+          		{
+            		    "term": {
+              			"system_version.raw": "v1.1"
+            		    }
+          		}, 
+          		{
+            		    "ids": {
+              			"values": [acq['identifier']]
+            		    }
+          		}, 
+          		{
+            		    "geo_shape": {
+              			"location": {
+                		    "shape": acq['metadata']['location']
+              			}
+            		    }
+          		}
+        	    ]
+      		}, 
+      		"query": {
+        	    "bool": {
+          		"must": [
+            		    {
+              			"term": {
+                		    "dataset.raw": "S1-IW_SLC"
+              			}
+            		    }
+          		]
+        	    }
+      		}
+    	    }
+  	}, 
+  	"partial_fields": {
+    	    "partial": {
+      		"exclude": "city"
+    	    }
+  	}
+    }
+
+    
+    return query
+
+
+
+
 def query_es(query, es_index):
     """Query ES."""
 

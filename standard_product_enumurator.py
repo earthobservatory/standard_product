@@ -170,7 +170,7 @@ def get_candidate_pair_list2(selected_track_acqs, reject_pairs):
                         return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
     
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs):
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, eject_pairs):
     result = False
     candidate_pair_list = []
     
@@ -178,14 +178,14 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
 
     if slave_ipf_count == 1:
         for acq in master_acqs:
-            result, candidate_pair = check_match(acq, slave_acqs, "master") 
+            result, candidate_pair = check_match(acq, slave_acqs, aoi_location, "master") 
             if not result:
                 return False, []
             elif reject_list_check(candidate_pair, reject_pairs):
                 candidate_pair_list.append(candidate_pair)
     elif slave_ipf_count > 1 and master_ipf_count == 1:
         for acq in slave_acqs:
-            result, candidate_pair = check_match(acq, master_acqs, "slave")         
+            result, candidate_pair = check_match(acq, master_acqs, aoi_location, "slave")         
             if not result:
                 return False, []
             elif reject_list_check(candidate_pair, reject_pairs):
@@ -211,12 +211,16 @@ def enumerate_acquisations(orbit_acq_selections):
     candidate_pair_list = []
 
     for aoi_id in orbit_aoi_data.keys():
-        logger.info("\n\nProcessing : %s " %aoi_id)
+        logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
         aoi_data = orbit_aoi_data[aoi_id]
         selected_track_acqs = aoi_data['selected_track_acqs']
         #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
 
         for track in selected_track_acqs.keys():
+            logger.info("\nenumerate_acquisations : Processing track : %s " %track)
+            if len(selected_track_acqs[track].keys()) <=0:
+                logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
+                continue
             min_max_count, track_candidate_pair_list = get_candidate_pair_list(track, selected_track_acqs[track], aoi_data, reject_pairs)
             logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
             if min_max_count>0:
@@ -303,7 +307,7 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
             slave_acqs = selected_slave_acqs_by_orbitnumber[slave_orbitnumber]
             
 
-            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs)            
+            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, reject_pairs)            
             if result:
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
@@ -311,86 +315,11 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
                     return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
       
-    '''
-                if master_track_ipf_count == 1:
-                    for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
-                        slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
-                        if slave_ipf_count == 1:
-                            for acq in master_acqs:
-                                query = util.get_overlapping_slaves_query_orbit(acq, slave_orbitnumber)
-                                slave_acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
-                                logger.info("Found {} slave acqs : {}".format(len(slave_acqs),
-                                json.dumps([i['id'] for i in slave_acqs], indent=2)))
-                                if len(slave_acqs)>0:
-                                    try:
-                                        matched_slave_acqs = util.create_acqs_from_metadata(slave_acqs)
-
-                                        matched, candidate_pair = check_match(acq, matched_slave_acqs, "master")
-                                        if matched and len(candidate_pair)>0:
-                                            candidate_pair_list.append(candidate_pair)
-
-                                    except Exception as err:
-                                        logger.info(str(err))
-                                        traceback.print_exc()
-
-                        elif slave_ipf_count> 1:
-                            for acq in slave_acqs_orbitnumber:
-                                matched = check_match(acq, master_acqs, "slave")
-                                if matched:
-                                    candidate_pair_list.append(candidate_pair)
-                                
-                                query = util.get_overlapping_slaves_query_orbit(acq)
-                                query = util.get_overlapping_masters_query(master, acq):
-                                slave_acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
-                                logger.info("Found {} slave acqs : {}".format(len(acqs),
-                                json.dumps([i['id'] for i in acqs], indent=2)))
-                                matched_slave_acqs = util.create_acqs_from_metadata(slave_acqs)
-                                
-
-
-                elif master_track_ipf_count > 1:
-                    for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
-                        slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
-                        if slave_ipf_count == 1:
-                            for acq in master_acqs:
-                                query = util.get_overlapping_slaves_query_orbit(acq)
-                                slave_acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
-                                logger.info("Found {} slave acqs : {}".format(len(slave_acqs),
-                                json.dumps([i['id'] for i in slave_acqs], indent=2)))
-                                if len(slave_acqs)>0:
-                                    try:
-                                        matched_slave_acqs = util.create_acqs_from_metadata(slave_acqs)
-
-                                        matched, candidate_pair = check_match(acq, matched_slave_acqs, "master")
-                                        if matched and len(candidate_pair)>0:
-                                            candidate_pair_list.append(candidate_pair)
-                                    
-                                    except Exception as err:
-                                        logger.info(str(err))
-                                        traceback.print_exc()
-    return candidate_pair_list
-    '''
-
 def get_master_slave_intersect_data(ref_acq, matched_acqs, acq_dict):
     """Return polygon of union of acquisition footprints."""
 
-    starttimes = []
-    endtimes = []
-
-    starttimes.append(util.get_time(ref_acq.starttime))
-    endtimes.append(util.get_time(ref_acq.endtime))
     union_geojson = get_union_geometry(acq_dict)
     intersect_geojson, int_env = util.get_intersection(ref_acq.location, union_geojson)
- 
-
-    for acq in matched_acqs:
-        if acq.acq_id in acq_dict.keys():
-            starttimes.append(util.get_time(acq.starttime))
-            endtimes.append(util.get_time(acq.endtime))
-    
-
-    starttime = sorted(starttimes)[0]
-    endtime = sorted(endtimes, reverse=True)[0]
 
     return intersect_geojson, starttime.strftime("%Y-%m-%dT%H:%M:%S"), endtime.strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -414,7 +343,7 @@ def get_union_geometry(acq_dict):
     union_geojson =  json.loads(union.ExportToJson())
     return union_geojson
 
-def check_match(ref_acq, matched_acqs, ref_type = "master"):
+def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
     matched = False
     candidate_pair = {}
     master_slave_union_loc = None
@@ -427,7 +356,7 @@ def check_match(ref_acq, matched_acqs, ref_type = "master"):
         logger.info("union loc : %s" %union_loc)
         is_ref_truncated = util.ref_truncated(ref_acq, overlapped_matches, covth=.99)
         is_covered = util.is_within(ref_acq.location["coordinates"], union_loc["coordinates"])
-        is_overlapped, overlap = util.is_overlap(ref_acq.location["coordinates"], union_loc["coordinates"])
+        is_overlapped, overlap = util.find_overlap_within_aoi(ref_acq.location, union_loc, aoi_location)
         logger.info("is_ref_truncated : %s" %is_ref_truncated)
         logger.info("is_within : %s" %is_covered)
         logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
@@ -436,11 +365,171 @@ def check_match(ref_acq, matched_acqs, ref_type = "master"):
         if is_overlapped and overlap>=0.98: # and overlap >=covth:
             logger.info("MATCHED")
             matched = True
-            pair_intersection_loc, starttime, endtime  = get_master_slave_intersect_data(ref_acq, matched_acqs, overlapped_matches)
+            starttime = ref_acq.starttime
+            endtime = ref_acq.endtime
+            pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
             if ref_type == "master":
                 candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime}
             else:
                 candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime}
     return matched, candidate_pair
             
+def publish_initiator(candidate_pair_list, job_data):
+    for candidate_pair in candidate_pair_list:
+        publish_initiator_pair(candidate_pair, job_data)
+
+
+def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
+  
+    master_ids_str=""
+    slave_ids_str=""
+    job_priority = 0
+
+    master_acquisitions = candidate_pair["master_acqs"]
+    slave_acquisitions = candidate_pair["slave_acqs"]
+    union_geojson = candidate_pair["intersect_geojson"]
+    starttime = candidate_pair["starttime"]
+    endtime = candidate_pair["endtime"]
+
+
+    project = job_data["project"] 
+    spyddder_extract_version = job_data["spyddder_extract_version"] 
+    standard_product_ifg_version = job_data["standard_product_ifg_version"] 
+    acquisition_localizer_version = job_data["acquisition_localizer_version"]
+    standard_product_localizer_version = job_data["standard_product_localizer_version"] 
+    #job_data["job_type"] = job_type
+    #job_data["job_version"] = job_version
+    job_priority = job_data["job_priority"] 
+
+
+    logger.info("MASTER : %s " %master_acquisitions)
+    logger.info("SLAVE : %s" %slave_acquisitions) 
+    logger.info("project: %s" %project)
+
+    #version = get_version()
+    version = "v2.0.0"
+
+    # set job type and disk space reqs
+    disk_usage = "300GB"
+
+    # query docs
+    es_url = GRQ_ES_URL
+    grq_index_prefix = "grq"
+    rest_url = es_url[:-1] if es_url.endswith('/') else es_url
+    url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, grq_index_prefix)
+
+    # get metadata
+    master_md = { i:get_metadata(i, rest_url, url) for i in master_acquisitions }
+    #logger.info("master_md: {}".format(json.dumps(master_md, indent=2)))
+    slave_md = { i:get_metadata(i, rest_url, url) for i in slave_acquisitions }
+    #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
+
+    # get tracks
+    track = util.get_track(master_md)
+    logger.info("master_track: {}".format(track))
+    slave_track = util.get_track(slave_md)
+    logger.info("slave_track: {}".format(slave_track))
+    if track != slave_track:
+        raise RuntimeError("Slave track {} doesn't match master track {}.".format(slave_track, track))
+
+    ref_scence = master_md
+    if len(master_acquisitions)==1:
+        ref_scence = master_md
+    elif len(slave_acquisitions)==1:
+        ref_scence = slave_md
+    elif len(master_acquisitions) > 1 and  len(slave_acquisitions)>1:
+        raise RuntimeError("Single Scene Reference Required.")
+ 
+
+    dem_type = util.get_dem_type(master_md)
+
+    # get dem_type
+    dem_type = util.get_dem_type(master_md)
+    logger.info("master_dem_type: {}".format(dem_type))
+    slave_dem_type = util.get_dem_type(slave_md)
+    logger.info("slave_dem_type: {}".format(slave_dem_type))
+    if dem_type != slave_dem_type:
+        dem_type = "SRTM+v3"
+
+
+ 
+    job_queue = "%s-job_worker-large" % project
+    logger.info("submit_localize_job : Queue : %s" %job_queue)
+
+    localizer_job_type = "job-standard_product_localizer:%s" % standard_product_localizer_version
+
+    logger.info("master acq type : %s of length %s"  %(type(master_acquisitions), len(master_acquisitions)))
+    logger.info("slave acq type : %s of length %s" %(type(slave_acquisitions), len(master_acquisitions)))
+
+    if type(project) is list:
+        project = project[0]
+
+
+    for acq in master_acquisitions:
+        #logger.info("master acq : %s" %acq)
+        if master_ids_str=="":
+            master_ids_str= acq
+        else:
+            master_ids_str += " "+acq
+
+    for acq in slave_acquisitions:
+        #logger.info("slave acq : %s" %acq)
+        if slave_ids_str=="":
+            slave_ids_str= acq
+        else:
+            slave_ids_str += " "+acq
+
+
+    id_hash = hashlib.md5(json.dumps([
+            job_priority,
+            master_ids_str,
+            slave_ids_str
+    ]).encode("utf8")).hexdigest()
+
+
+    id = "standard-product-ifg-acq-%s" %id_hash[0:4]
+    prod_dir =  id
+    os.makedirs(prod_dir, 0o755)
+
+    met_file = os.path.join(prod_dir, "{}.met.json".format(id))
+    ds_file = os.path.join(prod_dir, "{}.dataset.json".format(id))
+  
+    #with open(met_file) as f: md = json.load(f)
+    md = {}
+    md['id'] = id
+    md['project'] =  project,
+    md['master_acquisitions'] = master_ids_str
+    md['slave_acquisitions'] = slave_ids_str
+    md['spyddder_extract_version'] = spyddder_extract_version
+    md['acquisition_localizer_version'] = acquisition_localizer_version
+    md['standard_product_ifg_version'] = standard_product_ifg_version
+    md['job_priority'] = job_priority
+    md['_disk_usage'] = disk_usage
+    md['soft_time_limit'] =  86400
+    md['time_limit'] = 86700
+    md['dem_type'] = dem_type
+    md['track'] = track
+    md['starttime'] = "%sZ" %starttime
+    md['endtime'] = "%sZ" %endtime
+    md['union_geojson'] = union_geojson
+    
+    try:
+        geom = ogr.CreateGeometryFromJson(json.dumps(union_geojson))
+        env = geom.GetEnvelope()
+        bbox = [
+            [ env[3], env[0] ],
+            [ env[3], env[1] ],
+            [ env[2], env[1] ],
+            [ env[2], env[0] ],
+        ]     
+        md['bbox'] = bbox
+    except Exception as e:
+        logger.warn("Got exception creating bbox : {}".format( str(e)))
+        logger.warn("Traceback: {}".format(traceback.format_exc()))
+
+    with open(met_file, 'w') as f: json.dump(md, f, indent=2)
+
+    print("creating dataset file : %s" %ds_file)
+    util.create_dataset_json(id, version, met_file, ds_file)
+
 
