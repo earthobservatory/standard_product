@@ -312,12 +312,11 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, re
         for slave_track_dt in sorted( slave_grouped_matched["grouped"][track], reverse=True):
             selected_slave_acqs=[]
             orbit_file = None
-            orbit_dt = util.get_orbit_date(track_dt)
+            orbit_dt = track_dt.replace(minute=0, hour=12, second=0).isoformat()
             logger.info("orbit_dt : %s" %orbit_dt)
-            orbit_file = util.get_orbit_file(orbit_dt)
 
             logger.info("orbit_dt : %s" %orbit_dt)
-            isOrbitFile, orbit_id, orbit_url = get_orbit_file(orbit_dt, orbit_data['platform'])
+            isOrbitFile, orbit_id, orbit_url = util.get_orbit_file(orbit_dt, orbit_data['platform'])
             if isOrbitFile:
                 logger.info("%s : %s" %(orbit_id, orbit_url))
                 slave_orbit_file_path = os.path.basename(orbit_url)
@@ -327,17 +326,17 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, re
                     orbit_file = slave_orbit_file_path
             if orbit_file:
                 logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s " %(slave_track_dt, orbit_file))
-                selected = gtUtil.water_mask_check(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location, orbit_file)
+                selected = gtUtil.water_mask_check(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, orbit_file)
                 if not selected:
-                    logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_orbitnumber)
-                    rejected_slave_orbitnumber.append(slave_orbitnumber)
+                    logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
+                    rejected_slave_track_dt.append(slave_track_dt)
                     continue
             else:
                 logger.info("Orbit File NOT Exists, so Running water_mask_check for slave for date %s is running without orbit file." %slave_track_dt)
-                selected = gtUtil.water_mask_check(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location)
+                selected = gtUtil.water_mask_check(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location)
                 if not selected:
-                    logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_orbitnumber)
-                    rejected_slave_orbitnumber.append(slave_orbitnumber)
+                    logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
+                    rejected_slave_track_dt.append(slave_track_dt)
                     continue
             pv_list = []
             for pv in slave_grouped_matched["grouped"][track][slave_track_dt]:
