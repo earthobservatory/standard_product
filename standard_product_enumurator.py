@@ -303,7 +303,7 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, re
 
         slave_grouped_matched = util.group_acqs_by_track_date(slave_acqs)        
         logger.info("Priniting Slaves")
-        util.print_groups(grouped_matched)
+        util.print_groups(slave_grouped_matched)
         track_dt_pv = {}
         selected_slave_acqs_by_track_dt = {}
         logger.info("\n\n\nTRACK : %s" %track)
