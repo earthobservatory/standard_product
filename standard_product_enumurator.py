@@ -12,6 +12,7 @@ from collections import OrderedDict
 from shapely.geometry import Polygon
 from util import ACQ
 import gtUtil
+import dateutil.parser
 
 #import isce
 #from UrlUtils import UrlUtils as UU
@@ -311,12 +312,12 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, re
         for slave_track_dt in sorted( slave_grouped_matched["grouped"][track], reverse=True):
             selected_slave_acqs=[]
             orbit_file = None
-            orbit_dt = get_orbit_date(track_dt)
+            orbit_dt = util.get_orbit_date(track_dt)
             logger.info("orbit_dt : %s" %orbit_dt)
             orbit_file = util.get_orbit_file(orbit_dt)
 
             logger.info("orbit_dt : %s" %orbit_dt)
-            isOrbitFile, orbit_id, orbit_url = get_orbit_file(orbit_dt, "Sentinel-1B")
+            isOrbitFile, orbit_id, orbit_url = get_orbit_file(orbit_dt, orbit_data['platform'])
             if isOrbitFile:
                 logger.info("%s : %s" %(orbit_id, orbit_url))
                 slave_orbit_file_path = os.path.basename(orbit_url)
