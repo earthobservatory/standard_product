@@ -34,11 +34,14 @@ MISSION = 'S1A'
 
 
 def download_orbit_file(url, file_name):
+    downloaded = False
     try:
         urllib.request.urlretrieve(url, file_name)
+        downloaded = True
     except Exception as err:
         logger.info("Error Downloading Orbit File : %s" %url)
         logger.info(sys.exc_info())
+    return downloaded
 
 def get_groundTrack_footprint(tstart, tend, orbit_file):
     mission = MISSION

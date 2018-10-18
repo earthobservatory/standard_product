@@ -173,6 +173,26 @@ def query_aois(starttime, endtime):
     #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
     return hits
 
+def get_orbit_file(orbit_dt, platform):
+    logger.info("get_orbit_file : %s : %s" %(orbit_dt, platform))
+    hits = util.query_orbit_file(orbit_dt, orbit_dt, platform)
+    #logger.info("get_orbit_file : hits : \n%s\n" %hits)
+    logger.info("get_orbit_file returns %s result " %len(hits))
+    #return hits
+
+    
+    for hit in hits:
+        metadata = hit["metadata"]     
+        id = hit['id']     
+        orbit_platform = metadata["platform"]   
+        logger.info(orbit_platform)
+        if orbit_platform == platform:
+            url = metadata["context"]["localize_urls"][0]["url"]
+            return True, id, url
+    return False, None, None   
+   
+
+
 def query_aois_new(starttime, endtime):
     """Query ES for active AOIs that intersect starttime and endtime."""
 
@@ -366,10 +386,13 @@ def print_groups(grouped_matched):
 def get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file):
     #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
 
-    logger.info("AOI : %s" %aoi['location'])
+
+    logger.info("\nget_covered_acquisitions_by_track_date")
+    
+    logger.info("PROCESSING AOI : %s : %s" %(aoi['id'], aoi['location']))
     grouped_matched = util.group_acqs_by_track_date_from_metadata(acqs) #group_acqs_by_track(acqs)
     logger.info("grouped_matched Done")
-    print_groups(grouped_matched)
+    util.print_groups(grouped_matched)
 
     matched_ids = grouped_matched["acq_info"].keys()
 
@@ -382,14 +405,14 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file):
 
 
     for track in grouped_matched["grouped"]:
-        selected_orbitnumber_acqs = {}
-        for orbitnumber in grouped_matched["grouped"][track]:
-            selected = gtUtil.water_mask_check(grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi['location'], orbit_file)
+        selected_track_dt_acqs = {}
+        for track_dt in grouped_matched["grouped"][track]:
+            selected = gtUtil.water_mask_check(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], orbit_file)
             if selected:
-                logger.info("SELECTED")
+                logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
                 selected_acqs = []
-                for pv in grouped_matched["grouped"][track][orbitnumber]:
-                    for acq_id in grouped_matched["grouped"][track][orbitnumber][pv]:
+                for pv in grouped_matched["grouped"][track][track_dt]:
+                    for acq_id in grouped_matched["grouped"][track][track_dt][pv]:
                         acq = grouped_matched["acq_info"][acq_id]
 
                         if not acq.pv:
@@ -397,13 +420,13 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file):
                             #util.update_grq(acq_id, acq.pv)
                         logger.info("APPENDING : %s" %acq_id)
                         selected_acqs.append(acq)
-                selected_orbitnumber_acqs[orbitnumber] = selected_acqs
-        selected_track_acqs[track] = selected_orbitnumber_acqs
+                selected_track_dt_acqs[track_dt] = selected_acqs
+        selected_track_acqs[track] = selected_track_dt_acqs
 
 
 
     #exit (0)
-
+    logger.info("get_covered_acquisitions_by_track_date returns : %s" %selected_track_acqs)
     return selected_track_acqs
  
 def get_covered_acquisitions(aoi, acqs, orbit_file):
@@ -522,7 +545,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
             logger.info("Error from get_covered_acquisitions: %s " %str(err))
             traceback.print_exc()
 
-        if len(selected_track_acqs.keys()):
+        if len(selected_track_acqs.keys())==0:
             logger.info("Nothing selected from AOI %s " %aoi['id'])
             continue
 
@@ -610,9 +633,6 @@ def resolve_aoi_acqs(ctx_file):
     #SFL = os.path.join(os.environ['HOME'], 'standard_product', 'aoi_acquisition_localizer_standard_product.sf.xml')
     # get acq_info
 
-    url = "http://aux.sentinel1.eo.esa.int/POEORB/2018/09/15/S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF"
-    file_name = "S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF"
-    gtUtil.download_orbit_file(url, file_name)
 
     #Find Orbit File Info
     orbit_file = None

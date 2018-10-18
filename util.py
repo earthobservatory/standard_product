@@ -421,6 +421,32 @@ def get_dataset(id):
     print(result['hits']['total'])
     return result
 
+
+def query_es(query, es_index=None):
+    """Query ES."""
+    es_url = "http://100.64.134.208:9200/"
+    #es_url = app.conf.GRQ_ES_URL
+    rest_url = es_url[:-1] if es_url.endswith('/') else es_url
+    url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
+    if es_index:
+        url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
+    #logger.info("url: {}".format(url))
+    r = requests.post(url, data=json.dumps(query))
+    r.raise_for_status()
+    scan_result = r.json()
+    #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
+    count = scan_result['hits']['total']
+    scroll_id = scan_result['_scroll_id']
+    hits = []
+    while True:
+        r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        res = r.json()
+        scroll_id = res['_scroll_id']
+        if len(res['hits']['hits']) == 0: break
+        hits.extend(res['hits']['hits'])
+    return hits
+
+
 def query_es2(query, es_index=None):
     """Query ES."""
     logger.info(query)
@@ -446,7 +472,15 @@ def query_es2(query, es_index=None):
         hits.extend(res['hits']['hits'])
     return hits
 
+def print_groups(grouped_matched):
+    for track in grouped_matched["grouped"]:
+        logger.info("\nTrack : %s" %track)
+        for day_dt in grouped_matched["grouped"][track]:
+            logger.info("\tDate : %s" %day_dt)
+            for pv in grouped_matched["grouped"][track][day_dt]:
 
+                for acq in grouped_matched["grouped"][track][day_dt][pv]:
+                    logger.info("\t\t%s : %s" %(pv, acq[0]))
 
 
 def get_complete_grq_data(id):
@@ -950,7 +984,7 @@ def get_overlapping_slaves_query(orbit_data, location, track, direction, master_
                                     }
                                 }},
                                 { "term": { "platform": orbit_data['platform'] }},
-				{ "term": { "trackNumber": tracknumber }},
+				{ "term": { "trackNumber": track }},
 				{ "term": { "direction": direction }}
 			    ],
 			"must_not": { "term": { "orbitNumber": master_orbitnumber }}
@@ -1117,55 +1151,100 @@ def create_dataset_json(id, version, met_file, ds_file):
     with open(ds_file, 'w') as f:
         json.dump(ds, f, indent=2)
 
+def get_orbit_date(s):
+    date = dateutil.parser.parse(s, ignoretz=True)
+    date = date.replace(minute=0, hour=12, second=0)
+    return date.isoformat()
+
+def get_orbit_file(orbit_dt, platform):
+    logger.info("get_orbit_file : %s : %s" %(orbit_dt, platform))
+    hits = query_orbit_file(orbit_dt, orbit_dt, platform)
+    #logger.info("get_orbit_file : hits : \n%s\n" %hits)
+    logger.info("get_orbit_file returns %s result " %len(hits))
+    #return hits
+
+
+    for hit in hits:
+        metadata = hit["metadata"]
+        id = hit['id']
+        orbit_platform = metadata["platform"]
+        logger.info(orbit_platform)
+        if orbit_platform == platform:
+            url = metadata["context"]["localize_urls"][0]["url"]
+            return True, id, url
+    return False, None, None
+
+
 def query_orbit_file(starttime, endtime, platform):
     """Query ES for active AOIs that intersect starttime and endtime."""
-
+    logger.info("query_orbit_file: %s, %s, %s" %(starttime, endtime, platform))
     es_index = "grq_*_s1-aux_poeorb"
     query = {
-        "query": {
-            "bool": {
-                "should": [
-                    {
-                        "bool": {
-                            "must": [
-                                {
-                                    "range": {
-                                        "starttime": {
-                                            "lte": endtime
-                                        }
-                                    }
-                                },
-                                {
-                                    "range": {
-                                        "endtime": {
-                                            "gte": starttime
-                                        }
-                                    }
-                                },
-				{
-                                    "match": {
-					    "dataset_type": "S1-AUX_POEORB"
-                                        }
-                                },
-                                {
-                                    "match": {
-                                            "platform": platform
-                                        }
-                                }
-                            ]
-                        }
+      "query": {
+          "bool": {
+              "should": [
+                {
+                  "bool": {
+                    "must": [
+                  {
+                    "range": {
+                      "starttime": {
+                        "lte": endtime
+                      }
                     }
-                ]
+                  },
+                  {
+                    "range": {
+                      "endtime": {
+                        "gte": starttime
+                      }
+                    }
+                  },
+                  {
+                    "match": {
+                      "metadata.dataset": "S1-AUX_POEORB"
+                    }
+                  },
+                  {
+                    "match": {
+                      "metadata.platform": platform
+                    }
+                  },
+                  {
+                    "match": {
+                      "_type": "S1-AUX_POEORB"
+                    }
+                  }
+                ]  
+              }
             }
+          ]
         }
+      },
+      "partial_fields": {
+        "partial": {
+          "include": [
+            "id",
+            "starttime",
+            "endtime",
+            "metadata.platform",
+            "metadata.context.localize_urls"
+          ]
+        }
+      }
     }
 
+    logger.info(query)
+    #return query_es(query)
+
+
     # filter inactive
-    hits = [i['fields']['partial'][0] for i in query_es(query) 
-            if 'inactive' not in i['fields']['partial'][0].get('metadata', {}).get('user_tags', [])]
+    hits = [i['fields']['partial'][0] for i in query_es(query)]
     #logger.info("hits: {}".format(json.dumps(hits, indent=2)))
     #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
     return hits
+
+
 
 '''
 

@@ -47,6 +47,11 @@ covth = 0.98
 MIN_MAX = 2
 es_index = "grq_*_*acquisition*"
 
+def get_orbit_date(s):
+    date = dateutil.parser.parse(s, ignoretz=True)
+    date = date.replace(minute=0, hour=12, second=0)
+    return date.isoformat()
+
 
 
 def process_query(query):
@@ -215,7 +220,7 @@ def enumerate_acquisations(orbit_acq_selections):
     logger.info("\n\n\nENUMERATE\n")
     job_data = orbit_acq_selections["job_data"]
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
-
+    orbit_data = orbit_acq_selections["orbit_data"]
     reject_pairs = {}
     orbit_file = job_data['orbit_file']
 
@@ -232,7 +237,7 @@ def enumerate_acquisations(orbit_acq_selections):
             if len(selected_track_acqs[track].keys()) <=0:
                 logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                 continue
-            min_max_count, track_candidate_pair_list = get_candidate_pair_list(track, selected_track_acqs[track], aoi_data, reject_pairs)
+            min_max_count, track_candidate_pair_list = get_candidate_pair_list(track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
             logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
             if min_max_count>0:
                 print_candidate_pair_list_per_track(track_candidate_pair_list)
@@ -257,7 +262,108 @@ def print_candidate_pair_list_per_track(candidate_pair_list):
                 logger.info(candidate_pair["slave_acqs"][j])
             '''
 
+
 def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, reject_pairs):
+    logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
+    candidate_pair_list = []
+    orbit_ipf_dict = {}
+    min_max_count = 0
+    aoi_location = aoi_data['aoi_location']
+    logger.info("aoi_location : %s " %aoi_location)
+
+    for track_dt in sorted(selected_track_acqs.keys(), reverse=True):
+        logger.info(track_dt)
+   
+        slaves_track = {}
+        slave_acqs = []
+            
+        master_acqs = selected_track_acqs[track_dt]
+        master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
+        #master_ipf_count = util.get_ipf_count(master_acqs)
+        #master_union_geojson = util.get_union_geojson_acqs(master_acqs)
+
+        #util.print_acquisitions(aoi_data['aoi_id'], master_acqs)
+        query = util.get_overlapping_slaves_query(orbit_data, aoi_location, track, direction, master_orbitnumber)
+        logger.info("Slave Finding Query : %s" %query)
+        
+        acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
+        logger.info("Found {} slave acqs : {}".format(len(acqs),
+        json.dumps([i['id'] for i in acqs], indent=2)))
+
+
+        if len(acqs) == 0:
+            logger.info("ERROR ERROR : NO SLAVE FOUND for AOI %s and track %s" %(aoi_data['aoi_id'], track))
+            continue
+
+        #matched_acqs = util.create_acqs_from_metadata(process_query(query))
+        slave_acqs = util.create_acqs_from_metadata(acqs)
+        logger.info("\nSLAVE ACQS")
+        #util.print_acquisitions(aoi_id, slave_acqs)
+
+
+        slave_grouped_matched = util.group_acqs_by_track_date(slave_acqs)        
+        logger.info("Priniting Slaves")
+        util.print_groups(grouped_matched)
+        track_dt_pv = {}
+        selected_slave_acqs_by_track_dt = {}
+        logger.info("\n\n\nTRACK : %s" %track)
+        rejected_slave_track_dt = []
+        for slave_track_dt in sorted( slave_grouped_matched["grouped"][track], reverse=True):
+            selected_slave_acqs=[]
+            orbit_file = None
+            orbit_dt = get_orbit_date(track_dt)
+            logger.info("orbit_dt : %s" %orbit_dt)
+            orbit_file = util.get_orbit_file(orbit_dt)
+
+            logger.info("orbit_dt : %s" %orbit_dt)
+            isOrbitFile, orbit_id, orbit_url = get_orbit_file(orbit_dt, "Sentinel-1B")
+            if isOrbitFile:
+                logger.info("%s : %s" %(orbit_id, orbit_url))
+                slave_orbit_file_path = os.path.basename(orbit_url)
+                downloaded = gtUtil.download_orbit_file(orbit_url, slave_orbit_file_path)
+                if downloaded:
+                    logger.info("Slave Orbiut File Downloaded")
+                    orbit_file = slave_orbit_file_path
+            if orbit_file:
+                logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s " %(slave_track_dt, orbit_file))
+                selected = gtUtil.water_mask_check(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location, orbit_file)
+                if not selected:
+                    logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_orbitnumber)
+                    rejected_slave_orbitnumber.append(slave_orbitnumber)
+                    continue
+            else:
+                logger.info("Orbit File NOT Exists, so Running water_mask_check for slave for date %s is running without orbit file." %slave_track_dt)
+                selected = gtUtil.water_mask_check(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location)
+                if not selected:
+                    logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_orbitnumber)
+                    rejected_slave_orbitnumber.append(slave_orbitnumber)
+                    continue
+            pv_list = []
+            for pv in slave_grouped_matched["grouped"][track][slave_track_dt]:
+                logger.info("\tpv : %s" %pv)
+                pv_list.append(pv)
+                slave_ids= slave_grouped_matched["grouped"][track][slave_track_dt][pv]
+                for slave_id in slave_ids:
+                    selected_slave_acqs.append(slave_grouped_matched["acq_info"][slave_id])
+            track_dt_pv[slave_track_dt] = len(list(set(pv_list)))
+            selected_slave_acqs_by_track_dt[slave_track_dt] =  selected_slave_acqs
+
+        for slave_track_dt in sorted( selected_slave_acqs_by_track_dt.keys(), reverse=True):
+            slave_ipf_count = track_dt_pv[slave_track_dt]
+            slave_acqs = selected_slave_acqs_by_track_dt[slave_track_dt]
+            
+
+            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, reject_pairs)            
+            if result:
+                candidate_pair_list.append(orbit_candidate_pair)
+                min_max_count = min_max_count + 1
+                if min_max_count>=MIN_MAX:
+                    return min_max_count, candidate_pair_list
+    return min_max_count, candidate_pair_list
+
+
+
+def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data, orbit_data, reject_pairs):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -291,7 +397,8 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, re
 
 
         slave_grouped_matched = util.group_acqs_by_orbit_number(slave_acqs)
-                 
+        #slave_grouped_matched = util.group_acqs_by_track_date(slave_acqs)
+         
         orbitnumber_pv = {}
         selected_slave_acqs_by_orbitnumber = {}
         logger.info("\n\n\nTRACK : %s" %track)
