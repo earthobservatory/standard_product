@@ -1168,6 +1168,11 @@ def get_orbit_date(s):
     date = date.replace(minute=0, hour=12, second=0)
     return date.isoformat()
 
+def get_isoformat_date(s):
+    date = dateutil.parser.parse(s, ignoretz=True)
+    return date.isoformat()
+
+
 def get_orbit_file(orbit_dt, platform):
     logger.info("get_orbit_file : %s : %s" %(orbit_dt, platform))
     hits = query_orbit_file(orbit_dt, orbit_dt, platform)
