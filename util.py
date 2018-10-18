@@ -951,53 +951,65 @@ def get_overlapping_slaves_query(master):
     return get_overlapping_slaves_query(master.starttime, master.endtime, master.location, master.tracknumber, master.direction, master.orbitnumber)
 '''
     
-def get_overlapping_slaves_query(orbit_data, location, track, direction, master_orbitnumber):
+def get_overlapping_slaves_query(starttime, location, track, direction, platform, master_orbitnumber):
     query = {
-            "query": {
-                "filtered": {
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {
-                                    "term": {
-                                        "dataset.raw": "acquisition-S1-IW_SLC"
-                                    }
-				
-                                }
-                            ]
-                        }
-                    },
-                    "filter": {
- 			"bool": {
-			    "must": [
-				{
-                                "geo_shape": {
-                                    "location": {
-                                      "shape": location
-                                    }
-                                }},
-				{	
-                                "range" : {
-                                    "endtime" : {
-                                        "lt" : orbit_data['starttime']
-                
-                                    }
-                                }},
-                                { "term": { "platform": orbit_data['platform'] }},
-				{ "term": { "trackNumber": track }},
-				{ "term": { "direction": direction }}
-			    ],
-			"must_not": { "term": { "orbitNumber": master_orbitnumber }}
-			}
-                    }
-                }
-            },
-            "partial_fields" : {
-                "partial" : {
-                        "exclude": "city"
-                }
+      "partial_fields": {
+        "partial": {
+          "exclude": "city"
+        }
+      },
+      "query": {
+        "filtered": {
+          "filter": {
+            "geo_shape": {
+              "location": {
+                "shape": location
+              }
             }
-        }    
+          },
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "dataset_type.raw": "acquisition"
+                  }
+                },
+                {
+                  "term": {
+                    "metadata.platform.raw": platform
+                  }
+                },
+                {
+                  "term": {
+                    "trackNumber": track
+                  }
+                },
+                {
+                  "term": {
+                    "direction": direction
+                  }
+                },
+                {
+                  "range": {
+                    "endtime": {
+                      "lt": starttime
+                    }
+                  }
+                }  
+              ],
+              "must_not": {
+                "term": {
+                  "orbitNumber": master_orbitnumber
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+
 
     return query
 

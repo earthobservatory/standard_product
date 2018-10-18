@@ -475,7 +475,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
     #aoi_acq = {}
     orbit_aoi_data = {}
     es_index = "grq_*_*acquisition*"
-    aois = query_aois(starttime, endtime)
+    aois = query_aois_new(starttime, endtime)
     logger.info("No of AOIs : %s " %len(aois))
     if len(aois) <=0:
         raise("Exiting as number of aois : %" %len(aois))
