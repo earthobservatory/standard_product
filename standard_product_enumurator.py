@@ -80,30 +80,41 @@ def process_query(query):
 
     return ref_hits
 
+
+
 def enumerate_acquisations(orbit_acq_selections):
 
 
     logger.info("\n\n\nENUMERATE\n")
     job_data = orbit_acq_selections["job_data"]
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
+    orbit_data = orbit_acq_selections["orbit_data"]
 
     reject_pairs = {}
-    orbit_file = job_data['orbit_file']
+    orbit_file = orbit_data['orbit_file']
 
     candidate_pair_list = []
 
     for aoi_id in orbit_aoi_data.keys():
+        logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
         aoi_data = orbit_aoi_data[aoi_id]
         selected_track_acqs = aoi_data['selected_track_acqs'] 
         #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
 
         for track in selected_track_acqs.keys():
-            min_max_count, track_candidate_pair_list = get_candidate_pair_list(selected_track_acqs[track], reject_pairs)
-           
+            logger.info("\nenumerate_acquisations : Processing track : %s " %track)
+            if len(selected_track_acqs[track].keys()) <=0:
+                logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
+                continue
+            min_max_count, track_candidate_pair_list = get_candidate_pair_list(track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
+            logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
+            if min_max_count>0:
+                print_candidate_pair_list_per_track(track_candidate_pair_list)
             if min_max_count >= MIN_MAX and len(track_candidate_pair_list) > 0:
                 candidate_pair_list.extend(track_candidate_pair_list)
-            
+
     return candidate_pair_list
+
 
 def reject_list_check(candidate_pair, reject_list):
     passed = False
@@ -246,7 +257,7 @@ def print_candidate_pair_list_per_track(candidate_pair_list):
                 logger.info(candidate_pair["slave_acqs"][j])
             '''
 
-def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
+def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, reject_pairs):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -266,7 +277,7 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, reject_pairs):
         #master_union_geojson = util.get_union_geojson_acqs(master_acqs)
 
         #util.print_acquisitions(aoi_data['aoi_id'], master_acqs)
-        query = util.get_overlapping_slaves_query(master_starttime, master_endtime, aoi_location, track, direction, master_orbitnumber)
+        query = util.get_overlapping_slaves_query(orbit_data, aoi_location, track, direction, master_orbitnumber)
 
         acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
         logger.info("Found {} slave acqs : {}".format(len(acqs),

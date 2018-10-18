@@ -312,141 +312,6 @@ def query_aois_new(starttime, endtime):
     #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
     return hits
 
-def get_query(acq):
-    query = {
-    	"query": {
-    	    "filtered": {
-      		"filter": {
-        	    "and": [
-          		{
-            		    "term": {
-              			"system_version.raw": "v1.1"
-            		    }
-          		}, 
-          		{
-            		    "ids": {
-              			"values": [acq['identifier']]
-            		    }
-          		}, 
-          		{
-            		    "geo_shape": {
-              			"location": {
-                		    "shape": acq['metadata']['location']
-              			}
-            		    }
-          		}
-        	    ]
-      		}, 
-      		"query": {
-        	    "bool": {
-          		"must": [
-            		    {
-              			"term": {
-                		    "dataset.raw": "S1-IW_SLC"
-              			}
-            		    }
-          		]
-        	    }
-      		}
-    	    }
-  	}, 
-  	"partial_fields": {
-    	    "partial": {
-      		"exclude": "city"
-    	    }
-  	}
-    }
-
-    
-    return query
-
-def get_query(acq):
-    query = {
-    	"query": {
-    	    "filtered": {
-      		"filter": {
-        	    "and": [
-          		{
-            		    "geo_shape": {
-              			"location": {
-                		    "shape": acq['metadata']['location']
-              			}
-            		    }
-          		}
-        	    ]
-      		}, 
-      		"query": {
-        	    "bool": {
-          		"must": [
-            		    {
-              			"term": {
-                		    "dataset.raw": "acquisition-S1-IW_SLC"
-              			}
-			
-            		    }
-          		]
-        	    }
-      		}
-    	    }
-  	}, 
-  	"partial_fields": {
-    	    "partial": {
-      		"exclude": "city"
-    	    }
-  	}
-    }
-
-    
-    return query
-
-def get_query2(acq):
-    query = {
-    	"query": {
-    	    "filtered": {
-      		"filter": {
-        	    "and": [
-          		{
-            		    "term": {
-              			"system_version.raw": "v1.1"
-            		    }
-          		}, 
-          		{
-            		    "ids": {
-              			"values": [acq['identifier']]
-            		    }
-          		}, 
-          		{
-            		    "geo_shape": {
-              			"location": {
-                		    "shape": acq['metadata']['location']
-              			}
-            		    }
-          		}
-        	    ]
-      		}, 
-      		"query": {
-        	    "bool": {
-          		"must": [
-            		    {
-              			"term": {
-                		    "dataset.raw": "S1-IW_SLC"
-              			}
-            		    }
-          		]
-        	    }
-      		}
-    	    }
-  	}, 
-  	"partial_fields": {
-    	    "partial": {
-      		"exclude": "city"
-    	    }
-  	}
-    }
-
-    
-    return query
-
 
 
 def get_dem_type(acq):
@@ -483,8 +348,63 @@ def isTrackSelected(land, water, land_area, water_area):
         selected = True
 
     return selected
+         
+
+
+def print_groups(grouped_matched):
+    for track in grouped_matched["grouped"]:
+        logger.info("\nTrack : %s" %track)
+        for day_dt in grouped_matched["grouped"][track]:
+            logger.info("\tDate : %s" %day_dt)
+            for pv in grouped_matched["grouped"][track][day_dt]:
+                
+                for acq in grouped_matched["grouped"][track][day_dt][pv]:
+                    logger.info("\t\t%s : %s" %(pv, acq[0]))
+            
         
 
+def get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file):
+    #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
+
+    logger.info("AOI : %s" %aoi['location'])
+    grouped_matched = util.group_acqs_by_track_date_from_metadata(acqs) #group_acqs_by_track(acqs)
+    logger.info("grouped_matched Done")
+    print_groups(grouped_matched)
+
+    matched_ids = grouped_matched["acq_info"].keys()
+
+    #logger.info("grouped_matched : %s" %grouped_matched)
+    logger.info("matched_ids : %s" %matched_ids)
+
+
+    selected_track_acqs = {}
+
+
+
+    for track in grouped_matched["grouped"]:
+        selected_orbitnumber_acqs = {}
+        for orbitnumber in grouped_matched["grouped"][track]:
+            selected = gtUtil.water_mask_check(grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi['location'], orbit_file)
+            if selected:
+                logger.info("SELECTED")
+                selected_acqs = []
+                for pv in grouped_matched["grouped"][track][orbitnumber]:
+                    for acq_id in grouped_matched["grouped"][track][orbitnumber][pv]:
+                        acq = grouped_matched["acq_info"][acq_id]
+
+                        if not acq.pv:
+                            acq.pv = pv #util.get_processing_version(acq.identifier)
+                            #util.update_grq(acq_id, acq.pv)
+                        logger.info("APPENDING : %s" %acq_id)
+                        selected_acqs.append(acq)
+                selected_orbitnumber_acqs[orbitnumber] = selected_acqs
+        selected_track_acqs[track] = selected_orbitnumber_acqs
+
+
+
+    #exit (0)
+
+    return selected_track_acqs
  
 def get_covered_acquisitions(aoi, acqs, orbit_file):
     #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
@@ -532,8 +452,10 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
     #aoi_acq = {}
     orbit_aoi_data = {}
     es_index = "grq_*_*acquisition*"
-    aois = query_aois_new(starttime, endtime)
+    aois = query_aois(starttime, endtime)
     logger.info("No of AOIs : %s " %len(aois))
+    if len(aois) <=0:
+        raise("Exiting as number of aois : %" %len(aois))
     for aoi in aois:
         logger.info("aoi: {}".format(aoi['id']))
         query = {
@@ -590,13 +512,20 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
                     json.dumps([i['id'] for i in acqs], indent=2)))
 
         #logger.info("ALL ACQ of AOI : \n%s" %acqs)
-
+        if len(acqs) <=0:
+            logger.info("Excluding AOI %s as no acquisitions there" %aoi['id'])
         selected_track_acqs = {}
         try:
-            selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
+            #selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
+            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file)
         except Exception as  err:
             logger.info("Error from get_covered_acquisitions: %s " %str(err))
             traceback.print_exc()
+
+        if len(selected_track_acqs.keys()):
+            logger.info("Nothing selected from AOI %s " %aoi['id'])
+            continue
+
         #for acq in acqs:
         aoi_data = {}
         aoi_priority = aoi.get('metadata', {}).get('priority', 0)
@@ -611,6 +540,8 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
         #acq_info[aoi_data['id']] = acq
 	#aoi_acq[aoi] = acq_info 
         #logger.info("Acquistions to localize: {}".format(json.dumps(acq_info, indent=2)))
+    if len(orbit_aoi_data.keys())<=0:
+        raise("Existing as NOTHING selected for any aois")
     return orbit_aoi_data
     
 
@@ -679,6 +610,9 @@ def resolve_aoi_acqs(ctx_file):
     #SFL = os.path.join(os.environ['HOME'], 'standard_product', 'aoi_acquisition_localizer_standard_product.sf.xml')
     # get acq_info
 
+    url = "http://aux.sentinel1.eo.esa.int/POEORB/2018/09/15/S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF"
+    file_name = "S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF"
+    gtUtil.download_orbit_file(url, file_name)
 
     #Find Orbit File Info
     orbit_file = None
@@ -694,8 +628,7 @@ def resolve_aoi_acqs(ctx_file):
 
 
     orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file)
-
-
+    #osaka.main.get("http://aux.sentinel1.eo.esa.int/POEORB/2018/09/15/S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF")
     #logger.info(orbit_aoi_data)
     #exit(0)
     
@@ -727,11 +660,19 @@ def resolve_aoi_acqs(ctx_file):
     job_data["job_type"] = job_type
     job_data["job_version"] = job_version
     job_data["job_priority"] = ctx['job_priority']
-    job_data['orbit_file'] = orbit_file   
+    job_data['orbit_file'] = orbit_file 
+
+
+    orbit_data = {}
+    orbit_data['starttime'] = ctx['starttime']
+    orbit_data['endtime'] = ctx['endtime']
+    orbit_data['platform'] = ctx['platform']
+    orbit_data['orbit_file'] = orbit_file  
 
     orbit_acq_selections = {}
     orbit_acq_selections["job_data"] = job_data
     orbit_acq_selections["orbit_aoi_data"] = orbit_aoi_data
+    orbit_acq_selections["orbit_data"] = orbit_data
 
     return orbit_acq_selections
 

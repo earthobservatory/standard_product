@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 #import groundTrack
 from osgeo import ogr, osr
 #import lightweight_water_mask
-
+#from osaka.osaka import osaka
 
 GRQ_URL="http://100.64.134.208:9200/"
 
@@ -71,6 +71,30 @@ def print_acq(acq):
 def group_acqs_by_orbit_number_from_metadata(frames):
     return group_acqs_by_orbit_number(create_acqs_from_metadata(frames))
 
+def group_acqs_by_track_date_from_metadata(frames):
+    return group_acqs_by_track_date(create_acqs_from_metadata(frames))
+
+def group_acqs_by_track_date(acqs):
+    logger.info("\ngroup_acqs_by_track_date")
+    grouped = {}
+    acqs_info = {}
+    for acq in acqs:
+        acqs_info[acq.acq_id] = acq
+        match = SLC_RE.search(acq.identifier)
+        
+        if not match:
+            raise RuntimeError("Failed to recognize SLC ID %s." % h['_id'])
+        logger.info("group_acqs_by_track_date : Year : %s Month : %s Day : %s" %(int(match.group('start_year')), int(match.group('start_month')), int(match.group('start_day'))))
+
+        day_dt = datetime(int(match.group('start_year')),
+                          int(match.group('start_month')),
+                          int(match.group('start_day')),
+                          0, 0, 0)
+        logger.info("day_dt : %s " %day_dt)
+        #bisect.insort(grouped.setdefault(fields['metadata']['trackNumber'], {}).setdefault(day_dt, []), h['_id'])
+        bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(day_dt, {}).setdefault(acq.pv, []), acq.acq_id)
+    return {"grouped": grouped, "acq_info" : acqs_info}
+
 def group_acqs_by_orbit_number(acqs):
     #logger.info(acqs)
     grouped = {}
@@ -91,11 +115,14 @@ def group_acqs_by_orbit_number(acqs):
         '''
     return {"grouped": grouped, "acq_info" : acqs_info}
 
+
+
 def update_acq_pv(acq_id, pv):
     pass
 
 
-
+def import_file_by_osks(url):
+    osaka.main.get(url)
 
 
 
@@ -885,11 +912,12 @@ def get_dem_type(info):
         logger.info("There are more than one type of dem, so selecting SRTM+v3")
         dem_type = "SRTM+v3"
     return dem_type
-
+'''
 def get_overlapping_slaves_query(master):
     return get_overlapping_slaves_query(master.starttime, master.endtime, master.location, master.tracknumber, master.direction, master.orbitnumber)
+'''
     
-def get_overlapping_slaves_query(starttime, endtime, location, tracknumber, direction, orbitnumber):
+def get_overlapping_slaves_query(orbit_data, location, track, direction, master_orbitnumber):
     query = {
             "query": {
                 "filtered": {
@@ -917,14 +945,15 @@ def get_overlapping_slaves_query(starttime, endtime, location, tracknumber, dire
 				{	
                                 "range" : {
                                     "endtime" : {
-                                        "lte" : starttime
+                                        "lt" : orbit_data['starttime']
                 
                                     }
                                 }},
+                                { "term": { "platform": orbit_data['platform'] }},
 				{ "term": { "trackNumber": tracknumber }},
 				{ "term": { "direction": direction }}
 			    ],
-			"must_not": { "term": { "orbitNumber": orbitnumber }}
+			"must_not": { "term": { "orbitNumber": master_orbitnumber }}
 			}
                     }
                 }
@@ -1088,6 +1117,55 @@ def create_dataset_json(id, version, met_file, ds_file):
     with open(ds_file, 'w') as f:
         json.dump(ds, f, indent=2)
 
+def query_orbit_file(starttime, endtime, platform):
+    """Query ES for active AOIs that intersect starttime and endtime."""
+
+    es_index = "grq_*_s1-aux_poeorb"
+    query = {
+        "query": {
+            "bool": {
+                "should": [
+                    {
+                        "bool": {
+                            "must": [
+                                {
+                                    "range": {
+                                        "starttime": {
+                                            "lte": endtime
+                                        }
+                                    }
+                                },
+                                {
+                                    "range": {
+                                        "endtime": {
+                                            "gte": starttime
+                                        }
+                                    }
+                                },
+				{
+                                    "match": {
+					    "dataset_type": "S1-AUX_POEORB"
+                                        }
+                                },
+                                {
+                                    "match": {
+                                            "platform": platform
+                                        }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+
+    # filter inactive
+    hits = [i['fields']['partial'][0] for i in query_es(query) 
+            if 'inactive' not in i['fields']['partial'][0].get('metadata', {}).get('user_tags', [])]
+    #logger.info("hits: {}".format(json.dumps(hits, indent=2)))
+    #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
+    return hits
 
 '''
 
