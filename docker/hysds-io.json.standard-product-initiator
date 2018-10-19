@@ -2,6 +2,7 @@
   "submission_type": "iteration",
   "label": "Standard Product Orbit Initiator",
   "allowed_accounts": [ "ops" ],
+  "enable_dedup": false,
   "params" : [ 
     {
       "name": "workflow",
