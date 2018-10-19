@@ -196,7 +196,7 @@ def get_candidate_pair_list2(selected_track_acqs, reject_pairs):
                         return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
     
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, eject_pairs):
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, reject_pairs):
     result = False
     candidate_pair_list = []
     
