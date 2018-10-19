@@ -255,9 +255,11 @@ def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbi
         #union_gt_polygon = change_coordinate_direction(union_gt_polygon)
         #logger.debug("water_mask_test1 : union_gt_polygon : %s" %union_gt_polygon)
         #get lowest starttime minus 10 minutes as starttime
-        tstart = getUpdatedTime(sorted(starttimes)[0], -10)
+        #tstart = getUpdatedTime(sorted(starttimes)[0], -10)
+        tstart = sorted(starttimes)[0]
         logger.info("tstart : %s" %tstart)
         tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 10)
+        tend = sorted(endtimes, reverse=True)[0]
         logger.info("tend : %s" %tend)
         aoi_gt_geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
         #aoi_gt_polygon = change_coordinate_direction(aoi_gt_geojson)

@@ -87,6 +87,15 @@ def process_query(query):
     return ref_hits
 
 
+def print_groups(grouped_matched):
+    for track in grouped_matched["grouped"]:
+        logger.info("\nTrack : %s" %track)
+        for day_dt in grouped_matched["grouped"][track]:
+            logger.info("\tDate : %s" %day_dt)
+            for pv in grouped_matched["grouped"][track][day_dt]:
+
+                for acq in grouped_matched["grouped"][track][day_dt][pv]:
+                    logger.info("\t\t%s : %s" %(pv, acq[0]))
 
 def enumerate_acquisations(orbit_acq_selections):
 
@@ -304,7 +313,7 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, re
 
         slave_grouped_matched = util.group_acqs_by_track_date(slave_acqs)        
         logger.info("Priniting Slaves")
-        util.print_groups(slave_grouped_matched)
+        print_groups(slave_grouped_matched)
         track_dt_pv = {}
         selected_slave_acqs_by_track_dt = {}
         logger.info("\n\n\nTRACK : %s" %track)
@@ -312,7 +321,7 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, re
         for slave_track_dt in sorted( slave_grouped_matched["grouped"][track], reverse=True):
             selected_slave_acqs=[]
             orbit_file = None
-            orbit_dt = track_dt.replace(minute=0, hour=12, second=0).isoformat()
+            orbit_dt = slave_track_dt.replace(minute=0, hour=12, second=0).isoformat()
             logger.info("orbit_dt : %s" %orbit_dt)
 
             logger.info("orbit_dt : %s" %orbit_dt)
@@ -480,7 +489,9 @@ def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
         logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
         for acq_id in overlapped_matches.keys():
             overlapped_acqs.append(acq_id[0])
-        if is_overlapped and overlap>=0.98: # and overlap >=covth:
+        if overlap <=0.98 or not is_overlapped:
+            logger.info("ERROR ERROR, overlap is %s " %overlap)
+        if is_overlapped: # and overlap>=0.98: # and overlap >=covth:
             logger.info("MATCHED")
             matched = True
             starttime = ref_acq.starttime

@@ -670,9 +670,11 @@ def is_overlap(geojson1, geojson2):
 def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     '''returns True if there is any overlap between the two geojsons. The geojsons
     are just a list of coordinate tuples'''
-    geojson1 = get_intersection(loc1, aoi_loc)["coordinates"]
-    geojson1 = get_intersection(loc1, aoi_loc)["coordinates"]
+    logger.info("find_overlap_within_aoi : %s\n%s\n%s" %(loc1, loc2, aoi_loc))
+    geojson1 = get_intersection(loc1, aoi_loc)
+    geojson2 = get_intersection(loc1, aoi_loc)
     p3=0
+    logger.info("find_overlap_within_aoi : geojson1 : %s\n geojson2 : %s" %(geojson1, geojson2))
     p1=Polygon(geojson1[0])
     p2=Polygon(geojson2[0])
     if p1.intersects(p2):
