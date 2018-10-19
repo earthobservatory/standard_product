@@ -35,7 +35,7 @@ def main():
         print("\n\nSLAVE ACQS : ")
         for acq in  candidate_pair["slave_acqs"]:
             print(acq)
-        print("\nunion_geojson : %s" %candidate_pair["union_geojson"]) 
+        print("\nintersect_geojson : %s" %candidate_pair["intersect_geojson"]) 
         print("\nstarttime : %s" %candidate_pair["starttime"])
         print("\nendtime : %s" %candidate_pair["endtime"])
 
