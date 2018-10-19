@@ -8,6 +8,7 @@ from __future__ import print_function
 import os
 import json
 import pyproj
+import geopandas
 from functools import partial
 from shapely.geometry import shape, Polygon, MultiPolygon, mapping
 from shapely.ops import cascaded_union
@@ -50,7 +51,6 @@ def get_land_area(geojson):
     for shapeobj in land_shapes:
         if shapeobj.intersects(geojson) or geojson.contains(shapeobj):
             if shapeobj.contains(geojson):
-                print("RETURNING : %s" %geojson)
                 return get_area(geojson)
             intersecting_land_shapes.append(geojson.intersection(shapeobj))
     area = get_area(MultiPolygon(intersecting_land_shapes))
@@ -115,10 +115,12 @@ def get_shapes(oftype='land'):
     shapes = []
     if not os.path.exists(shapefile):
         raise Exception('Required data file does not exist: {0}'.format(shapefile))
-    with fiona.collection(shapefile, 'r') as inp:
-        for geom in inp:
-            sp = shape(geom['geometry'])
-            shapes.append(sp)
+    #with fiona.collection(shapefile, 'r') as inp:
+    #    for geom in inp:
+    #        sp = shape(geom['geometry'])
+    #        shapes.append(sp)
+    #return shapes
+    shapes = geopandas.read_file(shapefile)['geometry']
     return shapes
 
 def validate_geojson(geojson):
@@ -127,10 +129,13 @@ def validate_geojson(geojson):
         geojson = json.loads(geojson)
     if isinstance(geojson, shapely.geometry.polygon.Polygon):
         return geojson
+    if isinstance(geojson, shapely.geometry.multipolygon.MultiPolygon):
+        return geojson
     shp = shape(geojson)
     if shp.is_valid:
         return shp
     else:
+        print(type(geojson))
         raise Exception('input geojson {0} is not valid'.format(geojson))
 
 def test():
@@ -160,3 +165,4 @@ def test():
 
 if __name__ == '__main__':
     test()
+

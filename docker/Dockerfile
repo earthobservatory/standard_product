@@ -27,7 +27,7 @@ RUN pip3 install shapely
 
 RUN pip install fiona
 RUN pip3 install fiona
-
+RUN sudo pip3 install geopandas
 
 # as ops user
 USER ops
