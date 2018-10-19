@@ -483,7 +483,14 @@ def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
         logger.info("union loc : %s" %union_loc)
         is_ref_truncated = util.ref_truncated(ref_acq, overlapped_matches, covth=.99)
         is_covered = util.is_within(ref_acq.location["coordinates"], union_loc["coordinates"])
-        is_overlapped, overlap = util.find_overlap_within_aoi(ref_acq.location, union_loc, aoi_location)
+        is_overlapped = True
+        overlap = 0
+        try:
+            is_overlapped, overlap = util.find_overlap_within_aoi(ref_acq.location, union_loc, aoi_location)
+        except Exception as err:
+            logger.warn(str(err))
+            logger.warn("Traceback: {}".format(traceback.format_exc()))
+
         logger.info("is_ref_truncated : %s" %is_ref_truncated)
         logger.info("is_within : %s" %is_covered)
         logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))

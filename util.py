@@ -675,8 +675,13 @@ def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     geojson2 = get_intersection(loc1, aoi_loc)
     p3=0
     logger.info("find_overlap_within_aoi : geojson1 : %s\n geojson2 : %s" %(geojson1, geojson2))
-    p1=Polygon(geojson1[0])
-    p2=Polygon(geojson2[0])
+    if type(geojson1) is tuple:
+        geojson1 = geojson1[0]
+    if type(geojson2) is tuple:
+        geojson2 = geojson2[0]
+
+    p1=Polygon(geojson1["coordinates"][0])
+    p2=Polygon(geojson2["coordinates"][0])
     if p1.intersects(p2):
         p3 = p1.intersection(p2).area/p1.area
     return p1.intersects(p2), p3
