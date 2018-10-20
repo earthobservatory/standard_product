@@ -203,25 +203,33 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
     ref_type = None
 
     if slave_ipf_count == 1:
+        logger.info("process_enumeration : Ref : Master, #of acq : %s" %len(master_acqs))
         for acq in master_acqs:
+            logger.info("Running CheckMatch for Master acq : %s" %acq.acq_id)
             result, candidate_pair = check_match(acq, slave_acqs, aoi_location, "master") 
             if not result:
+                logger.info("CheckMatch Failed. So Returning False")
                 return False, []
             elif reject_list_check(candidate_pair, reject_pairs):
                 candidate_pair_list.append(candidate_pair)
+                logger.info("process_enumeration: CheckMatch Passed. Adding candidate pair: ")
+                print_candidate_pair(candidate_pair)
     elif slave_ipf_count > 1 and master_ipf_count == 1:
+        logger.info("process_enumeration : Ref : Slave, #of acq : %s" %len(slave_acqs))
         for acq in slave_acqs:
+            logger.info("Running CheckMatch for Slave acq : %s" %acq.acq_id)
             result, candidate_pair = check_match(acq, master_acqs, aoi_location, "slave")         
             if not result:
+                logger.info("CheckMatch Failed. So Returning False")
                 return False, []
             elif reject_list_check(candidate_pair, reject_pairs):
                 candidate_pair_list.append(candidate_pair)
-    
+                print_candidate_pair(candidate_pair)
     if len(candidate_pair_list) == 0:
         result = False
     else:
         result = True
-    return result, candidate_pair
+    return result, candidate_pair_list
 
 
 def enumerate_acquisations(orbit_acq_selections):
@@ -261,7 +269,8 @@ def print_candidate_pair_list_per_track(candidate_pair_list):
         for i in range(len(candidate_pair_list)):
             candidate_pair = candidate_pair_list[i]
             logger.info("Masters Acqs:")
-            logger.info("%s : %s " %(type(candidate_pair), candidate_pair))
+            #print_candidate_pair(candidate_pair)
+            logger.info("print_candidate_pair_list_per_track : %s : %s " %(type(candidate_pair), candidate_pair))
             #logger.info("Masters Acqs:")
             #logger.info(candidate_pair["master_acqs"])
 
@@ -271,6 +280,16 @@ def print_candidate_pair_list_per_track(candidate_pair_list):
             for j in range(len(candidate_pair["slave_acqs"])):
                 logger.info(candidate_pair["slave_acqs"][j])
             '''
+
+
+def print_candidate_pair(candidate_pair):
+    logger.info("Master : ")
+    for master_acq in candidate_pair["master_acqs"]:
+        logger.info(master_acq)
+    logger.info("Slave : ")
+    for master_acq in candidate_pair["slave_acqs"]: 
+        logger.info(master_acq)
+
 
 
 def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, reject_pairs):
@@ -623,7 +642,7 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     ]).encode("utf8")).hexdigest()
 
 
-    id = "standard-product-ifg-acq-%s" %id_hash[0:4]
+    id = "acq-list-%s" %id_hash[0:4]
     prod_dir =  id
     os.makedirs(prod_dir, 0o755)
 
