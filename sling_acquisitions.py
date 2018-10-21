@@ -627,7 +627,7 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     ]).encode("utf8")).hexdigest()
 
 
-    id = "standard-product-ifg-cfg-%s" %id_hash[0:4]
+    id = "ifg-cfg-%s" %id_hash[0:4]
     prod_dir =  id
     os.makedirs(prod_dir, 0o755)
 

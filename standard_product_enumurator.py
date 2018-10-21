@@ -242,28 +242,38 @@ def enumerate_acquisations(orbit_acq_selections):
     reject_pairs = {}
     orbit_file = job_data['orbit_file']
 
-    candidate_pair_list = []
+    #candidate_pair_list = []
 
     for aoi_id in orbit_aoi_data.keys():
-        logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
-        aoi_data = orbit_aoi_data[aoi_id]
-        selected_track_acqs = aoi_data['selected_track_acqs']
-        #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
+        try:
+            candidate_pair_list = []
+            logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
+            aoi_data = orbit_aoi_data[aoi_id]
+            selected_track_acqs = aoi_data['selected_track_acqs']
+            #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
 
-        for track in selected_track_acqs.keys():
-            logger.info("\nenumerate_acquisations : Processing track : %s " %track)
-            if len(selected_track_acqs[track].keys()) <=0:
-                logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
-                continue
-            min_max_count, track_candidate_pair_list = get_candidate_pair_list(track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
-            logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
-            if min_max_count>0:
-                print_candidate_pair_list_per_track(track_candidate_pair_list)
-            if min_max_count >= MIN_MAX and len(track_candidate_pair_list) > 0:
-                for track_dt_list in track_candidate_pair_list:
-                    candidate_pair_list.extend(track_dt_list)
-
-    return candidate_pair_list
+            for track in selected_track_acqs.keys():
+                logger.info("\nenumerate_acquisations : Processing track : %s " %track)
+                if len(selected_track_acqs[track].keys()) <=0:
+                    logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
+                    continue
+                min_max_count, track_candidate_pair_list = get_candidate_pair_list(track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
+                logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
+                if min_max_count>0:
+                    print_candidate_pair_list_per_track(track_candidate_pair_list)
+                if min_max_count >= MIN_MAX and len(track_candidate_pair_list) > 0:
+                    for track_dt_list in track_candidate_pair_list:
+                        candidate_pair_list.extend(track_dt_list)
+            if len(candidate_pair_list)>0:
+                logger.info("\nPublishing ACQ List for AOI : %s" %aoi_id)
+                publish_initiator(candidate_pair_list, job_data)
+            else:
+                logger.info("\nNOTHING to publish for AOI : %s" %aoi_id)
+        except Exception as err:
+            logger.warn("Error with Enumeration for aoi : %s : %s" %(aoi_id, str(err)))
+            logger.warn("Traceback: {}".format(traceback.format_exc()))
+                  
+    #return candidate_pair_list
 
 def print_candidate_pair_list_per_track(track_candidate_pair_list):
     for track_dt_list in track_candidate_pair_list:
@@ -574,9 +584,9 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, grq_index_prefix)
 
     # get metadata
-    master_md = { i:get_metadata(i, rest_url, url) for i in master_acquisitions }
+    master_md = { i:util.get_metadata(i, rest_url, url) for i in master_acquisitions }
     #logger.info("master_md: {}".format(json.dumps(master_md, indent=2)))
-    slave_md = { i:get_metadata(i, rest_url, url) for i in slave_acquisitions }
+    slave_md = { i:util.get_metadata(i, rest_url, url) for i in slave_acquisitions }
     #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
 
     # get tracks
@@ -686,5 +696,4 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
 
     print("creating dataset file : %s" %ds_file)
     util.create_dataset_json(id, version, met_file, ds_file)
-
 
