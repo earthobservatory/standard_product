@@ -1129,7 +1129,7 @@ def create_dataset_json(id, version, met_file, ds_file):
     coordinates = None
 
     try:
-
+        '''
         if 'bbox' in md:
             logger.info("create_dataset_json : met['bbox']: %s" %md['bbox'])
             coordinates = [
@@ -1143,8 +1143,9 @@ def create_dataset_json(id, version, met_file, ds_file):
                   ]
         else:
             coordinates = md['union_geojson']['coordinates']
+        '''
 
-    
+        coordinates = md['union_geojson']['coordinates']
         cord_area = get_area(coordinates[0])
         if not cord_area>0:
             logger.info("creating dataset json. coordinates are not clockwise, reversing it")

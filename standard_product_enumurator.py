@@ -260,17 +260,17 @@ def enumerate_acquisations(orbit_acq_selections):
             if min_max_count>0:
                 print_candidate_pair_list_per_track(track_candidate_pair_list)
             if min_max_count >= MIN_MAX and len(track_candidate_pair_list) > 0:
-                candidate_pair_list.extend(track_candidate_pair_list)
+                for track_dt_list in track_candidate_pair_list:
+                    candidate_pair_list.extend(track_dt_list)
 
     return candidate_pair_list
 
-def print_candidate_pair_list_per_track(candidate_pair_list):
-    if len(candidate_pair_list)>0:
-        for i in range(len(candidate_pair_list)):
-            candidate_pair = candidate_pair_list[i]
+def print_candidate_pair_list_per_track(track_candidate_pair_list):
+    for track_dt_list in track_candidate_pair_list:
+        for candidate_pair in track_dt_list:
             logger.info("Masters Acqs:")
-            #print_candidate_pair(candidate_pair)
-            logger.info("print_candidate_pair_list_per_track : %s : %s " %(type(candidate_pair), candidate_pair))
+            print_candidate_pair(candidate_pair)
+            #logger.info("print_candidate_pair_list_per_track : %s : %s " %(type(candidate_pair), candidate_pair))
             #logger.info("Masters Acqs:")
             #logger.info(candidate_pair["master_acqs"])
 

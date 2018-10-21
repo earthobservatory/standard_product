@@ -403,7 +403,7 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     ]).encode("utf8")).hexdigest()
 
 
-    id = "standard-product-ifg-acq-%s" %id_hash[0:4]
+    id = "acq-list-%s" %id_hash[0:4]
     prod_dir =  id
     os.makedirs(prod_dir, 0o755)
 
