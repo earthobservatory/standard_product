@@ -31,6 +31,8 @@
           <tracks/>
           <starttime/>
           <endtime/>
+          <master_scene/>
+          <slave_scene/>
           <union_geojson/>
           <bbox/>
         </sf:outputs>
@@ -55,6 +57,8 @@
           <tracks from="@#previous"/>
           <starttime from="@#previous"/> 
           <endtime from="@#previous"/>
+          <master_scene from="@#previous"/>
+          <slave_scene from="@#previous"/>
           <union_geojson from="@#previous"/>
           <bbox from="@#previous"/>
         </sf:inputs>
@@ -67,6 +71,8 @@
           <tracks/>
           <starttimes/> 
           <endtimes/>
+          <master_scenes/>
+          <slave_scenes/>
           <union_geojsons/>
           <bboxes/>
         </sf:outputs>
@@ -86,6 +92,8 @@
           <job_priorities from="@#previous"/>
           <dem_types from="@#previous"/>
           <tracks from="@#previous"/>
+          <master_scenes from="@#previous"/>
+          <slave_scenes from="@#previous"/>
           <starttimes from="@#previous"/>
           <endtimes from="@#previous"/>
           <union_geojsons from="@#previous"/>
