@@ -200,6 +200,9 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
     result = False
     candidate_pair_list = []
     
+
+
+    logger.info("Master IPF Count : %s and Slave IPF Count : %s" %(master_ipf_count, slave_ipf_count)) 
     ref_type = None
 
     if slave_ipf_count == 1:
@@ -677,7 +680,11 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     md['starttime'] = "%sZ" %starttime
     md['endtime'] = "%sZ" %endtime
     md['union_geojson'] = union_geojson
-    
+    md['master_scenes'] = master_acquisitions 
+    md['slave_scenes'] = slave_acquisitions
+
+
+ 
     try:
         geom = ogr.CreateGeometryFromJson(json.dumps(union_geojson))
         env = geom.GetEnvelope()

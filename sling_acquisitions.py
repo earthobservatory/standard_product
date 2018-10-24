@@ -319,7 +319,10 @@ def resolve_source(ctx_file):
     slave_acqs = [i.strip() for i in ctx["input_metadata"]['slave_acquisitions'].split()]
     logger.info("master_acqs : %s" %master_acqs)
     logger.info("slave_acqs : %s" %slave_acqs)
-   
+
+
+    master_scene = ctx["input_metadata"]["master_scenes"]   
+    slave_scene = ctx["input_metadata"]["slave_scenes"]
     starttime = ctx["input_metadata"]["starttime"]
     endtime = ctx["input_metadata"]["endtime"]
     bbox = None
@@ -391,6 +394,11 @@ def resolve_source(ctx_file):
     endtimes = []
     bboxes = []
     union_geojsons =[]
+    master_scenes = []
+    slve_scenes = []
+    master_scenes.append(master_scene)
+    slave_scenes.append(slave_scene)
+
 
     acq_infoes.append(acq_info)
     projects.append(project)
@@ -407,10 +415,10 @@ def resolve_source(ctx_file):
         bboxes.append(bbox)
     
     #return acq_infoes, spyddder_extract_versions, acquisition_localizer_versions, standard_product_ifg_versions, projects, job_priorities, job_types, job_versions
-    return acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, union_geojson, bbox
+    return acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox
 
 
-def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, union_geojson, bbox):
+def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox):
     '''
 	This function checks if any ACQ that has not been ingested yet and sling them.
     '''
@@ -517,6 +525,10 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     endtimes = []
     bboxes = []
     union_geojsons =[]
+    master_scenes = []
+    slve_scenes = []
+    master_scenes.append(master_scene)
+    slave_scenes.append(slave_scene)
 
     acq_infoes.append(acq_info)
     projects.append(project)
@@ -530,7 +542,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     if bbox:
         bboxes.append(bbox)
 
-    return acq_infoes, projects, standard_product_ifg_versions, job_priorities, dem_types, tracks, starttimes, endtimes, union_geojsons, bboxes
+    return acq_infoes, projects, standard_product_ifg_versions, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, union_geojsons, bboxes
 
 
 
@@ -569,11 +581,11 @@ def create_dataset_json(id, version, met_file, ds_file):
         json.dump(ds, f, indent=2)
 
 
-def publish_localized_info( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track, starttime, endtime, union_geojson, bbox, wuid=None, job_num=None):
+def publish_localized_info( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track, starttime, endtime, union_geojson, master_scene, slave_scene, bbox, wuid=None, job_num=None):
     for i in range(len(project)):
-        publish_data( acq_info[i], project[i], standard_product_ifg_version[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], union_geojson[i], bbox[i])
+        publish_data( acq_info[i], project[i], standard_product_ifg_version[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], union_geojson[i], bbox[i])
 
-def publish_data( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track,starttime, endtime, union_geojson, bbox, wuid=None, job_num=None):
+def publish_data( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, union_geojson, bbox, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
@@ -627,7 +639,7 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     ]).encode("utf8")).hexdigest()
 
 
-    id = "ifg-cfg-%s" %id_hash[0:4]
+    id = "standard-product-ifg-cfg-%s" %id_hash[0:4]
     prod_dir =  id
     os.makedirs(prod_dir, 0o755)
 
@@ -655,6 +667,9 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     md['starttime'] = starttime
     md['endtime'] = endtime
     md['union_geojson'] = union_geojson
+    md['master_scenes'] = master_scene
+    md['slave_scenes'] = slave_scene
+
     if bbox:
         md['bbox'] = bbox
 
