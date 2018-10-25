@@ -526,7 +526,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     bboxes = []
     union_geojsons =[]
     master_scenes = []
-    slve_scenes = []
+    slave_scenes = []
     master_scenes.append(master_scene)
     slave_scenes.append(slave_scene)
 
