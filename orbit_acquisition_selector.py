@@ -371,17 +371,18 @@ def isTrackSelected(land, water, land_area, water_area):
          
 
 
+        
 def print_groups(grouped_matched):
     for track in grouped_matched["grouped"]:
         logger.info("\nTrack : %s" %track)
-        for day_dt in grouped_matched["grouped"][track]:
+        for day_dt in sorted(grouped_matched["grouped"][track], reverse=True):
             logger.info("\tDate : %s" %day_dt)
             for pv in grouped_matched["grouped"][track][day_dt]:
-                
+
                 for acq in grouped_matched["grouped"][track][day_dt][pv]:
                     logger.info("\t\t%s : %s" %(pv, acq[0]))
-            
-        
+
+
 
 def get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file):
     #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
@@ -392,7 +393,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file):
     logger.info("PROCESSING AOI : %s : %s" %(aoi['id'], aoi['location']))
     grouped_matched = util.group_acqs_by_track_date_from_metadata(acqs) #group_acqs_by_track(acqs)
     logger.info("grouped_matched Done")
-    util.print_groups(grouped_matched)
+    print_groups(grouped_matched)
 
     matched_ids = grouped_matched["acq_info"].keys()
 
@@ -478,7 +479,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
     aois = query_aois_new(starttime, endtime)
     logger.info("No of AOIs : %s " %len(aois))
     if len(aois) <=0:
-        raise("Exiting as number of aois : %" %len(aois))
+        raise("Exiting as number of aois : %s" %len(aois))
     for aoi in aois:
         logger.info("aoi: {}".format(aoi['id']))
         query = {

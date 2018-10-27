@@ -11,10 +11,10 @@ import dateutil.parser
 from datetime import datetime, timedelta
 #import groundTrack
 from osgeo import ogr, osr
-#import lightweight_water_mask
-#from osaka.osaka import osaka
+import elasticsearch
 
 GRQ_URL="http://100.64.134.208:9200/"
+ES = elasticsearch.Elasticsearch(GRQ_URL)
 
 logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 logger.setLevel(logging.INFO)
@@ -475,7 +475,7 @@ def query_es2(query, es_index=None):
 def print_groups(grouped_matched):
     for track in grouped_matched["grouped"]:
         logger.info("\nTrack : %s" %track)
-        for day_dt in grouped_matched["grouped"][track]:
+        for day_dt in sorted(grouped_matched["grouped"][track], reverse=True):
             logger.info("\tDate : %s" %day_dt)
             for pv in grouped_matched["grouped"][track][day_dt]:
 
@@ -878,6 +878,10 @@ def print_acquisitions(aoi_id, acqs):
         #aoi_id = acq_data['aoi_id']
         logger.info("aoi : %s track: %s orbitnumber : %s pv: %s acq_id : %s" %(aoi_id, acq.tracknumber, acq.orbitnumber, acq.pv, acq.acq_id))
     logger.info("\n")
+
+def update_doc(body=None, index=None, doc_type=None, doc_id=None):
+    ES.update(index= index, doc_type= doc_type, id=doc_id,
+              body=body)
 
 
 def get_track(info):

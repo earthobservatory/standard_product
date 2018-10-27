@@ -90,7 +90,7 @@ def process_query(query):
 def print_groups(grouped_matched):
     for track in grouped_matched["grouped"]:
         logger.info("\nTrack : %s" %track)
-        for day_dt in grouped_matched["grouped"][track]:
+        for day_dt in sorted(grouped_matched["grouped"][track], reverse=True):
             logger.info("\tDate : %s" %day_dt)
             for pv in grouped_matched["grouped"][track][day_dt]:
 
@@ -386,15 +386,20 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, re
                 slave_ids= slave_grouped_matched["grouped"][track][slave_track_dt][pv]
                 for slave_id in slave_ids:
                     selected_slave_acqs.append(slave_grouped_matched["acq_info"][slave_id])
-            track_dt_pv[slave_track_dt] = len(list(set(pv_list)))
+            slave_ipf_count = len(list(set(pv_list)))
+            track_dt_pv[slave_track_dt] = slave_ipf_count
             selected_slave_acqs_by_track_dt[slave_track_dt] =  selected_slave_acqs
 
-        for slave_track_dt in sorted( selected_slave_acqs_by_track_dt.keys(), reverse=True):
-            slave_ipf_count = track_dt_pv[slave_track_dt]
-            slave_acqs = selected_slave_acqs_by_track_dt[slave_track_dt]
+        #for slave_track_dt in sorted( selected_slave_acqs_by_track_dt.keys(), reverse=True):
+            #slave_ipf_count = track_dt_pv[slave_track_dt]
+            logger.info("Processing Slaves with date : %s" %slave_track_dt)
+            #if not slave_track_dt == "2016-02-03 00:00:00":
+                #logger.info("REJECTING foir Test")
+                #continue
+            #slave_acqs = selected_slave_acqs_by_track_dt[slave_track_dt]
             
 
-            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, reject_pairs)            
+            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, aoi_location, reject_pairs)            
             if result:
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
