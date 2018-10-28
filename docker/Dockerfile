@@ -28,7 +28,7 @@ RUN pip3 install shapely
 RUN pip install fiona
 RUN pip3 install fiona
 RUN sudo pip3 install geopandas
-
+RUN sudo pip3 install elasticsearch
 # as ops user
 USER ops
 
