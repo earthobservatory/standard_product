@@ -1,6 +1,6 @@
 {     
   "submission_type": "iteration",
-  "label": "Standard Product Orbit Initiator",
+  "label": "S1 - POEORB Standard Product Enumerator",
   "allowed_accounts": [ "ops" ],
   "enable_dedup": false,
   "params" : [ 
