@@ -661,7 +661,8 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     id_hash = hashlib.md5(json.dumps([
             job_priority,
             master_ids_str,
-            slave_ids_str
+            slave_ids_str,
+            dem_type
     ]).encode("utf8")).hexdigest()
 
 

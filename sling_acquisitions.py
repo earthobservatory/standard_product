@@ -24,6 +24,7 @@ logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
 
+IFG_CFG_ID_TMPL = "ifg-cfg_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
 
 BASE_PATH = os.path.dirname(__file__)
 MOZART_URL = app.conf['MOZART_URL']
@@ -632,14 +633,21 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
    
     job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
 
+    list_master_dt, list_slave_dt = util.get_acq_dates(master_scene, slave_scene)
+
     id_hash = hashlib.md5(json.dumps([
 	job_priority,
 	master_ids_str,
-	slave_ids_str
+	slave_ids_str,
+        dem_type
     ]).encode("utf8")).hexdigest()
 
 
-    id = "standard-product-ifg-cfg-%s" %id_hash[0:4]
+    orbit_type = 'poeorb'
+
+    id = IFG_CFG_ID_TMPL.format('M', len(master_scene), len(slave_scene), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4])
+
+    #id = "standard-product-ifg-cfg-%s" %id_hash[0:4]
     prod_dir =  id
     os.makedirs(prod_dir, 0o755)
 
