@@ -41,6 +41,8 @@ SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
 
 IFG_ID_TMPL = "S1-IFG_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}_s{}-{}-{}"
 RSP_ID_TMPL = "S1-SLCP_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}_s{}-{}-{}"
+ACQ_LIST_ID_TMPL = "acq-list_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
+
 
 BASE_PATH = os.path.dirname(__file__)
 GRQ_ES_URL = "http://100.64.134.208:9200/"
@@ -652,7 +654,10 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
         else:
             slave_ids_str += " "+acq
 
-
+    list_master_dt, list_slave_dt = util.get_acq_dates(master_acquisitions, slave_acquisitions)
+    
+    #ACQ_LIST_ID_TMPL = "acq_list-R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
+    
     id_hash = hashlib.md5(json.dumps([
             job_priority,
             master_ids_str,
@@ -660,7 +665,23 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     ]).encode("utf8")).hexdigest()
 
 
-    id = "acq-list-%s" %id_hash[0:4]
+    '''
+    id_hash = hashlib.md5(json.dumps([
+        ACQ_LIST_ID_TMPL,
+        m,
+        master_orbit_urls[-1],
+        slave_zip_urls[-1],
+        slave_orbit_urls[-1],
+        projects[-1],
+        filter_strength,
+	dem_type
+    ]).encode("utf8")).hexdigest()
+    '''
+
+    orbit_type = 'poeorb'
+
+    id = ACQ_LIST_ID_TMPL.format('M', len(master_acquisitions), len(slave_acquisitions), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4])
+    #id = "acq-list-%s" %id_hash[0:4]
     prod_dir =  id
     os.makedirs(prod_dir, 0o755)
 
