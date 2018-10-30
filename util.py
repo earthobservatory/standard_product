@@ -25,6 +25,15 @@ SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
                     r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +
                     r'_(?P<end_year>\d{4})(?P<end_month>\d{2})(?P<end_day>\d{2})' +
                     r'T(?P<end_hour>\d{2})(?P<end_min>\d{2})(?P<end_sec>\d{2})_.*$')
+# acquisition-S1A_IW_SLC__1SSV_20160203T004751_20160203T004818_009775_00E4B2_A0B8
+ACQ_RE = re.compile(r'(?P<mission>acquisition-S1\w)_IW_SLC__.*?' +
+                    r'_(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
+                    r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +
+                    r'_(?P<end_year>\d{4})(?P<end_month>\d{2})(?P<end_day>\d{2})' +
+                    r'T(?P<end_hour>\d{2})(?P<end_min>\d{2})(?P<end_sec>\d{2})_.*$')
+
+IFG_ID_TMPL = "S1-IFG_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}_s123-{}-{}-standard_product"
+RSP_ID_TMPL = "S1-SLCP_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}_s{}-{}-{}"
 
 BASE_PATH = os.path.dirname(__file__)
 MISSION = 'S1A'
@@ -1272,6 +1281,91 @@ def query_orbit_file(starttime, endtime, platform):
     #logger.info("hits: {}".format(json.dumps(hits, indent=2)))
     #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
     return hits
+
+
+def get_dates_mission(id):
+    """Return day date, slc start date and slc end date."""
+
+    match = ACQ_RE.search(id)
+    if not match:
+        raise RuntimeError("Failed to recognize SLC ID %s." % id)
+    day_dt = datetime(int(match.group('start_year')),
+                      int(match.group('start_month')),
+                      int(match.group('start_day')),
+                      0, 0, 0)
+    slc_start_dt = datetime(int(match.group('start_year')),
+                            int(match.group('start_month')),
+                            int(match.group('start_day')),
+                            int(match.group('start_hour')),
+                            int(match.group('start_min')),
+                            int(match.group('start_sec')))
+    slc_end_dt = datetime(int(match.group('end_year')),
+                          int(match.group('end_month')),
+                          int(match.group('end_day')),
+                          int(match.group('end_hour')),
+                          int(match.group('end_min')),
+                          int(match.group('end_sec')))
+    mission = match.group('mission')
+    return day_dt, slc_start_dt, slc_end_dt, mission
+
+
+def get_acq_dates(master_ids, slave_ids):
+    """Return ifg start and end dates."""
+
+    master_day_dts = {}
+    for id in master_ids:
+        day_dt, slc_start_dt, slc_end_dt, mission = get_dates_mission(id)
+        master_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
+    if len(master_day_dts) > 1:
+        raise RuntimeError("Found master SLCs for more than 1 day.")
+    master_day_dt = day_dt
+    master_all_dts = master_day_dts[day_dt]
+    master_all_dts.sort()
+
+    slave_day_dts = {}
+    for id in slave_ids:
+        day_dt, slc_start_dt, slc_end_dt, mission = get_dates_mission(id)
+        slave_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
+    if len(slave_day_dts) > 1:
+        raise RuntimeError("Found slave SLCs for more than 1 day.")
+    slave_day_dt = day_dt
+    slave_all_dts = slave_day_dts[day_dt]
+    slave_all_dts.sort()
+
+    if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
+    else: return master_all_dts[-1], slave_all_dts[0]
+
+
+def get_orbit(ids):
+    """Get orbit for a set of SLC ids. They need to belong to the same day."""
+
+    day_dts = {}
+    if len(ids) == 0: raise RuntimeError("No SLC ids passed.")
+    for id in ids:
+        day_dt, slc_start_dt, slc_end_dt, mission = get_dates_mission(id)
+        day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
+    if len(day_dts) > 1:
+        raise RuntimeError("Found SLCs for more than 1 day.")
+    all_dts = day_dts[day_dt]
+    all_dts.sort()
+    return fetch("%s.0" % all_dts[0].isoformat(), "%s.0" % all_dts[-1].isoformat(),
+                 mission=mission, dry_run=True)
+
+def get_urls(info):
+    """Return list of SLC URLs with preference for S3 URLs."""
+
+    urls = []
+    for id in info:
+        h = info[id]
+        fields = h['_source']
+        prod_url = fields['urls'][0]
+        if len(fields['urls']) > 1:
+            for u in fields['urls']:
+                if u.startswith('s3://'):
+                    prod_url = u
+                    break
+        urls.append("%s/%s" % (prod_url, fields['metadata']['archive_filename']))
+    return urls
 
 
 
