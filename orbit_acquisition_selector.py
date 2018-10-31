@@ -661,6 +661,7 @@ def resolve_aoi_acqs(ctx_file):
     spyddder_extract_version= ctx['spyddder_extract_version']
     spyddder_extract_version = "standard-product"
     acquisition_localizer_version = ctx['acquisition_localizer_version']
+    acquisition_localizer_version = 'standard-product'
     standard_product_localizer_version = ctx['standard_product_localizer_version']
     standard_product_ifg_version = 'standard-product'
     if 'standard_product_ifg_version' in ctx and ctx['standard_product_ifg_version'] is not None and ctx['standard_product_ifg_version'] !="":
