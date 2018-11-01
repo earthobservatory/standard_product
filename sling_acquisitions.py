@@ -600,7 +600,7 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     version = "v2.0.0"
 
     if type(project) is list:
-        project = project[0]i
+        project = project[0]
     logger.info("project : %s" %project)
     
     master_acq_list = []
@@ -636,11 +636,14 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
 
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
-   
+    list_master_dt = ""
+    list_slave_dt = ""
     job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
-
-    list_master_dt, list_slave_dt = util.get_acq_dates(master_acq_list, slave_acq_list)
-
+    try:
+        list_master_dt, list_slave_dt = util.get_acq_dates(master_acq_list, slave_acq_list)
+    except Exception as err:
+         logger.info(str(err))
+       
     id_hash = hashlib.md5(json.dumps([
 	job_priority,
 	master_ids_str,
