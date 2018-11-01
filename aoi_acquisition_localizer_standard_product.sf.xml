@@ -92,10 +92,10 @@
           <job_priorities from="@#previous"/>
           <dem_types from="@#previous"/>
           <tracks from="@#previous"/>
-          <master_scenes from="@#previous"/>
-          <slave_scenes from="@#previous"/>
           <starttimes from="@#previous"/>
           <endtimes from="@#previous"/>
+          <master_scenes from="@#previous"/>
+          <slave_scenes from="@#previous"/>
           <union_geojsons from="@#previous"/>
           <bboxes from="@#previous"/>
         </sf:inputs>
