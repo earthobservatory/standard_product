@@ -590,6 +590,12 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
+    logger.info("project : %s " %project)
+    logger,info("dem type : %s " %sdem_type)
+    logger.info("track : %s" %track)
+    logger.info("starttime, endtime, : %s : %s " %(starttime, endtime))
+    logger.info(" master_scene, slave_scene : %s, %s" %(master_scene, slave_scene))
+    logger.info(" union_geojson : %s, bbox : %s " %( union_geojson, bbox))
     master_ids_str=""
     master_ids_list=[]
 
