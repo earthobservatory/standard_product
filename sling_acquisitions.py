@@ -591,7 +591,7 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
     logger.info("project : %s " %project)
-    logger,info("dem type : %s " %sdem_type)
+    logger.info("dem type : %s " %dem_type)
     logger.info("track : %s" %track)
     logger.info("starttime, endtime, : %s : %s " %(starttime, endtime))
     logger.info(" master_scene, slave_scene : %s, %s" %(master_scene, slave_scene))
