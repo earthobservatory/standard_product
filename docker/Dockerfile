@@ -25,8 +25,8 @@ COPY . /home/ops/verdi/ops/standard_product
 RUN pip install shapely
 RUN pip3 install shapely
 
-RUN pip install 'fiona=1.7.13'
-RUN pip3 install 'fiona=1.7.13'
+RUN pip install 'fiona==1.7.13'
+RUN pip3 install 'fiona==1.7.13'
 RUN sudo pip3 install geopandas
 RUN pip3 install elasticsearch
 RUN pip install elasticsearch
