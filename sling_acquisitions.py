@@ -600,9 +600,12 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     version = "v2.0.0"
 
     if type(project) is list:
-        project = project[0]
+        project = project[0]i
     logger.info("project : %s" %project)
     
+    master_acq_list = []
+    slave_acq_list = []
+
     for acq in acq_info.keys():
 	acq_data = acq_info[acq]['acq_data']
 	acq_type = acq_info[acq]['acq_type']
@@ -610,12 +613,15 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
         logger.info("identifier : %s" %identifier)
 	if acq_type == "master":
 	    master_ids_list.append(identifier)
+            master_acq_list.append(acq)
+ 
 	    if master_ids_str=="":
 		master_ids_str=identifier
 	    else:
 		master_ids_str += " "+identifier
 
 	elif acq_type == "slave":
+            slave_acq_list.append(acq)
             slave_ids_list.append(identifier)
             if slave_ids_str=="":
                 slave_ids_str=identifier
@@ -633,7 +639,7 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
    
     job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
 
-    list_master_dt, list_slave_dt = util.get_acq_dates(master_scene, slave_scene)
+    list_master_dt, list_slave_dt = util.get_acq_dates(master_acq_list, slave_acq_list)
 
     id_hash = hashlib.md5(json.dumps([
 	job_priority,
