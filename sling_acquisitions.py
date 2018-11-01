@@ -582,7 +582,7 @@ def create_dataset_json(id, version, met_file, ds_file):
         json.dump(ds, f, indent=2)
 
 
-def publish_localized_info( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track, starttime, endtime, union_geojson, master_scene, slave_scene, bbox, wuid=None, job_num=None):
+def publish_localized_info( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox, wuid=None, job_num=None):
     for i in range(len(project)):
         publish_data( acq_info[i], project[i], standard_product_ifg_version[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], union_geojson[i], bbox[i])
 
