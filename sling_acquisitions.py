@@ -110,6 +110,7 @@ def query_es(endpoint, doc_id):
 def create_dataset_json(id, version, met_file, ds_file):
     """Write dataset json."""
 
+    logger.info("create_dataset_json")
 
     # get metadata
     with open(met_file) as f:
@@ -121,7 +122,7 @@ def create_dataset_json(id, version, met_file, ds_file):
         'label': id
     }
 
-    coordinates = None
+    coordinateste_dataset_json = None
 
     try:
 
@@ -139,8 +140,10 @@ def create_dataset_json(id, version, met_file, ds_file):
             logger.info("creating dataset json. coordinates are already clockwise")
 
         ds['location'] =  {'type': 'Polygon', 'coordinates': coordinates}
+        logger.info("create_dataset_json location : %s" %ds['location'])
 
     except Exception as err:
+        logger.info("create_dataset_json: Exception : ")
         logger.warn(str(err))
         logger.warn("Traceback: {}".format(traceback.format_exc()))
 
@@ -561,25 +564,6 @@ def check_all_job_completed(acq_info):
     return all_done
 
 
-
-def create_dataset_json(id, version, met_file, ds_file):
-    """Write dataset json."""
-
-
-    # get metadata
-    with open(met_file) as f:
-        md = json.load(f)
-
-
-    ds = {
-        'creation_timestamp': "%sZ" % datetime.utcnow().isoformat(),
-        'version': version,
-        'label': id
-    }
-
-    # write out dataset json
-    with open(ds_file, 'w') as f:
-        json.dump(ds, f, indent=2)
 
 
 def publish_localized_info( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox, wuid=None, job_num=None):
