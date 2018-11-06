@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 #import groundTrack
 from osgeo import ogr, osr
 import elasticsearch
+import lightweight_water_mask
+
 
 GRQ_URL="http://100.64.134.208:9200/"
 ES = elasticsearch.Elasticsearch(GRQ_URL)
@@ -40,7 +42,7 @@ MISSION = 'S1A'
 
 
 class ACQ:
-    def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv ):
+    def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv,  ):
         self.acq_id=acq_id,
         self.download_url = download_url
         self.tracknumber = tracknumber
@@ -51,6 +53,8 @@ class ACQ:
         self.direction = direction
         self.orbitnumber = orbitnumber
         self.identifier = identifier
+        self.covers_only_water = lightweight_water_mask.covers_only_water(location)
+        self.covers_only_land = lightweight_water_mask.covers_only_land(location)
         
         #print("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv))
 

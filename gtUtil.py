@@ -197,7 +197,7 @@ def change_union_coordinate_direction(union_geom):
 def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file = None):
 
     logger.info("\n\n\nWATER MASK TEST\n")
-    #return True
+    return True
 
     passed = False
     starttimes = []
@@ -214,6 +214,14 @@ def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbi
         for acq_id in acq_ids:
             logger.info("\n%s : %s" %(pv, acq_id))
             acq = acq_info[acq_id]
+            if acq.covers_only_land:
+                logger.info("COVERS ONLY LAND")
+            elif acq.covers_only_water:
+                logger.info("COVERS ONLY WATER, SO RETURNING FALSE")
+                return False
+            else:
+                logger.info("COVERS BOTH LAND & WATER")
+
             starttimes.append(get_time(acq.starttime))
             endtimes.append(get_time(acq.endtime))
 
@@ -293,7 +301,7 @@ def isTrackSelected(union_land, aoi_land):
         logger.info("\nERROR : isTrackSelected : Returning as lands are Not correct")
         return False
     delta = abs(union_land - aoi_land)
-    pctDelta = delta/union_land
+    pctDelta = delta/aoi_land
     logger.info("delta : %s and pctDelta : %s" %(delta, pctDelta))
     if pctDelta <.1:
         logger.info("Track is SELECTED !!")
