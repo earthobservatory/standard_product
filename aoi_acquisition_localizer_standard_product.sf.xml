@@ -22,7 +22,6 @@
 	  <acq_infoes/>
 	  <spyddder_extract_versions/>
 	  <acquisition_localizer_versions/>
-	  <standard_product_ifg_versions/>
 	  <projects/>
  	  <job_prorities/>
 	  <job_types/>
@@ -48,7 +47,6 @@
           <acq_infoes from="@#previous"/> 
           <spyddder_extract_versions from="@#previous"/>
 	  <acquisition_localizer_versions from="@#previous"/>
-          <standard_product_ifg_versions from="@#previous"/>
           <projects from="@#previous"/>
           <job_prorities from="@#previous"/>
           <job_types from="@#previous"/>
@@ -65,7 +63,6 @@
         <sf:outputs>
 	  <acq_infoes/> 
           <projects/>
-	  <standard_product_ifg_versions/>
           <job_priorities/>
           <dem_types/>
           <tracks/>
@@ -88,7 +85,6 @@
         <sf:inputs>
 	  <acq_infoes from="@#previous"/> 
           <projects from="@#previous"/>
-	  <standard_product_ifg_versions from="@#previous"/>
           <job_priorities from="@#previous"/>
           <dem_types from="@#previous"/>
           <tracks from="@#previous"/>
