@@ -20,6 +20,18 @@
       "destination": "context"
     },
     {
+      "name": "spyddder_extract_version",
+      "destination": "context"
+    },
+    {
+      "name": "acquisition_localizer_version",
+      "destination": "context"
+    },
+    {
+      "name": "standard_product_localizer_version",
+      "destination": "context" 
+    },
+    {
       "name": "input_metadata",
       "destination": "context"
     }
