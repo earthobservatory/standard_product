@@ -202,7 +202,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
     result = False
     candidate_pair_list = []
     
-
+    #master_ipf_count=2
 
     logger.info("Master IPF Count : %s and Slave IPF Count : %s" %(master_ipf_count, slave_ipf_count)) 
     ref_type = None
@@ -230,6 +230,9 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
             elif reject_list_check(candidate_pair, reject_pairs):
                 candidate_pair_list.append(candidate_pair)
                 print_candidate_pair(candidate_pair)
+    else:
+        logger.warn("No Selection as both Master and Slave has multiple ipf")
+
     if len(candidate_pair_list) == 0:
         result = False
     else:
@@ -568,10 +571,12 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
 
 
     project = job_data["project"] 
+    '''
     spyddder_extract_version = job_data["spyddder_extract_version"] 
     standard_product_ifg_version = job_data["standard_product_ifg_version"] 
     acquisition_localizer_version = job_data["acquisition_localizer_version"]
     standard_product_localizer_version = job_data["standard_product_localizer_version"] 
+    '''
     #job_data["job_type"] = job_type
     #job_data["job_version"] = job_version
     job_priority = job_data["job_priority"] 
@@ -631,7 +636,7 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     job_queue = "%s-job_worker-large" % project
     logger.info("submit_localize_job : Queue : %s" %job_queue)
 
-    localizer_job_type = "job-standard_product_localizer:%s" % standard_product_localizer_version
+    #localizer_job_type = "job-standard_product_localizer:%s" % standard_product_localizer_version
 
     logger.info("master acq type : %s of length %s"  %(type(master_acquisitions), len(master_acquisitions)))
     logger.info("slave acq type : %s of length %s" %(type(slave_acquisitions), len(master_acquisitions)))
@@ -695,9 +700,11 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     md['project'] =  project,
     md['master_acquisitions'] = master_ids_str
     md['slave_acquisitions'] = slave_ids_str
+    '''
     md['spyddder_extract_version'] = spyddder_extract_version
     md['acquisition_localizer_version'] = acquisition_localizer_version
     md['standard_product_ifg_version'] = standard_product_ifg_version
+    '''
     md['job_priority'] = job_priority
     md['_disk_usage'] = disk_usage
     md['soft_time_limit'] =  86400

@@ -658,6 +658,7 @@ def resolve_aoi_acqs(ctx_file):
     queue = "system-jobs-queue"
     singlesceneOnly = True
     precise_orbit_only = True
+    '''
     spyddder_extract_version= ctx['spyddder_extract_version']
     spyddder_extract_version = "standard-product"
     acquisition_localizer_version = ctx['acquisition_localizer_version']
@@ -666,7 +667,7 @@ def resolve_aoi_acqs(ctx_file):
     standard_product_ifg_version = 'standard-product'
     if 'standard_product_ifg_version' in ctx and ctx['standard_product_ifg_version'] is not None and ctx['standard_product_ifg_version'] !="":
         standard_product_ifg_version = ctx['standard_product_ifg_version']
-
+    '''
     #standard_product_version= ctx['standard_product_version']
     project = ctx['project']
     logger.info("PROJECT : %s" %project)
@@ -676,10 +677,13 @@ def resolve_aoi_acqs(ctx_file):
     job_data = {}
  
     job_data["project"] = project
+    '''
     job_data["spyddder_extract_version"] = spyddder_extract_version
     job_data["standard_product_ifg_version"] = standard_product_ifg_version
     job_data["acquisition_localizer_version"] = acquisition_localizer_version
     job_data["standard_product_localizer_version"] = standard_product_localizer_version
+    '''
+
     job_data["job_type"] = job_type
     job_data["job_version"] = job_version
     job_data["job_priority"] = ctx['job_priority']
