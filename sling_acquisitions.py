@@ -335,9 +335,13 @@ def resolve_source(ctx_file):
 
     union_geojson = ctx["input_metadata"]["union_geojson"]
  
+    spyddder_extract_version = ctx["spyddder_extract_version"]
+    acquisition_localizer_version = ctx["acquisition_localizer_version"]
+    ''' 
     spyddder_extract_version = ctx["input_metadata"]["spyddder_extract_version"]
     acquisition_localizer_version = ctx["input_metadata"]["acquisition_localizer_version"]
     standard_product_ifg_version = ctx["input_metadata"]["standard_product_ifg_version"]
+    '''
     job_priority = ctx["input_metadata"]["job_priority"]
     job_type, job_version = ctx['job_specification']['id'].split(':') 
 
@@ -393,7 +397,7 @@ def resolve_source(ctx_file):
     job_versions = []
     spyddder_extract_versions = []
     acquisition_localizer_versions = []
-    standard_product_ifg_versions = []
+    #standard_product_ifg_versions = []
     starttimes = []
     endtimes = []
     bboxes = []
@@ -411,7 +415,7 @@ def resolve_source(ctx_file):
     job_versions.append(job_version)
     spyddder_extract_versions.append(spyddder_extract_version)
     acquisition_localizer_versions.append(acquisition_localizer_version)
-    standard_product_ifg_versions.append(standard_product_ifg_version)
+    #standard_product_ifg_versions.append(standard_product_ifg_version)
     starttimes.append(starttime)
     endtimes.append(endtime)
     union_geojsons.append(union_geojson)
@@ -419,10 +423,10 @@ def resolve_source(ctx_file):
         bboxes.append(bbox)
     
     #return acq_infoes, spyddder_extract_versions, acquisition_localizer_versions, standard_product_ifg_versions, projects, job_priorities, job_types, job_versions
-    return acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scenes, slave_scenes, union_geojson, bbox
+    return acq_info, spyddder_extract_version, acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scenes, slave_scenes, union_geojson, bbox
 
 
-def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, standard_product_ifg_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox):
+def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox):
     '''
 	This function checks if any ACQ that has not been ingested yet and sling them.
     '''
@@ -522,7 +526,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     job_priorities = []
     job_types = []
     job_versions = []
-    standard_product_ifg_versions = []
+    #standard_product_ifg_versions = []
     dem_types = []
     tracks = []
     starttimes = []
@@ -537,7 +541,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     acq_infoes.append(acq_info)
     projects.append(project)
     job_priorities.append(job_priority)
-    standard_product_ifg_versions.append(standard_product_ifg_version)
+    #standard_product_ifg_versions.append(standard_product_ifg_version)
     dem_types.append(dem_type)
     tracks.append(track)
     starttimes.append(starttime)
@@ -546,7 +550,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, sta
     if bbox:
         bboxes.append(bbox)
 
-    return acq_infoes, projects, standard_product_ifg_versions, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, union_geojsons, bboxes
+    return acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, union_geojsons, bboxes
 
 
 
@@ -566,11 +570,11 @@ def check_all_job_completed(acq_info):
 
 
 
-def publish_localized_info( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox, wuid=None, job_num=None):
+def publish_localized_info( acq_info, project, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox, wuid=None, job_num=None):
     for i in range(len(project)):
-        publish_data( acq_info[i], project[i], standard_product_ifg_version[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], union_geojson[i], bbox[i])
+        publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], union_geojson[i], bbox[i])
 
-def publish_data( acq_info, project, standard_product_ifg_version, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, union_geojson, bbox, wuid=None, job_num=None):
+def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, union_geojson, bbox, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
@@ -628,7 +632,7 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     job_queue = "%s-job_worker-large" % project
     list_master_dt = ""
     list_slave_dt = ""
-    job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
+    #job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
     try:
         list_master_dt, list_slave_dt = util.get_acq_dates(master_acq_list, slave_acq_list)
     except Exception as err:
@@ -659,7 +663,7 @@ def publish_data( acq_info, project, standard_product_ifg_version, job_priority,
     md['project'] =  project,
     md['master_ids'] = master_ids_str
     md['slave_ids'] = slave_ids_str
-    md['standard_product_ifg_version'] = standard_product_ifg_version
+    #md['standard_product_ifg_version'] = standard_product_ifg_version
     md['priority'] = job_priority
     md['azimuth_looks'] = 19
     md['range_looks'] = 7
@@ -729,7 +733,7 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
    
-    job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
+    job_type = "job-standard-product-ifg"
 
     job_hash = hashlib.md5(json.dumps([
 	job_priority,
