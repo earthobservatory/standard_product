@@ -30,6 +30,8 @@ RUN pip3 install 'fiona==1.7.13'
 RUN sudo pip3 install geopandas
 RUN pip3 install elasticsearch
 RUN pip install elasticsearch
+RUN pip3 install pyproj
+RUN pip install pyproj
 
 # as ops user
 USER ops
