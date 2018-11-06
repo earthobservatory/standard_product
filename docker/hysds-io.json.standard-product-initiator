@@ -22,7 +22,6 @@
       "value": "v2.0.0"
     },
     {
-    {
       "name": "starttime",
       "from": "dataset_jpath:_source.starttime",
       "type": "text"
