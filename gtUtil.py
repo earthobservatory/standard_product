@@ -197,7 +197,7 @@ def change_union_coordinate_direction(union_geom):
 def water_mask_test1(acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file = None):
 
     logger.info("\n\n\nWATER MASK TEST\n")
-    return True
+    #return True
 
     passed = False
     starttimes = []
