@@ -811,8 +811,8 @@ def submit_sling_job(project, spyddder_extract_version, acquisition_localizer_ve
     #acq_id = acq_data['acq_id']
 
     # set job queue based on project
-    #job_queue = "%s-job_worker-large" % project
-    job_queue = "factotum-job_worker-small" 
+    job_queue = "%s-job_worker-large" % project
+    #job_queue = "factotum-job_worker-small" 
     rule = {
         "rule_name": "standard-product-sling",
         "queue": job_queue,
