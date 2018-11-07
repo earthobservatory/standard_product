@@ -57,6 +57,18 @@ def get_acq_object(acq_id, acq_type, acq_data, localized=False, job_id=None, job
 
     }
 
+def get_area(coords):
+    '''get area of enclosed coordinates- determines clockwise or counterclockwise order'''
+    n = len(coords) # of corners
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += coords[i][1] * coords[j][0]
+        area -= coords[j][1] * coords[i][0]
+    #area = abs(area) / 2.0
+    return area / 2
+
+
 def query_es(endpoint, doc_id):
     """
     This function queries ES
