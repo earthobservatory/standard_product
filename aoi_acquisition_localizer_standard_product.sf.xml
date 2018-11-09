@@ -38,7 +38,7 @@
         <sf:operator>
           <sf:description></sf:description>
           <sf:op>
-            <sf:binding>python:?sling_acquisitions.resolve_source</sf:binding>
+            <sf:binding>python:?sling_standard_product.resolve_source</sf:binding>
           </sf:op>
         </sf:operator>
       </sf:process>
@@ -76,7 +76,7 @@
         <sf:operator>
           <sf:description></sf:description>
           <sf:op>
-            <sf:binding>python:?sling_acquisitions.sling</sf:binding>
+            <sf:binding>python:?sling_standard_product.sling</sf:binding>
           </sf:op>
         </sf:operator>
       </sf:process>
@@ -101,7 +101,7 @@
         <sf:operator>
           <sf:description></sf:description>
           <sf:op>
-            <sf:binding>python:?sling_acquisitions.publish_localized_info</sf:binding>
+            <sf:binding>python:?sling_standard_product.publish_localized_info</sf:binding>
           </sf:op>
         </sf:operator>
       </sf:process>
