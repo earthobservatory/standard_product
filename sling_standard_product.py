@@ -485,6 +485,8 @@ def get_id_hash(acq_info, job_priority, dem_type):
 
 
     for acq in acq_info.keys():
+        acq_type = acq_info[acq]['acq_type']
+
 	if acq_type == "master":
 	    if master_ids_str=="":
 		master_ids_str=acq
