@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # clone spyddder-man to be moved to its final location by docker builder
-git clone -b standard-product https://github.com/mkarim2017/spyddder-man.git
+git clone -b master https://github.com/mkarim2017/acquisition_localizer.git
 
 # clone ariamh to be moved to its final location by docker builder
 git clone -b standard-product https://github.com/mkarim2017/ariamh.git
