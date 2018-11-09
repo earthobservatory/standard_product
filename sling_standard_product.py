@@ -33,7 +33,7 @@ MOZART_ES_ENDPOINT = "MOZART"
 GRQ_ES_ENDPOINT = "GRQ"
 sleep_seconds = 120
 slc_check_max_sec = 300
-sling_completion_max_sec = 10800
+sling_completion_max_sec = 11000
 
 
 class ACQ:
@@ -434,7 +434,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, pro
         elif job_status == "job-failed":
             err_msg = "Error : Acquisition Localizer job %s FAILED. So existing out of the sciflo!!....." %job_id
 	    logger.info(err_msg)
-		    raise RuntimeError(err_msg)
+            raise RuntimeError(err_msg)
         else:
             logger.info("Sling Job RUNNING id : %s. Job Status : %s" %(job_id, job_status))
 
