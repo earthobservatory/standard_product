@@ -46,6 +46,12 @@ def get_acq_object(acq_id, acq_type):
         "acq_id": acq_id,
         "acq_type":  acq_type
     }
+def get_job_object(job_type, job_id, completed):
+    return {
+        "job_id": job_id,
+        "job_type":  job_type,
+        "completed" : completed
+    }
 
 def get_area(coords):
     '''get area of enclosed coordinates- determines clockwise or counterclockwise order'''
@@ -415,29 +421,60 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, pro
     #logger.info("acq_info type: %s : %s" %(type(acq_info), len(acq_info) ))
     #logger.info(acq_info)
     logger.info("%s : %s" %(type(spyddder_extract_version), spyddder_extract_version))
-
+    job_info = {}
+    
     id_hash = get_id_hash(acq_info, job_priority, dem_type)
     acq_list = acq_info.keys()
-    job_id = submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_version, acq_list, job_priority)
-    logger.info("\nSUBMITTED Acquisition Localizer Job with id : %s" %job_id)
+
+    logger.info("\nSubmitting acquisition localizer job for Masters : %" %master_scence)
+    master_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_version, master_scene, job_priority)
+    time.sleep(2)
+    completed = False
+    master_job_status, master_job_id  = get_job_status(master_job_id)
+    if master_job_status == "job-completed":
+        completed = True
+    job_info[master_job_id] = get_job_object("master", master_job_id, completed)
+    logger.info("SUBMITTED Acquisition Localizer Job for Master with id : %s. Status : %s" %(master_job_id, master_job_status))
+
+    logger.info("\nSubmitting acquisition localizer job for Slaves : %" slave_scence)
+    slave_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_version, slave_scene, job_priority)
+    time.sleep(2)
+    slave_job_status, slave_job_id  = get_job_status(slave_job_id)
+    completed = False
+    if slave_job_status == "job-completed":
+        completed = True
+    job_info[slave_job_id] = get_job_object("slave", slave_job_id, completed)
+    logger.info("SUBMITTED Acquisition Localizer Job for slave with id : %s. Status : %s" %(slave_job_id, slave_job_status))
+
+
     # Now loop in until all the jobs are completed 
     job_done = False
     job_check_start_time = datetime.utcnow()
 
     while not all_done:
 
-        job_status, job_id  = get_job_status(job_id)  
-        logger.info("\nAcquisition Localizer Job id Now : %s with status : %s" %(job_id, job_status))
-        if job_status == "job-completed":
-            logger.info("Success! sling job with job id : %s COMPLETED!!" %job_id)
-            job_done = True
-        elif job_status == "job-failed":
-            err_msg = "Error : Acquisition Localizer job %s FAILED. So existing out of the sciflo!!....." %job_id
-	    logger.info(err_msg)
-            raise RuntimeError(err_msg)
-        else:
-            logger.info("Sling Job RUNNING id : %s. Job Status : %s" %(job_id, job_status))
+        for job_id in job_info.keys():
+	   
+            if not job_info[job_id]["completed"]: 
+		job_status, new_job_id  = get_job_status(job_id)  
+  		if job_status == "job-completed":
+		    logger.info("Success! sling job for job_type : %s  with job id : %s COMPLETED!!" %(job_info[job_id]["job_type"], job_id))
+		    job_info[job_id]['completed'] = True
 
+		elif job_status == "job-failed":
+		    err_msg = "Error : Sling job %s FAILED. So existing out of the sciflo!!....." %job_id
+	            logger.info(err_msg)
+		    raise RuntimeError(err_msg)
+
+		elif jobid != new_job_id:
+                    logger.info("!!Job Id has CHANGED!! Removing old job : %s and adding new job : %s for %s" %(job_id, new_job_id, job_info[job_id]["job_type"]))
+                    del(job_info[job_id])
+                    job_info[new_job_id] = get_job_object(job_info[job_id]["job_type"], new_job_id, job_info[job_id]["completed"])
+
+
+        logger.info("Checking if all job completed")
+	all_done = check_all_job_completed(job_info)
+	if not all_done:
 	    now = datetime.utcnow()
 	    delta = (now - job_check_start_time).total_seconds()
             if delta >= sling_completion_max_sec:
@@ -515,15 +552,13 @@ def get_id_hash(acq_info, job_priority, dem_type):
 
         
 
-def check_all_job_completed(acq_info):
+def check_all_job_completed(job_info):
     all_done = True
-    for acq_id in acq_info.keys():
-        if not acq_info[acq_id]['localized']:  
-	    job_status = acq_info[acq_id]['job_status']
-	    if not job_status == "job-completed":
-		logger.info("check_all_job_completed : %s NOT completed!!" %acq_info[acq_id]['job_id'])	
-		all_done = False
-		break
+    for job_id in job_info.keys():
+        if not job_info[job_id]['completed']:  
+	    logger.info("\ncheck_all_job_completed : %s NOT completed!!" %job_id)	
+            all_done = False
+	    break
     return all_done
 
 
@@ -754,16 +789,15 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
     logger.info("\njob_submit_url : %s" %job_submit_url)
 
     # set job type and disk space reqs
-    job_type = "acquisition_localizer_multi_source:{}".format(acquisition_localizer_multi_source_version)
-    job_type = "job-acquisition_localizer_multi_source:master"
+    job_type = "job-acquisition_localizer_multi_source:{}".format(acquisition_localizer_multi_source_version)
+    #job_type = "job-acquisition_localizer_multi_source:master"
      # set job type and disk space reqs
     disk_usage = "300GB"
     #logger.info(acq_data)
     #acq_id = acq_data['acq_id']
 
     # set job queue based on project
-    #job_queue = "%s-job_worker-large" % project
-    job_queue = "factotum-job_worker-small" 
+    job_queue = "%s-job_worker-large" % project
     rule = {
         "rule_name": "standard-product-sling",
         "queue": job_queue,
