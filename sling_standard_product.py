@@ -825,6 +825,11 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
             "value": acquisition_localizer_version
         },
         {
+            "name": "query",
+            "from": "value",
+            "value": ""
+        }
+        {
             "name": "acq_list",
             "from": "value",
             "value": acq_list
@@ -838,7 +843,7 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
     logger.info(sling_job_name)
 
     mozart_job_id = submit_mozart_job({}, rule,hysdsio={"id": "internal-temporary-wiring", "params": params, "job-specification": job_type}, job_name=sling_job_name)
-    logger.info("\nSubmitted sling job with id %s for  %s" %(acq_data["metadata"]["identifier"], mozart_job_id))
+    logger.info("\nSubmitted sling job with id %s" %mozart_job_id)
 
     return mozart_job_id
 
