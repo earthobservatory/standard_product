@@ -751,7 +751,7 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
     spyddder_extract_version = "standard-product"
     acquisition_localizer_multi_source_version = "master"
     job_submit_url = '%s/mozart/api/v0.1/job/submit' % MOZART_URL
-    loggder.info("\njob_submit_url : %s" %job_submit_url)
+    logger.info("\njob_submit_url : %s" %job_submit_url)
 
     # set job type and disk space reqs
     job_type = "acquisition_localizer_multi_source:{}".format(acquisition_localizer_multi_source_version)
