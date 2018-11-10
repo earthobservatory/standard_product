@@ -743,7 +743,7 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
         }
     }
 
-def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_versions, acq_data, priority):
+def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_versions, acq_list, priority):
 
     """Map function for spyddder-man extract job."""
 
@@ -789,6 +789,11 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
             "name": "acquisition_localizer_version",
             "from": "value",
             "value": acquisition_localizer_version
+        },
+        {
+            "name": "acq_list",
+            "from": "value",
+            "value": acq_list
         }
     ]
     
