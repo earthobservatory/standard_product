@@ -426,7 +426,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, pro
     id_hash = get_id_hash(acq_info, job_priority, dem_type)
     acq_list = acq_info.keys()
 
-    logger.info("\nSubmitting acquisition localizer job for Masters : %s" %master_scence)
+    logger.info("\nSubmitting acquisition localizer job for Masters : %s" %master_scene)
     master_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_version, master_scene, job_priority)
     time.sleep(2)
     completed = False
@@ -436,7 +436,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, pro
     job_info[master_job_id] = get_job_object("master", master_job_id, completed)
     logger.info("SUBMITTED Acquisition Localizer Job for Master with id : %s. Status : %s" %(master_job_id, master_job_status))
 
-    logger.info("\nSubmitting acquisition localizer job for Slaves : %s" %slave_scence)
+    logger.info("\nSubmitting acquisition localizer job for Slaves : %s" %slave_scene)
     slave_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_version, slave_scene, job_priority)
     time.sleep(2)
     slave_job_status, slave_job_id  = get_job_status(slave_job_id)
