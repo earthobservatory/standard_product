@@ -25,7 +25,7 @@
       "default": "bc-cluster",
       "version_regex": "job-acquisition_localizer",
       "placeholder": "spyddder-man acquisition localizer job version"
-    }
+    },
     {
       "name": "input_metadata",
       "from": "dataset_jpath:_source.metadata"
