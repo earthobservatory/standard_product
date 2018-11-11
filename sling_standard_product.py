@@ -451,6 +451,8 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, pro
     job_done = False
     job_check_start_time = datetime.utcnow()
 
+
+    all_done = False
     while not all_done:
 
         for job_id in job_info.keys():
