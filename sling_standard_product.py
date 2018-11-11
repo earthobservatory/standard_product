@@ -783,7 +783,7 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
     """Map function for spyddder-man extract job."""
 
     acquisition_localizer_version = "bc-cluster"
-    spyddder_extract_version = "nc-cluster"
+    spyddder_extract_version = "develop"
     acquisition_localizer_multi_source_version = "master"
     job_submit_url = '%s/mozart/api/v0.1/job/submit' % MOZART_URL
     logger.info("\njob_submit_url : %s" %job_submit_url)
