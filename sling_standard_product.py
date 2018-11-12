@@ -468,7 +468,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, pro
 	            logger.info(err_msg)
 		    raise RuntimeError(err_msg)
 
-		elif jobid != new_job_id:
+		elif job_id != new_job_id:
                     logger.info("!!Job Id has CHANGED!! Removing old job : %s and adding new job : %s for %s" %(job_id, new_job_id, job_info[job_id]["job_type"]))
                     del(job_info[job_id])
                     job_info[new_job_id] = get_job_object(job_info[job_id]["job_type"], new_job_id, job_info[job_id]["completed"])
