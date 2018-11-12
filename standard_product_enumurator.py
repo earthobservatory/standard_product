@@ -244,6 +244,7 @@ def enumerate_acquisations(orbit_acq_selections):
 
 
     logger.info("\n\n\nENUMERATE\n")
+            logger.info("orbit_dt : %s" %orbit_dt)
     job_data = orbit_acq_selections["job_data"]
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
@@ -265,7 +266,7 @@ def enumerate_acquisations(orbit_acq_selections):
                 if len(selected_track_acqs[track].keys()) <=0:
                     logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                     continue
-                min_max_count, track_candidate_pair_list = get_candidate_pair_list(track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
+                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
                 logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
                 if min_max_count>0:
                     print_candidate_pair_list_per_track(track_candidate_pair_list)
