@@ -25,7 +25,7 @@ def main():
     
     orbit_acq_selections = orbit_acquisition_selector.resolve_aoi_acqs(context_file)
     #print("\n\norbit_acq_selections:\n%s" %orbit_acq_selections)
-    standard_product_enumurator.enumerate_acquisations(orbit_acq_selections)
+    #standard_product_enumurator.enumerate_acquisations(orbit_acq_selections)
     #candidate_pair_list = get_candidate_pair_list()
     '''
     for candidate_pair in candidate_pair_list:
