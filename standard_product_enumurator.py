@@ -244,7 +244,7 @@ def enumerate_acquisations(orbit_acq_selections):
 
 
     logger.info("\n\n\nENUMERATE\n")
-            logger.info("orbit_dt : %s" %orbit_dt)
+    logger.info("orbit_dt : %s" %orbit_dt)
     job_data = orbit_acq_selections["job_data"]
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
