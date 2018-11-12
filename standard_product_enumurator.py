@@ -47,7 +47,7 @@ ACQ_LIST_ID_TMPL = "acq-list_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%
 BASE_PATH = os.path.dirname(__file__)
 GRQ_ES_URL = "http://100.64.134.208:9200/"
 covth = 0.98
-MIN_MAX = 2
+MIN_MAX = 100
 es_index = "grq_*_*acquisition*"
 
 def get_orbit_date(s):
@@ -123,7 +123,7 @@ def enumerate_acquisations(orbit_acq_selections):
             if len(selected_track_acqs[track].keys()) <=0:
                 logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                 continue
-            min_max_count, track_candidate_pair_list = get_candidate_pair_list(track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
+            min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
             logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
             if min_max_count>0:
                 print_candidate_pair_list_per_track(track_candidate_pair_list)
@@ -310,7 +310,7 @@ def print_candidate_pair(candidate_pair):
 
 
 
-def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, reject_pairs):
+def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, reject_pairs):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -359,9 +359,8 @@ def get_candidate_pair_list(track, selected_track_acqs, aoi_data, orbit_data, re
             selected_slave_acqs=[]
             orbit_file = None
             orbit_dt = slave_track_dt.replace(minute=0, hour=12, second=0).isoformat()
-            logger.info("orbit_dt : %s" %orbit_dt)
+            logger.info("\n\n\nProcessing AOI: %s Track : %s  orbit_dt : %s" %(aoi, track, orbit_dt))
 
-            logger.info("orbit_dt : %s" %orbit_dt)
             isOrbitFile, orbit_id, orbit_url = util.get_orbit_file(orbit_dt, orbit_data['platform'])
             if isOrbitFile:
                 logger.info("%s : %s" %(orbit_id, orbit_url))
