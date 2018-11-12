@@ -657,8 +657,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md = {}
     md['id'] = id
     md['project'] =  project,
-    md['master_ids'] = master_ids_str
-    md['slave_ids'] = slave_ids_str
+    #md['master_ids'] = master_ids_str
+    #md['slave_ids'] = slave_ids_str
     #md['standard_product_ifg_version'] = standard_product_ifg_version
     md['priority'] = job_priority
     md['azimuth_looks'] = 19
