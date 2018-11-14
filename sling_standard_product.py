@@ -345,7 +345,9 @@ def resolve_source(ctx_file):
     union_geojson = ctx["input_metadata"]["union_geojson"]
  
     spyddder_extract_version = ctx["spyddder_extract_version"]
-    acquisition_localizer_version = ctx["acquisition_localizer_version"]
+    multi_source_acquisition_localizer_version = ctx["multi_source_acquisition_localizer_version"]
+    acquisition_localizer_version = ctx["spyddder-man_version"]
+
     ''' 
     spyddder_extract_version = ctx["input_metadata"]["spyddder_extract_version"]
     acquisition_localizer_version = ctx["input_metadata"]["acquisition_localizer_version"]
@@ -411,10 +413,10 @@ def resolve_source(ctx_file):
         bboxes.append(bbox)
     '''
     #return acq_infoes, spyddder_extract_versions, acquisition_localizer_versions, standard_product_ifg_versions, projects, job_priorities, job_types, job_versions
-    return acq_info, spyddder_extract_version, acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox
+    return acq_info, spyddder_extract_version, acquisition_localizer_version, multi_source_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox
 
 
-def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox):
+def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, multi_source_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox):
     '''
 	This function checks if any ACQ that has not been ingested yet and sling them.
     '''
@@ -427,7 +429,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, pro
     acq_list = acq_info.keys()
 
     logger.info("\nSubmitting acquisition localizer job for Masters : %s" %master_scene)
-    master_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_version, master_scene, job_priority)
+    master_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_version, multi_source_acquisition_localizer_version, master_scene, job_priority)
     time.sleep(2)
     completed = False
     master_job_status, master_job_id  = get_job_status(master_job_id)
@@ -780,18 +782,17 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
         }
     }
 
-def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_versions, acq_list, priority):
+def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_versions, multi_source_acquisition_localizer_version, acq_list, priority):
 
     """Map function for spyddder-man extract job."""
 
-    acquisition_localizer_version = "develop"
-    spyddder_extract_version = "develop"
-    acquisition_localizer_multi_source_version = "master"
+    #acquisition_localizer_version = "develop"
+    #spyddder_extract_version = "develop"
     job_submit_url = '%s/mozart/api/v0.1/job/submit' % MOZART_URL
     logger.info("\njob_submit_url : %s" %job_submit_url)
 
     # set job type and disk space reqs
-    job_type = "job-acquisition_localizer_multi_source:{}".format(acquisition_localizer_multi_source_version)
+    job_type = "job-acquisition_localizer_multi_source:{}".format(multi_source_acquisition_localizer_version)
     #job_type = "job-acquisition_localizer_multi_source:master"
      # set job type and disk space reqs
     disk_usage = "300GB"
@@ -815,6 +816,11 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
             "name": "project",
             "from": "value",
             "value": project
+        },
+        {
+            "name": "spyddder-man_version",
+            "from": "value",
+            "value": acquisition_localizer_version
         },
         {
             "name": "spyddder_extract_version",
