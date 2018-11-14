@@ -22,6 +22,7 @@
 	  <acq_infoes/>
 	  <spyddder_extract_versions/>
 	  <acquisition_localizer_versions/>
+          <multi_source_acquisition_localizer_version/>
 	  <projects/>
  	  <job_prorities/>
 	  <job_types/>
@@ -47,6 +48,7 @@
           <acq_infoes from="@#previous"/> 
           <spyddder_extract_versions from="@#previous"/>
 	  <acquisition_localizer_versions from="@#previous"/>
+          <multi_source_acquisition_localizer_version from="@#previous"/> 
           <projects from="@#previous"/>
           <job_prorities from="@#previous"/>
           <job_types from="@#previous"/>
