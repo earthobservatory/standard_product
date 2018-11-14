@@ -27,7 +27,6 @@
     {
       "name": "multi_source_acquisition_localizer_version",
       "from": "submitter",
-      "type": "jobspec_version",
       "default": "master",
       "placeholder": "multi source acquisition localizer job version"
     },
