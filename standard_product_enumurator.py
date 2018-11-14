@@ -47,7 +47,7 @@ ACQ_LIST_ID_TMPL = "acq-list_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%
 BASE_PATH = os.path.dirname(__file__)
 GRQ_ES_URL = "http://100.64.134.208:9200/"
 covth = 0.98
-MIN_MAX = 100
+MIN_MATCH = 100
 es_index = "grq_*_*acquisition*"
 
 def get_orbit_date(s):
@@ -127,7 +127,7 @@ def enumerate_acquisations(orbit_acq_selections):
             logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
             if min_max_count>0:
                 print_candidate_pair_list_per_track(track_candidate_pair_list)
-            if min_max_count >= MIN_MAX and len(track_candidate_pair_list) > 0:
+            if min_max_count >= MIN_MATCH and len(track_candidate_pair_list) > 0:
                 candidate_pair_list.extend(track_candidate_pair_list)
 
     return candidate_pair_list
@@ -171,7 +171,7 @@ def get_candidate_pair_list2(selected_track_acqs, reject_pairs):
         if result and len(orbit_candidate_pair_list)>0:
             candidate_pair_list.extend(orbit_candidate_pair_list)
             min_max_count = min_max_count + 1
-            if min_max_count>=MIN_MAX:
+            if min_max_count>=MIN_MATCH:
                 return min_max_count, candidate_pair_list
         
     elif number_of_orbits > 2:
@@ -194,7 +194,7 @@ def get_candidate_pair_list2(selected_track_acqs, reject_pairs):
                 if result and len(orbit_candidate_pair_list)>0:
                     candidate_pair_list.extend(orbit_candidate_pair_list)
                     min_max_count = min_max_count + 1
-                    if min_max_count>=MIN_MAX:
+                    if min_max_count>=MIN_MATCH:
                         return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
     
@@ -242,10 +242,12 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
 
 def enumerate_acquisations(orbit_acq_selections):
 
+    global MIN_MATCH
 
     logger.info("\n\n\nENUMERATE\n")
     #logger.info("orbit_dt : %s" %orbit_dt)
     job_data = orbit_acq_selections["job_data"]
+    MIN_MATCH = job_data['minMatch']
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
     reject_pairs = {}
@@ -270,7 +272,7 @@ def enumerate_acquisations(orbit_acq_selections):
                 logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
                 if min_max_count>0:
                     print_candidate_pair_list_per_track(track_candidate_pair_list)
-                if min_max_count >= MIN_MAX and len(track_candidate_pair_list) > 0:
+                if min_max_count >= MIN_MATCH and len(track_candidate_pair_list) > 0:
                     for track_dt_list in track_candidate_pair_list:
                         candidate_pair_list.extend(track_dt_list)
             if len(candidate_pair_list)>0:
@@ -408,7 +410,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             if result:
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
-                if min_max_count>=MIN_MAX:
+                if min_max_count>=MIN_MATCH:
                     return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
 
@@ -480,7 +482,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             if result:
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
-                if min_max_count>=MIN_MAX:
+                if min_max_count>=MIN_MATCH:
                     return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
       

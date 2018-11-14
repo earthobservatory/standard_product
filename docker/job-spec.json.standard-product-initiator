@@ -22,6 +22,10 @@
         "destination": "context"
     },
     {
+      "name": "minMatch",
+      "destination": "context"
+    },
+    {
         "name": "starttime",
         "destination": "context"
     },

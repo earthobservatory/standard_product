@@ -21,6 +21,13 @@
       "from": "value",
       "value": "v2.0.0"
     },
+    { 
+      "name": "minMatch",
+      "from": "submitter",
+      "type": "number",
+      "lambda": "lambda x: int(x)",
+      "default": "2"
+    },
     {
       "name": "starttime",
       "from": "dataset_jpath:_source.starttime",

@@ -672,6 +672,7 @@ def resolve_aoi_acqs(ctx_file):
     project = ctx['project']
     logger.info("PROJECT : %s" %project)
     priority = ctx["job_priority"]
+    minMatch = ctx["minMatch"]
     job_type, job_version = ctx['job_specification']['id'].split(':') 
 
     job_data = {}
@@ -688,6 +689,7 @@ def resolve_aoi_acqs(ctx_file):
     job_data["job_version"] = job_version
     job_data["job_priority"] = ctx['job_priority']
     job_data['orbit_file'] = orbit_file 
+    job_data['minMatch'] = minMatch
 
 
     
