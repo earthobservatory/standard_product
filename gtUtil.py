@@ -56,14 +56,14 @@ def get_groundTrack_footprint(tstart, tend, orbit_file):
     geojson = {"type":"Polygon", "coordinates": [gt_footprint]}
     return geojson
 
-def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file=None):
+def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, orbit_file=None):
 
     result = False
     if not aoi_location:
         logger.info("water_mask_check FAILED as aoi_location NOT found")
         return False
     try:
-        result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file)
+        result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, orbit_file)
     except Exception as err:
         traceback.print_exc()
     return result
@@ -105,13 +105,15 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
         coordinates = geojson["coordinates"]
         union_land = 0
         union_water = 0
+        union_intersection = []
         for i in range(len(coordinates)):
             cord =change_coordinate_direction(coordinates[i])
             geojson_new = {"type":"Polygon", "coordinates": [cord]}
-            land, water = get_aoi_area_polygon(geojson_new, aoi_location)
+            land, water, intersection = get_aoi_area_polygon(geojson_new, aoi_location)
             union_land += land
             union_water += water
-        return union_land, union_water
+            union_intersection.append(intersection)
+        return union_land, union_water, union_intersection
 
     else:
         return get_aoi_area_polygon(geojson, aoi_location)
@@ -155,7 +157,7 @@ def get_aoi_area_polygon(geojson, aoi_location):
     logger.info("get_water_area(geojson) : %s " %water_area)
 
 
-    return land_area, water_area
+    return land_area, water_area, intersection
 
 
 
@@ -194,7 +196,7 @@ def change_union_coordinate_direction(union_geom):
 
     return union_geom
 
-def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, orbit_file = None):
+def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id,  orbit_file = None):
 
     logger.info("\n\n\nWATER MASK TEST\n")
     #return True
@@ -227,7 +229,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
 
             logger.info("ACQ start time : %s " %acq.starttime)
             logger.info("ACQ end time : %s" %acq.endtime)
-            land, water = get_aoi_area_multipolygon(acq.location, aoi_location)
+            land, water, acq_intersection = get_aoi_area_multipolygon(acq.location, aoi_location)
             acq_area_array.append(land)
             logger.info("Area from acq.location : %s" %land)
             polygons.append(acq.location)
@@ -235,7 +237,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
             if orbit_file:
                 gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), orbit_file)
                 gt_polygons.append(gt_geojson)
-                land, water = get_aoi_area_multipolygon(gt_geojson, aoi_location)
+                land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
                 logger.info("Area from gt_geojson : %s" %land)
                 gt_area_array.append(land)
 
@@ -252,8 +254,8 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         logger.debug("Type of union polygon : %s of len %s" %(type(union_polygon["coordinates"]), len(union_polygon["coordinates"])))
 
         logger.info("water_mask_test1 without Orbit File")
-        union_land, union_water = get_aoi_area_multipolygon(union_polygon, aoi_location)
-        logger.info("RESULT : Track : %s Date :  %s : water_mask_test1 without Orbit File: union_land : %s union_water : %s" %(track, orbit_or_track_dt, union_land, union_water))
+        union_land_no_orbit, union_water_no_orbit, union_intersection_no_orbit  = get_aoi_area_multipolygon(union_polygon, aoi_location)
+        logger.info("RESULT : AOI : %s, Track : %s, Date :  %s, Union_Acq_AOI, union_land : %s, union_water : %s, intersection : %s" %(aoi_id, track, orbit_or_track_dt, union_land_no_orbit, union_water_no_orbit, union_intersection_no_orbit))
 
 
 
@@ -261,25 +263,29 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         ''' Now Try With Orbit File '''
         logger.info("water_mask_test1 with Orbit File")
         union_gt_polygon = util.get_union_geometry(gt_polygons)
-        #union_gt_polygon = change_coordinate_direction(union_gt_polygon)
-        #logger.debug("water_mask_test1 : union_gt_polygon : %s" %union_gt_polygon)
+        logger.info("union_gt_geojson : %s" %union_gt_polygon)
+        union_land, union_water, union_intersection = get_aoi_area_multipolygon(union_gt_polygon, aoi_location)
+        logger.info("water_mask_test1 with Orbit File: union_land : %s union_water : %s union intersection : %s" %(union_land, union_water, union_intersection))
+
+        
         #get lowest starttime minus 10 minutes as starttime
         tstart = getUpdatedTime(sorted(starttimes)[0], -5)
-        #tstart = sorted(starttimes)[0]
         logger.info("tstart : %s" %tstart)
         tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 5)
-        #tend = sorted(endtimes, reverse=True)[0]
         logger.info("tend : %s" %tend)
-        aoi_gt_geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
-        #aoi_gt_polygon = change_coordinate_direction(aoi_gt_geojson)
-        #logger.debug("water_mask_test1 : aoi_gt_geojson : %s" %aoi_gt_geojson)
-        union_land, union_water = get_aoi_area_multipolygon(union_gt_polygon, aoi_location)
-        logger.info("water_mask_test1 with Orbit File: union_land : %s union_water : %s" %(union_land, union_water))
-        
-        aoi_land, aoi_water = get_aoi_area_multipolygon(aoi_gt_geojson, aoi_location)
-        logger.info("water_mask_test1 with Orbit File: aoi_land : %s aoi_water : %s" %(aoi_land, aoi_water))
-        return isTrackSelected(track, orbit_or_track_dt, union_land, aoi_land)
-    else:        
+
+
+        track_gt_geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
+        logger.info("track_gt_geojson : %s" %track_gt_geojson)
+        track_land, track_water, track_intersection = get_aoi_area_multipolygon(track_gt_geojson, aoi_location)
+        logger.info("water_mask_test1 with Orbit File: track_land : %s track_water : %s intersection : %s" %(track_land, track_water, track_intersection))
+
+        return isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, union_intersection, track_intersection)
+    else:  
+        logger.info("\n\nNO ORBIT\n\n")
+        return False
+      
+        '''
         union_polygon = util.get_union_geometry(polygons)
         union_polygon = change_coordinate_direction(union_polygon)
         logger.info("Type of union polygon : %s of len %s" %(type(union_polygon["coordinates"]), len(union_polygon["coordinates"])))
@@ -287,21 +293,24 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         logger.info("water_mask_test1 without Orbit File : union_geojson : %s" %union_geojson)
         union_land, union_water = get_aoi_area_multipolygon(union_polygon, aoi_location)
         logger.info("water_mask_test1 without Orbit File: union_land : %s union_water : %s" %(union_land, union_water))
-        aoi_land, aoi_water = get_aoi_area_multipolygon(aoi_location, aoi_location)
-        logger.info("water_mask_test1 without Orbit File: aoi_land : %s aoi_water : %s" %(aoi_land, aoi_water))
+        track_land, track_water = get_aoi_area_multipolygon(aoi_location, aoi_location)
+        logger.info("water_mask_test1 without Orbit File: track_land : %s track_water : %s" %(track_land, track_water))
 
-        return isTrackSelected(union_land, aoi_land)
+        return isTrackSelected(union_land, track_land)
+        '''
 
 
-def isTrackSelected(track, orbit_or_track_dt, union_land, aoi_land):
+def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, union_intersection, track_intersection):
     selected = False
-    logger.info("RESULT : Track : %s Date : %s : Area of union of acquisition land = %s" %(track, orbit_or_track_dt, union_land))
-    logger.info("RESULT : Track : %s Date : %s : Area of AOI land = %s" %(track, orbit_or_track_dt, aoi_land))
-    if union_land == 0 or aoi_land == 0:
+    logger.info("RESULT : AOI : %s, Track : %s, Date :  %s, Union_POEORB_Acq_AOI, union_land : %s, union_water : %s, intersection : %s" %(aoi_id, track, orbit_or_track_dt, union_land, union_water, union_intersection))
+    logger.info("RESULT : AOI : %s, Track : %s, Date :  %s, POEORB_Track_AOI, union_land : %s, union_water : %s, intersection : %s" %(aoi_id, track, orbit_or_track_dt, track_land, track_water, track_intersection))
+
+    #logger.info("RESULT : AOI : %s Track : %s Date : %s : Area of AOI land = %s" %(aoi_id, track, orbit_or_track_dt, track_land))
+    if union_land == 0 or track_land == 0:
         logger.info("\nERROR : isTrackSelected : Returning as lands are Not correct")
         return False
-    delta = abs(union_land - aoi_land)
-    pctDelta = delta/aoi_land
+    delta = abs(union_land - track_land)
+    pctDelta = delta/track_land
     logger.info("delta : %s and pctDelta : %s" %(delta, pctDelta))
     if pctDelta <.1:
         logger.info("Track is SELECTED !!")
