@@ -790,9 +790,9 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
     #spyddder_extract_version = "develop"
     job_submit_url = '%s/mozart/api/v0.1/job/submit' % MOZART_URL
     logger.info("\njob_submit_url : %s" %job_submit_url)
-
+    multi_source_acquisition_localizer_version = "master"
     # set job type and disk space reqs
-    job_type = "job-acquisition_localizer_multi_source:{}".format(multi_source_acquisition_localizer_version)
+    job_type = "job-acquisition_localizer_multi:{}".format(multi_source_acquisition_localizer_version)
     #job_type = "job-acquisition_localizer_multi_source:master"
      # set job type and disk space reqs
     disk_usage = "300GB"
@@ -804,7 +804,7 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
     rule = {
         "rule_name": "standard-product-sling",
         "queue": job_queue,
-        "priority": '5',
+        "priority": priority,
         "kwargs":'{}'
     }
 
@@ -813,14 +813,14 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_loc
 
     params = [
         {
-            "name": "project",
+            "name": "asf_ngap_download_queue",
             "from": "value",
-            "value": project
+            "value": "factotum-job_worker-asf_throttled"
         },
         {
-            "name": "spyddder-man_version",
+            "name": "esa_download_queue",
             "from": "value",
-            "value": acquisition_localizer_version
+            "value": "factotum-job_worker-scihub_throttled"
         },
         {
             "name": "spyddder_extract_version",
