@@ -408,7 +408,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file):
     for track in grouped_matched["grouped"]:
         selected_track_dt_acqs = {}
         for track_dt in grouped_matched["grouped"][track]:
-            selected = gtUtil.water_mask_check(track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], orbit_file)
+            selected = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], orbit_file)
             if selected:
                 logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
                 selected_acqs = []
@@ -448,7 +448,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
     for track in grouped_matched["grouped"]:
         selected_orbitnumber_acqs = {}
         for orbitnumber in grouped_matched["grouped"][track]:
-            selected = gtUtil.water_mask_check(orbitnumber, grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi['location'], orbit_file)
+            selected = gtUtil.water_mask_check(track, orbitnumber, grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi['location'], orbit_file)
             if selected:
                 logger.info("SELECTED")
                 selected_acqs = []
