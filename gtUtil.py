@@ -106,7 +106,7 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
         union_land = 0
         union_water = 0
         for i in range(len(coordinates)):
-            cord =ange_coordinate_direction(coordinates[i])
+            cord =change_coordinate_direction(coordinates[i])
             geojson_new = {"type":"Polygon", "coordinates": [cord]}
             land, water = get_aoi_area_polygon(geojson_new, aoi_location)
             union_land += land
