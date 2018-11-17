@@ -102,6 +102,7 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
     polygon_type = geojson["type"]
 
     if polygon_type == "MultiPolygon":
+        logger.info("MultiPolygon")
         coordinates = geojson["coordinates"]
         union_land = 0
         union_water = 0
@@ -110,6 +111,7 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
             cord =change_coordinate_direction(coordinates[i])
             geojson_new = {"type":"Polygon", "coordinates": [cord]}
             land, water, intersection = get_aoi_area_polygon(geojson_new, aoi_location)
+            logger.info("land = %s, water = %s" %(land, water))
             union_land += land
             union_water += water
             union_intersection.append(intersection)
@@ -251,7 +253,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         ''' First Try Without Orbit File '''
         union_polygon = util.get_union_geometry(polygons)
         #union_polygon = change_coordinate_direction(union_polygon)
-        logger.debug("Type of union polygon : %s of len %s" %(type(union_polygon["coordinates"]), len(union_polygon["coordinates"])))
+        logger.info("Type of union polygon : %s of len %s" %(type(union_polygon["coordinates"]), len(union_polygon["coordinates"])))
 
         logger.info("water_mask_test1 without Orbit File")
         union_land_no_orbit, union_water_no_orbit, union_intersection_no_orbit  = get_aoi_area_multipolygon(union_polygon, aoi_location)
