@@ -20,15 +20,7 @@
       "destination": "context"
     },
     {
-      "name": "spyddder-man_version",
-      "destination": "context"
-    },
-    {
-      "name": "spyddder_extract_version",
-      "destination": "context"
-    },
-    {
-      "name": "multi_source_acquisition_localizer_version",
+      "name": "multi_acquisition_localizer_version",
       "destination": "context"
     },
     {

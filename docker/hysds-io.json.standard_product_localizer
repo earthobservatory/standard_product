@@ -12,23 +12,18 @@
       "enumerables": ["aria", "grfn", "mem", "urgent-response", "dwr"]
     },
     {
-      "name": "spyddder-man_version",
-      "from": "submitter",
-      "default": "master",
-      "placeholder": "spyddder-man acquisition-localizer job version"
-    },
-    {
       "name": "spyddder_extract_version",
       "from": "submitter",
+      "default": "develop",
       "type": "jobspec_version",
       "version_regex": "job-spyddder-extract",
       "placeholder": "spyddder-man extract job version"
     },
     {
-      "name": "multi_source_acquisition_localizer_version",
+      "name": "multi_acquisition_localizer_version",
       "from": "submitter",
       "default": "master",
-      "placeholder": "multi source acquisition localizer job version"
+      "placeholder": "multi acquisition localizer job version"
     },
     {
       "name": "input_metadata",

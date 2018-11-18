@@ -303,6 +303,13 @@ def check_slc_status(slc_id):
 
     return False
 
+def get_value(ctx, param, default_value):
+    param = default_value
+    if param in ctx:
+        param = ctx[param]
+    elif param in ctx["input_metadata"]:
+        param = ctx["input_metadata"][param]
+    return param
 
 def resolve_source(ctx_file):
     """Resolve best URL from acquisition."""
@@ -313,29 +320,20 @@ def resolve_source(ctx_file):
     with open(ctx_file) as f:
         ctx = json.load(f)
     
-    '''
-    settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'settings.json')
-    with open(settings_file) as f:
-        settings = json.load(f)
-    '''
-
-    sleep_seconds = 30
-    
 
     # build args
-    project = ctx["input_metadata"]["project"]
+    project = get_value(ctx, "project", "grfn")
     if type(project) is list:
         project = project[0]
+
     dem_type= ctx["input_metadata"]["dem_type"]
     track = ctx["input_metadata"]["track"]
-    master_acqs = [i.strip() for i in ctx["input_metadata"]['master_acquisitions'].split()]
-    slave_acqs = [i.strip() for i in ctx["input_metadata"]['slave_acquisitions'].split()]
-    logger.info("master_acqs : %s" %master_acqs)
-    logger.info("slave_acqs : %s" %slave_acqs)
-
 
     master_scene = ctx["input_metadata"]["master_scenes"]   
     slave_scene = ctx["input_metadata"]["slave_scenes"]
+    logger.info("master_scene : %s" %master_scene)
+    logger.info("slave_scene : %s" %slave_scene)
+
     starttime = ctx["input_metadata"]["starttime"]
     endtime = ctx["input_metadata"]["endtime"]
     bbox = None
@@ -344,84 +342,31 @@ def resolve_source(ctx_file):
 
     union_geojson = ctx["input_metadata"]["union_geojson"]
  
-    spyddder_extract_version = ctx["spyddder_extract_version"]
-    multi_source_acquisition_localizer_version = ctx["multi_source_acquisition_localizer_version"]
-    acquisition_localizer_version = ctx["spyddder-man_version"]
+    spyddder_extract_version = get_value(ctx, "spyddder_extract_version", "develop")
+    multi_acquisition_localizer_version = get_value(ctx, "multi_acquisition_localizer_version", "master")
 
-    ''' 
-    spyddder_extract_version = ctx["input_metadata"]["spyddder_extract_version"]
-    acquisition_localizer_version = ctx["input_metadata"]["acquisition_localizer_version"]
-    standard_product_ifg_version = ctx["input_metadata"]["standard_product_ifg_version"]
-    '''
     job_priority = ctx["input_metadata"]["job_priority"]
     job_type, job_version = ctx['job_specification']['id'].split(':') 
 
-    queues = []  # where should we get the queue value
-    identifiers = []
-    prod_dates = []
-   
 
     acq_info = {}
     
-    index_suffix = "S1-IW_ACQ"
-
-
-
-    # Find out status of all Master ACQs, create a ACQ object with that and update acq_info dictionary
-    for acq in master_acqs:
+    for acq in master_scene:
  	acq_type = "master"
         acq_info[acq]=get_acq_object(acq, acq_type)
 
     # Find out status of all Slave ACQs, create a ACQ object with that and update acq_info dictionary
-    for acq in slave_acqs:
+    for acq in slave_scene:
 	acq_type = "slave"
 	acq_info[acq]=get_acq_object(acq, acq_type)
 
-    '''
-    acq_infoes =[]
-    projects = []
-    job_priorities = []
-    job_types = []
-    job_versions = []
-    spyddder_extract_versions = []
-    acquisition_localizer_versions = []
-    #standard_product_ifg_versions = []
-    starttimes = []
-    endtimes = []
-    bboxes = []
-    union_geojsons =[]
-    master_scenes = []
-    slave_scenes = []
-    id_hashes = []
-    id_hashes.append(id_hash)
-    master_scenes.append(master_scene)
-    slave_scenes.append(slave_scene)
+    return acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox
 
 
-    acq_infoes.append(acq_info)
-    projects.append(project)
-    job_priorities.append(job_priority)
-    job_types.append(job_type)
-    job_versions.append(job_version)
-    spyddder_extract_versions.append(spyddder_extract_version)
-    acquisition_localizer_versions.append(acquisition_localizer_version)
-    #standard_product_ifg_versions.append(standard_product_ifg_version)
-    starttimes.append(starttime)
-    endtimes.append(endtime)
-    union_geojsons.append(union_geojson)
-    if bbox:
-        bboxes.append(bbox)
+def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox):
     '''
-    #return acq_infoes, spyddder_extract_versions, acquisition_localizer_versions, standard_product_ifg_versions, projects, job_priorities, job_types, job_versions
-    return acq_info, spyddder_extract_version, acquisition_localizer_version, multi_source_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox
-
-
-def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, multi_source_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox):
+	This function submits acquisition localizer jobs for mastrer and slaves.
     '''
-	This function checks if any ACQ that has not been ingested yet and sling them.
-    '''
-    #logger.info("acq_info type: %s : %s" %(type(acq_info), len(acq_info) ))
-    #logger.info(acq_info)
     logger.info("%s : %s" %(type(spyddder_extract_version), spyddder_extract_version))
     job_info = {}
     
@@ -429,7 +374,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, mul
     acq_list = acq_info.keys()
 
     logger.info("\nSubmitting acquisition localizer job for Masters : %s" %master_scene)
-    master_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_version, multi_source_acquisition_localizer_version, master_scene, job_priority)
+    master_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, master_scene, job_priority)
     time.sleep(2)
     completed = False
     master_job_status, master_job_id  = get_job_status(master_job_id)
@@ -439,7 +384,7 @@ def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, mul
     logger.info("SUBMITTED Acquisition Localizer Job for Master with id : %s. Status : %s" %(master_job_id, master_job_status))
 
     logger.info("\nSubmitting acquisition localizer job for Slaves : %s" %slave_scene)
-    slave_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, acquisition_localizer_version, slave_scene, job_priority)
+    slave_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, slave_scene, job_priority)
     time.sleep(2)
     slave_job_status, slave_job_id  = get_job_status(slave_job_id)
     completed = False
@@ -590,46 +535,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
         project = project[0]
     logger.info("project : %s" %project)
 
-    '''
-    master_ids_str=""
-    master_ids_list=[]
-
-    slave_ids_str=""
-    slave_ids_list=[]
-
-    master_acq_list = []
-    slave_acq_list = []
-
-    for acq in acq_info.keys():
-	acq_data = acq_info[acq]['acq_data']
-	acq_type = acq_info[acq]['acq_type']
-	identifier =  acq_data["metadata"]["identifier"]
-        logger.info("identifier : %s" %identifier)
-	if acq_type == "master":
-	    master_ids_list.append(identifier)
-            master_acq_list.append(acq)
- 
-	    if master_ids_str=="":
-		master_ids_str=identifier
-	    else:
-		master_ids_str += " "+identifier
-
-	elif acq_type == "slave":
-            slave_acq_list.append(acq)
-            slave_ids_list.append(identifier)
-            if slave_ids_str=="":
-                slave_ids_str=identifier
-            else:
-                slave_ids_str += " "+identifier
-
-
-    logger.info("master_ids_str : %s" %master_ids_str)
-    logger.info("slave_ids_str : %s" %slave_ids_str)
-    '''
-
-
     # set job type and disk space reqs
-    disk_usage = "300GB"
+    disk_usage = "100GB"
 
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
@@ -781,22 +688,17 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
 
         }
     }
+
 def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, acq_list, priority):
 
     """Map function for spyddder-man extract job."""
 
-    #acquisition_localizer_version = "develop"
-    #spyddder_extract_version = "develop"
     job_submit_url = '%s/mozart/api/v0.1/job/submit' % MOZART_URL
     logger.info("\njob_submit_url : %s" %job_submit_url)
-    multi_source_acquisition_localizer_version = "master"
+    
     # set job type and disk space reqs
-    job_type = "job-acquisition_localizer_multi:{}".format(multi_source_acquisition_localizer_version)
-    #job_type = "job-acquisition_localizer_multi_source:master"
-     # set job type and disk space reqs
-    disk_usage = "300GB"
-    #logger.info(acq_data)
-    #acq_id = acq_data['acq_id']
+    job_type = "job-acquisition_localizer_multi:{}".format(multi_acquisition_localizer_version)
+    disk_usage = "100GB"
 
     # set job queue based on project
     job_queue = "%s-job_worker-large" % project
@@ -915,23 +817,11 @@ def check_ES_status(doc_id):
     
 
 def main():
-    #master_acqs = ["acquisition-S1A_IW_ACQ__1SDV_20180702T135953_20180702T140020_022616_027345_3578"]
-    #slave_acqs = ["acquisition-S1B_IW_ACQ__1SDV_20180720T015751_20180720T015819_011888_015E1C_3C64"]
-    master_acqs = ["acquisition-S1A_IW_ACQ__1SDV_20180807T135955_20180807T140022_023141_02837E_DA79"]
-    slave_acqs =["acquisition-S1A_IW_ACQ__1SDV_20180714T140019_20180714T140046_022791_027880_AFD3", "acquisition-S1A_IW_ACQ__1SDV_20180714T135954_20180714T140021_022791_027880_D224", "acquisition-S1A_IW_ACQ__1SDV_20180714T135929_20180714T135956_022791_027880_9FCA"]
+    context_file = os.path.abspath("_context.json")
+    if not os.path.exists(context_file):
+        raise(RuntimeError("Context file doesn't exist."))
+    resolve_source(context_file)
 
-
-    #acq_data= util.get_partial_grq_data("acquisition-S1A_IW_ACQ__1SDV_20180702T135953_20180702T140020_022616_027345_3578")['fields']['partial'][0]
-    acq_data= util.get_partial_grq_data("acquisition-S1A_IW_SLC__1SSV_20160630T135949_20160630T140017_011941_01266D_C62F")['fields']['partial'][0]
-    print(acq_data) 
-    
-    #resolve_source(master_acqs, slave_acqs)
-    print(acq_data["dataset_type"])
-    print(acq_data["dataset"])    
-    print(acq_data["metadata"]["identifier"]) 
-    print(acq_data["metadata"]["download_url"])
-    print(acq_data["metadata"]["archive_filename"])
-    #print(acq_data["metadata"][""])
 if __name__ == "__main__":
     main()
 
