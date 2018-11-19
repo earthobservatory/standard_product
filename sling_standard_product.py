@@ -322,7 +322,7 @@ def get_acq_data_from_list(acq_list):
             #status = 0 
             logger.info("%s does NOT exist"%acq_data['metadata']['identifier']) 
             acq_info[acq]=get_acq_object(acq, acq_data, 0)
-    '''
+        '''
     #return acq_info
     return slcs
 
