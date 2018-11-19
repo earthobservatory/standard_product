@@ -231,6 +231,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
 
             logger.info("ACQ start time : %s " %acq.starttime)
             logger.info("ACQ end time : %s" %acq.endtime)
+            logger.info("ACQ location : %s" %acq.location)
             land, water, acq_intersection = get_aoi_area_multipolygon(acq.location, aoi_location)
             acq_area_array.append(land)
             logger.info("Area from acq.location : %s" %land)
@@ -314,7 +315,8 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
     delta = abs(union_land - track_land)
     pctDelta = delta/track_land
     logger.info("delta : %s and pctDelta : %s" %(delta, pctDelta))
-    if pctDelta <.1:
+    #if pctDelta <.1:
+    if delta <=1:
         logger.info("Track is SELECTED !!")
         return True
     logger.info("Track is NOT SELECTED !!")
