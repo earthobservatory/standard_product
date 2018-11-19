@@ -56,14 +56,14 @@ def get_groundTrack_footprint(tstart, tend, orbit_file):
     geojson = {"type":"Polygon", "coordinates": [gt_footprint]}
     return geojson
 
-def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, orbit_file=None):
+def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, orbit_file=None):
 
     result = False
     if not aoi_location:
         logger.info("water_mask_check FAILED as aoi_location NOT found")
         return False
     try:
-        result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, orbit_file)
+        result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, orbit_file)
     except Exception as err:
         traceback.print_exc()
     return result
@@ -198,7 +198,7 @@ def change_union_coordinate_direction(union_geom):
 
     return union_geom
 
-def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id,  orbit_file = None):
+def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id,  threshold_pixel, orbit_file = None):
 
     logger.info("\n\n\nWATER MASK TEST\n")
     #return True
@@ -283,7 +283,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         track_land, track_water, track_intersection = get_aoi_area_multipolygon(track_gt_geojson, aoi_location)
         logger.info("water_mask_test1 with Orbit File: track_land : %s track_water : %s intersection : %s" %(track_land, track_water, track_intersection))
 
-        return isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, union_intersection, track_intersection)
+        return isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection)
     else:  
         logger.info("\n\nNO ORBIT\n\n")
         return False
@@ -303,7 +303,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         '''
 
 
-def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, union_intersection, track_intersection):
+def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection):
     selected = False
     logger.info("RESULT : AOI : %s, Track : %s, Date :  %s, Union_POEORB_Acq_AOI, union_land : %s, union_water : %s, intersection : %s" %(aoi_id, track, orbit_or_track_dt, union_land, union_water, union_intersection))
     logger.info("RESULT : AOI : %s, Track : %s, Date :  %s, POEORB_Track_AOI, union_land : %s, union_water : %s, intersection : %s" %(aoi_id, track, orbit_or_track_dt, track_land, track_water, track_intersection))
@@ -322,10 +322,10 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
 
     res = delta_x/res_km
 
-    logger.info("res = %s" %res)    
+    logger.info("res : %s, threshold_pixel : %s" %(res, threshold_pixel))    
 
     #if pctDelta <.1:
-    if res <5:
+    if res <threshold_pixel:
         logger.info("Track is SELECTED !!")
         return True
     logger.info("Track is NOT SELECTED !!")

@@ -29,6 +29,13 @@
       "default": "2"
     },
     {
+      "name": "threshold_pixel",
+      "from": "value",
+      "type": "number",
+      "lambda": "lambda x: int(x)",
+      "value": "5"
+    },
+    {
       "name": "starttime",
       "from": "dataset_jpath:_source.starttime",
       "type": "text"

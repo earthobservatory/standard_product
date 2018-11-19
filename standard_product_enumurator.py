@@ -248,6 +248,7 @@ def enumerate_acquisations(orbit_acq_selections):
     #logger.info("orbit_dt : %s" %orbit_dt)
     job_data = orbit_acq_selections["job_data"]
     MIN_MATCH = job_data['minMatch']
+    threshold_pixel = job_data['threshold_pixel']
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
     reject_pairs = {}
@@ -268,7 +269,7 @@ def enumerate_acquisations(orbit_acq_selections):
                 if len(selected_track_acqs[track].keys()) <=0:
                     logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                     continue
-                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
+                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs, threshold_pixel)
                 logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
                 if min_max_count>0:
                     print_candidate_pair_list_per_track(track_candidate_pair_list)
@@ -313,7 +314,7 @@ def print_candidate_pair(candidate_pair):
 
 
 
-def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, reject_pairs):
+def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, reject_pairs, threshold_pixel):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -374,14 +375,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                     orbit_file = slave_orbit_file_path
             if orbit_file:
                 logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s " %(slave_track_dt, orbit_file))
-                selected = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, orbit_file)
+                selected = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel, orbit_file)
                 if not selected:
                     logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
                     rejected_slave_track_dt.append(slave_track_dt)
                     continue
             else:
                 logger.info("Orbit File NOT Exists, so Running water_mask_check for slave for date %s is running without orbit file." %slave_track_dt)
-                selected = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi)
+                selected = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel)
                 if not selected:
                     logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
                     rejected_slave_track_dt.append(slave_track_dt)
@@ -416,7 +417,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
 
 
 
-def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data, orbit_data, reject_pairs):
+def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data, orbit_data, reject_pairs, threshold_pixel):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -458,7 +459,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
         rejected_slave_orbitnumber = []
         for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
             selected_slave_acqs=[]
-            selected = gtUtil.water_mask_check(track, slave_orbitnumber, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location, aoi)
+            selected = gtUtil.water_mask_check(track, slave_orbitnumber, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location, aoi, threshold_pixel)
             if not selected:
                 logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_orbitnumber)
                 rejected_slave_orbitnumber.append(slave_orbitnumber)

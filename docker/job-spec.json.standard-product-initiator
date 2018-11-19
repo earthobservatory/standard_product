@@ -26,6 +26,10 @@
       "destination": "context"
     },
     {
+      "name": "threshold_pixel",
+      "destination": "context"
+    },
+    {
         "name": "starttime",
         "destination": "context"
     },

@@ -384,7 +384,7 @@ def print_groups(grouped_matched):
 
 
 
-def get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file):
+def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file):
     #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
 
 
@@ -409,7 +409,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file):
         selected_track_dt_acqs = {}
         for track_dt in grouped_matched["grouped"][track]:
             #water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id,  orbit_file = None)
-            selected = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], aoi['id'], orbit_file)
+            selected = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], aoi['id'], threshold_pixel, orbit_file)
             if selected:
                 logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
                 selected_acqs = []
@@ -449,7 +449,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
     for track in grouped_matched["grouped"]:
         selected_orbitnumber_acqs = {}
         for orbitnumber in grouped_matched["grouped"][track]:
-            selected = gtUtil.water_mask_check(track, orbitnumber, grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi['location'], aoi['id'], orbit_file)
+            selected = gtUtil.water_mask_check(track, orbitnumber, grouped_matched["acq_info"], grouped_matched["grouped"][track][orbitnumber],  aoi['location'], aoi['id'], threshold_pixel, orbit_file)
             if selected:
                 logger.info("SELECTED")
                 selected_acqs = []
@@ -471,7 +471,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
 
     return selected_track_acqs
 
-def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
+def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, threshold_pixel):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
     #aoi_acq = {}
@@ -542,7 +542,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file):
         selected_track_acqs = {}
         try:
             #selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
-            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, orbit_file)
+            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file)
         except Exception as  err:
             logger.info("Error from get_covered_acquisitions: %s " %str(err))
             traceback.print_exc()
@@ -632,8 +632,12 @@ def resolve_aoi_acqs(ctx_file):
     with open(ctx_file) as f:
         ctx = json.load(f)
 
-    #SFL = os.path.join(os.environ['HOME'], 'standard_product', 'aoi_acquisition_localizer_standard_product.sf.xml')
-    # get acq_info
+    project = ctx['project']
+    logger.info("PROJECT : %s" %project)
+    priority = ctx["job_priority"]
+    minMatch = ctx["minMatch"]
+    threshold_pixel = ctx["threshold_pixel"]
+    job_type, job_version = ctx['job_specification']['id'].split(':')
 
 
     #Find Orbit File Info
@@ -649,7 +653,7 @@ def resolve_aoi_acqs(ctx_file):
         logger.info("Orbit File : %s " %orbit_file)
 
 
-    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file)
+    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file, threshold_pixel)
     #osaka.main.get("http://aux.sentinel1.eo.esa.int/POEORB/2018/09/15/S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF")
     #logger.info(orbit_aoi_data)
     #exit(0)
@@ -659,25 +663,8 @@ def resolve_aoi_acqs(ctx_file):
     queue = "system-jobs-queue"
     singlesceneOnly = True
     precise_orbit_only = True
-    '''
-    spyddder_extract_version= ctx['spyddder_extract_version']
-    spyddder_extract_version = "standard-product"
-    acquisition_localizer_version = ctx['acquisition_localizer_version']
-    acquisition_localizer_version = 'standard-product'
-    standard_product_localizer_version = ctx['standard_product_localizer_version']
-    standard_product_ifg_version = 'standard-product'
-    if 'standard_product_ifg_version' in ctx and ctx['standard_product_ifg_version'] is not None and ctx['standard_product_ifg_version'] !="":
-        standard_product_ifg_version = ctx['standard_product_ifg_version']
-    '''
-    #standard_product_version= ctx['standard_product_version']
-    project = ctx['project']
-    logger.info("PROJECT : %s" %project)
-    priority = ctx["job_priority"]
-    minMatch = ctx["minMatch"]
-    job_type, job_version = ctx['job_specification']['id'].split(':') 
-
+    
     job_data = {}
- 
     job_data["project"] = project
     '''
     job_data["spyddder_extract_version"] = spyddder_extract_version
@@ -691,6 +678,7 @@ def resolve_aoi_acqs(ctx_file):
     job_data["job_priority"] = ctx['job_priority']
     job_data['orbit_file'] = orbit_file 
     job_data['minMatch'] = minMatch
+    job_data['threshold_pixel'] = threshold_pixel
 
 
     
