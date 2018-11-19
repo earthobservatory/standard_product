@@ -273,7 +273,7 @@ def enumerate_acquisations(orbit_acq_selections):
                 logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
                 if min_max_count>0:
                     print_candidate_pair_list_per_track(track_candidate_pair_list)
-                if min_max_count >= MIN_MATCH and len(track_candidate_pair_list) > 0:
+                if len(track_candidate_pair_list) > 0:
                     for track_dt_list in track_candidate_pair_list:
                         candidate_pair_list.extend(track_dt_list)
             if len(candidate_pair_list)>0:
