@@ -614,8 +614,9 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['endtime'] = endtime
     md['union_geojson'] = union_geojson
     md['master_scenes'] = master_scene
-    md['slave_scenes'] = slave_slcs
+    md['slave_scenes'] = slave_scene
     md['master_slcs'] = master_slcs
+    md['slave_slcs'] = slave_slcs
 
     if bbox:
         md['bbox'] = bbox
