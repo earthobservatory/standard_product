@@ -315,7 +315,7 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
     delta_A = abs(float(union_land - track_land))
     pctDelta = float(delta_A/track_land)
     delta_x = float(delta_A/250)
-    logger.info("delta_A : %s, delta_x and pctDelta : %s" %(delta_A, delta_x, pctDelta))
+    logger.info("delta_A : %s, delta_x : %s and pctDelta : %s" %(delta_A, delta_x, pctDelta))
     
     # Assiuming 90 m resolution, lets change it to km
     res_km = float(90/1000)
