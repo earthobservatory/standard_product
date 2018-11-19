@@ -312,11 +312,20 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
     if union_land == 0 or track_land == 0:
         logger.info("\nERROR : isTrackSelected : Returning as lands are Not correct")
         return False
-    delta = abs(union_land - track_land)
-    pctDelta = delta/track_land
-    logger.info("delta : %s and pctDelta : %s" %(delta, pctDelta))
+    delta_A = abs(float(union_land - track_land))
+    pctDelta = float(delta_A/track_land)
+    delta_x = float(delta_A/250)
+    logger.info("delta_A : %s, delta_x and pctDelta : %s" %(delta_A, delta_x, pctDelta))
+    
+    # Assiuming 90 m resolution, lets change it to km
+    res_km = float(90/1000)
+
+    res = delta_x/res_km
+
+    logger.info("res = %s" %res)    
+
     #if pctDelta <.1:
-    if delta <=1:
+    if res <5:
         logger.info("Track is SELECTED !!")
         return True
     logger.info("Track is NOT SELECTED !!")
