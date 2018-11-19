@@ -303,6 +303,30 @@ def check_slc_status(slc_id):
 
     return False
 
+def get_acq_data_from_list(acq_list):
+    logger.info("get_acq_data_from_list")
+    acq_info = {}
+    slcs = []
+    
+    # Find out status of all Master ACQs, create a ACQ object with that and update acq_info dictionary 
+    for acq in acq_list: 
+        acq_data = util.get_partial_grq_data(acq)['fields']['partial'][0] 
+        slcs.append(acq_data['metadata']['identifier'])
+        '''
+        status = check_slc_status(acq_data['metadata']['identifier']) 
+        if status: 
+            # status=1 
+            logger.info("%s exists" %acq_data['metadata']['identifier']) 
+            acq_info[acq]=get_acq_object(acq, acq_data, 1) 
+        else: 
+            #status = 0 
+            logger.info("%s does NOT exist"%acq_data['metadata']['identifier']) 
+            acq_info[acq]=get_acq_object(acq, acq_data, 0)
+    '''
+    #return acq_info
+    return slcs
+
+
 def get_value(ctx, param, default_value):
     param = default_value
     if param in ctx:
@@ -350,7 +374,10 @@ def resolve_source(ctx_file):
 
 
     acq_info = {}
-    
+   
+    master_slcs = []
+    slave_slcs = []
+ 
     for acq in master_scene:
  	acq_type = "master"
         acq_info[acq]=get_acq_object(acq, acq_type)
@@ -468,11 +495,12 @@ def get_id_hash(acq_info, job_priority, dem_type):
     id_hash = ""
     master_ids_str=""
     slave_ids_str=""
-
+    master_slcs = []
+    slave_slcs = []
 
     for acq in acq_info.keys():
         acq_type = acq_info[acq]['acq_type']
-
+        master_slcs.append(acq_info[acq]['acq_type'])
 	if acq_type == "master":
 	    if master_ids_str=="":
 		master_ids_str=acq
@@ -550,7 +578,9 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
        
 
     id_hash = get_id_hash(acq_info, job_priority, dem_type)
-
+    master_slcs = get_acq_data_from_list(master_scene)
+    slave_slacs = get_acq_data_from_list(slave_scene)
+    logger.info(" master_scene : %s slave_slcs : %s" %(master_slcs, slave_slcs))
     orbit_type = 'poeorb'
 
     id = IFG_CFG_ID_TMPL.format('M', len(master_scene), len(slave_scene), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4])
@@ -584,7 +614,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['endtime'] = endtime
     md['union_geojson'] = union_geojson
     md['master_scenes'] = master_scene
-    md['slave_scenes'] = slave_scene
+    md['slave_scenes'] = slave_slcs
+    md['master_slcs'] = master_slcs
 
     if bbox:
         md['bbox'] = bbox
