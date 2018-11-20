@@ -113,6 +113,7 @@ def process_query(query):
     return ref_hits
 
 def get_aoi_blacklist_data(aoi):
+    logger.info("get_aoi_blacklist_data %s" %aoi)
     es_index = "grq_*_blacklist"
     query = {
        "query": {
@@ -148,9 +149,9 @@ def get_aoi_blacklist_data(aoi):
     
 
 
-    print(query)
+    logger.info(query)
     bls = [i['fields']['partial'][0] for i in query_es(query, es_index)]
-    print("Found {} bls for {}: {}".format(len(bls), aoi['id'],
+    logger.info("Found {} bls for {}: {}".format(len(bls), aoi['id'],
                     json.dumps([i['id'] for i in bls], indent=2)))
 
     #print("ALL ACQ of AOI : \n%s" %acqs)
@@ -171,6 +172,7 @@ def gen_hash(master_scenes, slave_scenes):
 
 
 def get_aoi_blacklist(aoi):
+    logger.info("get_aoi_blacklist %s" %aoi)
     bl_array = []  
     bls = get_aoi_blacklist_data(aoi)
     for bl in bls:
@@ -210,8 +212,9 @@ def enumerate_acquisations(orbit_acq_selections):
     for aoi_id in orbit_aoi_data.keys():
         logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
         aoi_data = orbit_aoi_data[aoi_id]
+        logger.info("\nenumerate_acquisations : Processing AOI")
         aoi_blacklist = get_aoi_blacklist(aoi_data)
-        logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_data))
+        logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_blacklist))
         
         selected_track_acqs = aoi_data['selected_track_acqs'] 
         #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
@@ -233,14 +236,15 @@ def enumerate_acquisations(orbit_acq_selections):
 
 def black_list_check(candidate_pair, black_list):
     passed = False
+    logger.info("black_list_check : %s" %black_list)
     master_acquisitions = candidate_pair["master_acqs"]
     slave_acquisitions = candidate_pair["slave_acqs"]
     ifg_hash = gen_hash(master_acquisitions, slave_acquisitions)
     if ifg_hash not in black_list:
         passed = True
-        logger.info("black_list_check : ifg_hash %s not in blackl_list. So PASSING")
+        logger.info("black_list_check : ifg_hash %s not in blackl_list. So PASSING" %ifg_hash)
     else:
-        logger.info("black_list_check : ifg_hash %s IS in blackl_list. So FAILING") 
+        logger.info("black_list_check : ifg_hash %s IS in blackl_list. So FAILING" %ifg_hash) 
         passed = False
     return passed
 
