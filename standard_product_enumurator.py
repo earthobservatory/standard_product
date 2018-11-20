@@ -212,7 +212,7 @@ def enumerate_acquisations(orbit_acq_selections):
     for aoi_id in orbit_aoi_data.keys():
         logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
         aoi_data = orbit_aoi_data[aoi_id]
-        logger.info("\nenumerate_acquisations : Processing AOI")
+        logger.info("\nenumerate_acquisations : Processing BlackList with location %s" %aoi_data['location'])
         aoi_blacklist = get_aoi_blacklist(aoi_data)
         logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_blacklist))
         
