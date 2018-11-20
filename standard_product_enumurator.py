@@ -357,10 +357,6 @@ def enumerate_acquisations(orbit_acq_selections):
     threshold_pixel = job_data['threshold_pixel']
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
-    aoi_blacklist = []
-    logger.info("\nenumerate_acquisations : Processing BlackList with location %s" %aoi_data['location'])
-    aoi_blacklist = get_aoi_blacklist(aoi_data)
-    logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_blacklist))
     orbit_file = job_data['orbit_file']
 
     #candidate_pair_list = []
@@ -372,6 +368,11 @@ def enumerate_acquisations(orbit_acq_selections):
             aoi_data = orbit_aoi_data[aoi_id]
             selected_track_acqs = aoi_data['selected_track_acqs']
             #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
+            aoi_blacklist = []
+            logger.info("\nenumerate_acquisations : Processing BlackList with location %s" %aoi_data['location'])
+            aoi_blacklist = get_aoi_blacklist(aoi_data)
+            logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_blacklist))
+
 
             for track in selected_track_acqs.keys():
                 logger.info("\nenumerate_acquisations : Processing track : %s " %track)
