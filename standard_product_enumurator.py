@@ -196,7 +196,7 @@ def print_groups(grouped_matched):
                 for acq in grouped_matched["grouped"][track][day_dt][pv]:
                     logger.info("\t\t%s : %s" %(pv, acq[0]))
 
-def enumerate_acquisations(orbit_acq_selections):
+def enumerate_acquisations2(orbit_acq_selections):
 
 
     logger.info("\n\n\nENUMERATE\n")
@@ -358,6 +358,9 @@ def enumerate_acquisations(orbit_acq_selections):
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
     aoi_blacklist = []
+    logger.info("\nenumerate_acquisations : Processing BlackList with location %s" %aoi_data['location'])
+    aoi_blacklist = get_aoi_blacklist(aoi_data)
+    logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_blacklist))
     orbit_file = job_data['orbit_file']
 
     #candidate_pair_list = []
