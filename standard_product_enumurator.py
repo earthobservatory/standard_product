@@ -56,6 +56,29 @@ def get_orbit_date(s):
     return date.isoformat()
 
 
+def query_es(query, es_index=None):
+    """Query ES."""
+    es_url = "http://100.64.134.208:9200/"
+    #es_url = app.conf.GRQ_ES_URL
+    rest_url = es_url[:-1] if es_url.endswith('/') else es_url
+    url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
+    if es_index:
+        url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
+    #logger.info("url: {}".format(url))
+    r = requests.post(url, data=json.dumps(query))
+    r.raise_for_status()
+    scan_result = r.json()
+    #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
+    count = scan_result['hits']['total']
+    scroll_id = scan_result['_scroll_id']
+    hits = []
+    while True:
+        r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        res = r.json()
+        scroll_id = res['_scroll_id']
+        if len(res['hits']['hits']) == 0: break
+        hits.extend(res['hits']['hits'])
+    return hits
 
 def process_query(query):
 
@@ -88,6 +111,77 @@ def process_query(query):
 
     return ref_hits
 
+def get_aoi_blacklist_data(aoi):
+    es_index = "grq_*_blacklist"
+    query = {
+       "query": {
+        "filtered": {
+            "query": {
+
+              "bool": {
+                "must": [
+                  {
+                    "match": {
+                      "dataset_type": "ifg_cfg_blacklist"
+                      }
+                  }
+                ]
+              }
+            },
+            "filter": {
+              "geo_shape": {
+                "location": {
+                  "shape": aoi['location']
+                }
+              }
+            }
+          }
+        },
+        "partial_fields" : {
+          "partial" : {
+            "include" : [ "id", "starttime", "endtime", "location", 
+                              "metadata.user_tags", "metadata.priority" ]
+          }
+        }
+      }
+    
+
+
+    print(query)
+    bls = [i['fields']['partial'][0] for i in query_es(query, es_index)]
+    print("Found {} bls for {}: {}".format(len(bls), aoi['id'],
+                    json.dumps([i['id'] for i in bls], indent=2)))
+
+    #print("ALL ACQ of AOI : \n%s" %acqs)
+    if len(acqs) <=0:
+        print("No blacklist there for AOI : %s" %aoi['id'])
+    return bls
+
+def gen_hash(master_scenes, slave_scenes):
+    '''Generates a hash from the master and slave scene list''' 
+    master = [x.replace('acquisition-', '') for x in master_scenes]
+    slave = [x.replace('acquisition-', '') for x in slave_scenes]
+    master = pickle.dumps(sorted(master))
+    slave = pickle.dumps(sorted(slave))
+    return '{}_{}'.format(hashlib.md5(master).hexdigest(), hashlib.md5(slave).hexdigest())
+
+
+
+
+
+def get_aoi_blacklist(aoi):
+    bl_array = []  
+    bls = get_aoi_blacklist_data(aoi)
+    for bl in bls:
+        if 'master_scenes' in bl['metadata']:
+            master_scenes = bl['metadata']['master_scenes']
+            slave_scenes = bl['metadata']['slave_scenes']
+            bl_array.append(gen_hash(master_scenes, slave_scenes))
+        else:
+            logger.warn("MASTER SCENES not Found in BL")
+
+    return bl_array
+    
 
 def print_groups(grouped_matched):
     for track in grouped_matched["grouped"]:
@@ -107,7 +201,7 @@ def enumerate_acquisations(orbit_acq_selections):
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
 
-    reject_pairs = {}
+    aoi_blacklist = []
     orbit_file = orbit_data['orbit_file']
 
     candidate_pair_list = []
@@ -115,6 +209,9 @@ def enumerate_acquisations(orbit_acq_selections):
     for aoi_id in orbit_aoi_data.keys():
         logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
         aoi_data = orbit_aoi_data[aoi_id]
+        aoi_blacklist = get_aoi_blacklist(aoi_data)
+        logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_data))
+        
         selected_track_acqs = aoi_data['selected_track_acqs'] 
         #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
 
@@ -123,7 +220,7 @@ def enumerate_acquisations(orbit_acq_selections):
             if len(selected_track_acqs[track].keys()) <=0:
                 logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                 continue
-            min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs)
+            min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, aoi_blacklist)
             logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
             if min_max_count>0:
                 print_candidate_pair_list_per_track(track_candidate_pair_list)
@@ -133,16 +230,20 @@ def enumerate_acquisations(orbit_acq_selections):
     return candidate_pair_list
 
 
-def reject_list_check(candidate_pair, reject_list):
+def black_list_check(candidate_pair, black_list):
     passed = False
-    if not reject_list:
+    master_acquisitions = candidate_pair["master_acqs"]
+    slave_acquisitions = candidate_pair["slave_acqs"]
+    ifg_hash = gen_hash(master_acquisitions, slave_acquisitions)
+    if ifg_hash not in black_list:
         passed = True
+        logger.info("black_list_check : ifg_hash %s not in blackl_list. So PASSING")
     else:
-        ''' IMPLEMENT LOGIC HERE '''
-        passed = True
+        logger.info("black_list_check : ifg_hash %s IS in blackl_list. So FAILING") 
+        passed = False
     return passed
 
-def get_candidate_pair_list2(selected_track_acqs, reject_pairs):
+def get_candidate_pair_list2(selected_track_acqs, aoi_blacklist):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -167,7 +268,7 @@ def get_candidate_pair_list2(selected_track_acqs, reject_pairs):
         master_acqs = selected_track_acqs[master_orbit_number]
         slave_ipf_count = orbit_ipf_dict[slave_orbit_number]
         slave_acqs = selected_track_acqs[slave_orbit_number]
-        result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs)
+        result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_blacklist)
         if result and len(orbit_candidate_pair_list)>0:
             candidate_pair_list.extend(orbit_candidate_pair_list)
             min_max_count = min_max_count + 1
@@ -190,7 +291,7 @@ def get_candidate_pair_list2(selected_track_acqs, reject_pairs):
                 logger.info("slave_orbit_number : %s" %slave_orbit_number)
                 slave_ipf_count = orbit_ipf_dict[slave_orbit_number]
                 slave_acqs = selected_track_acqs[slave_orbit_number]
-                result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, reject_pairs)
+                result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_blacklist)
                 if result and len(orbit_candidate_pair_list)>0:
                     candidate_pair_list.extend(orbit_candidate_pair_list)
                     min_max_count = min_max_count + 1
@@ -198,7 +299,7 @@ def get_candidate_pair_list2(selected_track_acqs, reject_pairs):
                         return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
     
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, reject_pairs):
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist):
     result = False
     candidate_pair_list = []
     
@@ -215,7 +316,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
             if not result:
                 logger.info("CheckMatch Failed. So Returning False")
                 return False, []
-            elif reject_list_check(candidate_pair, reject_pairs):
+            elif black_list_check(candidate_pair, aoi_blacklist):
                 candidate_pair_list.append(candidate_pair)
                 logger.info("process_enumeration: CheckMatch Passed. Adding candidate pair: ")
                 print_candidate_pair(candidate_pair)
@@ -227,7 +328,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
             if not result:
                 logger.info("CheckMatch Failed. So Returning False")
                 return False, []
-            elif reject_list_check(candidate_pair, reject_pairs):
+            elif black_list_check(candidate_pair, aoi_blacklist):
                 candidate_pair_list.append(candidate_pair)
                 print_candidate_pair(candidate_pair)
     else:
@@ -251,7 +352,7 @@ def enumerate_acquisations(orbit_acq_selections):
     threshold_pixel = job_data['threshold_pixel']
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
-    reject_pairs = {}
+    aoi_blacklist = []
     orbit_file = job_data['orbit_file']
 
     #candidate_pair_list = []
@@ -269,7 +370,7 @@ def enumerate_acquisations(orbit_acq_selections):
                 if len(selected_track_acqs[track].keys()) <=0:
                     logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                     continue
-                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, reject_pairs, threshold_pixel)
+                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, aoi_blacklist, threshold_pixel)
                 logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
                 if min_max_count>0:
                     print_candidate_pair_list_per_track(track_candidate_pair_list)
@@ -314,7 +415,7 @@ def print_candidate_pair(candidate_pair):
 
 
 
-def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, reject_pairs, threshold_pixel):
+def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, aoi_blacklist, threshold_pixel):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -407,7 +508,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             #slave_acqs = selected_slave_acqs_by_track_dt[slave_track_dt]
             
 
-            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, aoi_location, reject_pairs)            
+            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist)            
             if result:
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
@@ -417,7 +518,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
 
 
 
-def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data, orbit_data, reject_pairs, threshold_pixel):
+def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data, orbit_data, aoi_blacklist, threshold_pixel):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -479,7 +580,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             slave_acqs = selected_slave_acqs_by_orbitnumber[slave_orbitnumber]
             
 
-            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, reject_pairs)            
+            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist)            
             if result:
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
