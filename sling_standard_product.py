@@ -579,7 +579,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
 
     id_hash = get_id_hash(acq_info, job_priority, dem_type)
     master_slcs = get_acq_data_from_list(master_scene)
-    slave_slacs = get_acq_data_from_list(slave_scene)
+    slave_slcs = get_acq_data_from_list(slave_scene)
     logger.info(" master_scene : %s slave_slcs : %s" %(master_slcs, slave_slcs))
     orbit_type = 'poeorb'
 
