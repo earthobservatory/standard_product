@@ -214,7 +214,7 @@ def black_list_check(candidate_pair, black_list):
     return passed
 
     
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist):
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data):
     result = False
     candidate_pair_list = []
     
@@ -237,7 +237,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 logger.info("process_enumeration: CheckMatch Passed. Adding candidate pair: ")
                 print_candidate_pair(candidate_pair)
                 # Publish the pair right way
-                publish_initiator_pair(candidate_pair)
+                publish_initiator_pair(candidate_pair, job_data)
             else:
                 logger.info("Candidate Pair NOT SELECTED")
     elif slave_ipf_count > 1 and master_ipf_count == 1:
@@ -252,7 +252,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 candidate_pair_list.append(candidate_pair)
                 logger.info("Candidate Pair SELECTED")
                 print_candidate_pair(candidate_pair)
-                publish_initiator_pair(candidate_pair)
+                publish_initiator_pair(candidate_pair, job_data)
             else:
                 logger.info("Candidate Pair NOT SELECTED")
     else:
@@ -300,7 +300,7 @@ def enumerate_acquisations(orbit_acq_selections):
                 if len(selected_track_acqs[track].keys()) <=0:
                     logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                     continue
-                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, aoi_blacklist, threshold_pixel)
+                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel)
                 logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
                 if min_max_count>0:
                     print_candidate_pair_list_per_track(track_candidate_pair_list)
@@ -347,7 +347,7 @@ def print_candidate_pair(candidate_pair):
 
 
 
-def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, aoi_blacklist, threshold_pixel):
+def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -440,7 +440,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             #slave_acqs = selected_slave_acqs_by_track_dt[slave_track_dt]
             
 
-            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist)            
+            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data)            
             if result:
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
@@ -450,7 +450,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
 
 
 
-def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data, orbit_data, aoi_blacklist, threshold_pixel):
+def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -512,7 +512,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             slave_acqs = selected_slave_acqs_by_orbitnumber[slave_orbitnumber]
             
 
-            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist)            
+            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data)            
             if result:
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
@@ -593,7 +593,7 @@ def publish_initiator(candidate_pair_list, job_data):
         publish_initiator_pair(candidate_pair, job_data)
 
 
-def publish_initiator_pair(candidate_pair, publish_job_data = job_data, wuid=None, job_num=None):
+def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=None):
   
 
     logger.info("\nPUBLISH CANDIDATE PAIR : %s" %candidate_pair)
