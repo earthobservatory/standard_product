@@ -513,6 +513,8 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
 
             result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data)            
             if result:
+                for candidate_pair in orbit_candidate_pair:
+                    publish_initiator_pair(candidate_pair, job_data)
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
                 if min_max_count>=MIN_MATCH:
