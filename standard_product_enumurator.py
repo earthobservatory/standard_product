@@ -156,7 +156,7 @@ def get_aoi_blacklist_data(aoi):
 
     #print("ALL ACQ of AOI : \n%s" %acqs)
     if len(bls) <=0:
-        print("No blacklist there for AOI : %s" %aoi['id'])
+        print("No blacklist there for AOI : %s" %aoi['aoi_id'])
     return bls
 
 def gen_hash(master_scenes, slave_scenes):
