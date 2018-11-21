@@ -151,7 +151,7 @@ def get_aoi_blacklist_data(aoi):
 
     logger.info(query)
     bls = [i['fields']['partial'][0] for i in query_es(query, es_index)]
-    logger.info("Found {} bls for {}: {}".format(len(bls), aoi['id'],
+    logger.info("Found {} bls for {}: {}".format(len(bls), aoi['aoi_id'],
                     json.dumps([i['id'] for i in bls], indent=2)))
 
     #print("ALL ACQ of AOI : \n%s" %acqs)
@@ -196,49 +196,13 @@ def print_groups(grouped_matched):
                 for acq in grouped_matched["grouped"][track][day_dt][pv]:
                     logger.info("\t\t%s : %s" %(pv, acq[0]))
 
-def enumerate_acquisations2(orbit_acq_selections):
-
-
-    logger.info("\n\n\nENUMERATE\n")
-    job_data = orbit_acq_selections["job_data"]
-    orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
-    orbit_data = orbit_acq_selections["orbit_data"]
-
-    aoi_blacklist = []
-    orbit_file = orbit_data['orbit_file']
-
-    candidate_pair_list = []
-
-    for aoi_id in orbit_aoi_data.keys():
-        logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
-        aoi_data = orbit_aoi_data[aoi_id]
-        logger.info("\nenumerate_acquisations : Processing BlackList with location %s" %aoi_data['location'])
-        aoi_blacklist = get_aoi_blacklist(aoi_data)
-        logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_blacklist))
-        
-        selected_track_acqs = aoi_data['selected_track_acqs'] 
-        #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
-
-        for track in selected_track_acqs.keys():
-            logger.info("\nenumerate_acquisations : Processing track : %s " %track)
-            if len(selected_track_acqs[track].keys()) <=0:
-                logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
-                continue
-            min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, aoi_blacklist)
-            logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
-            if min_max_count>0:
-                print_candidate_pair_list_per_track(track_candidate_pair_list)
-            if min_max_count >= MIN_MATCH and len(track_candidate_pair_list) > 0:
-                candidate_pair_list.extend(track_candidate_pair_list)
-
-    return candidate_pair_list
-
 
 def black_list_check(candidate_pair, black_list):
     passed = False
     logger.info("black_list_check : %s" %black_list)
     master_acquisitions = candidate_pair["master_acqs"]
     slave_acquisitions = candidate_pair["slave_acqs"]
+    logger.info("master_acquisitions : %s & slave_acquisitions : %s" %(master_acquisitions, slave_acquisitions))
     ifg_hash = gen_hash(master_acquisitions, slave_acquisitions)
     if ifg_hash not in black_list:
         passed = True
@@ -335,7 +299,10 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 return False, []
             elif black_list_check(candidate_pair, aoi_blacklist):
                 candidate_pair_list.append(candidate_pair)
+                logger.info("Candidate Pair SELECTED")
                 print_candidate_pair(candidate_pair)
+            else:
+                logger.info("Candidate Pair NOT SELECTED")
     else:
         logger.warn("No Selection as both Master and Slave has multiple ipf")
 
