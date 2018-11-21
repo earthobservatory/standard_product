@@ -155,7 +155,7 @@ def get_aoi_blacklist_data(aoi):
                     json.dumps([i['id'] for i in bls], indent=2)))
 
     #print("ALL ACQ of AOI : \n%s" %acqs)
-    if len(acqs) <=0:
+    if len(bls) <=0:
         print("No blacklist there for AOI : %s" %aoi['id'])
     return bls
 
