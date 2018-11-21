@@ -141,8 +141,7 @@ def get_aoi_blacklist_data(aoi):
         },
         "partial_fields" : {
           "partial" : {
-            "include" : [ "id", "starttime", "endtime", "location", 
-                              "metadata.user_tags", "metadata.priority" ]
+            "include" : [ "id",  "dataset_type", "metadata"]
           }
         }
       }
@@ -150,7 +149,7 @@ def get_aoi_blacklist_data(aoi):
 
 
     logger.info(query)
-    bls = [i['fields']['partial'][0] for i in query_es(query, es_index)]
+    bls = [i['fields']['partial'][0] for i in util.query_es(query, es_index)]
     logger.info("Found {} bls for {}: {}".format(len(bls), aoi['aoi_id'],
                     json.dumps([i['id'] for i in bls], indent=2)))
 
@@ -176,6 +175,7 @@ def get_aoi_blacklist(aoi):
     bl_array = []  
     bls = get_aoi_blacklist_data(aoi)
     for bl in bls:
+        logger.info(bl.keys())
         if 'master_scenes' in bl['metadata']:
             master_scenes = bl['metadata']['master_scenes']
             slave_scenes = bl['metadata']['slave_scenes']
