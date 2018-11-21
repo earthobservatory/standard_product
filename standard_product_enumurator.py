@@ -133,7 +133,7 @@ def get_aoi_blacklist_data(aoi):
             "filter": {
               "geo_shape": {
                 "location": {
-                  "shape": aoi['location']
+                  "shape": aoi['aoi_location']
                 }
               }
             }
@@ -369,7 +369,7 @@ def enumerate_acquisations(orbit_acq_selections):
             selected_track_acqs = aoi_data['selected_track_acqs']
             #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
             aoi_blacklist = []
-            logger.info("\nenumerate_acquisations : Processing BlackList with location %s" %aoi_data['location'])
+            logger.info("\nenumerate_acquisations : Processing BlackList with location %s" %aoi_data['aoi_location'])
             aoi_blacklist = get_aoi_blacklist(aoi_data)
             logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_blacklist))
 
