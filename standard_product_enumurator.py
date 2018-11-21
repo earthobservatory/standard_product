@@ -50,6 +50,7 @@ GRQ_ES_URL = "http://100.64.134.208:9200/"
 covth = 0.98
 MIN_MATCH = 100
 es_index = "grq_*_*acquisition*"
+job_data = None
 
 def get_orbit_date(s):
     date = dateutil.parser.parse(s, ignoretz=True)
@@ -212,67 +213,11 @@ def black_list_check(candidate_pair, black_list):
         passed = False
     return passed
 
-def get_candidate_pair_list2(selected_track_acqs, aoi_blacklist):
-    logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
-    candidate_pair_list = []
-    orbit_ipf_dict = {}
-    min_max_count = 0
-    
-    for orbitnumber in selected_track_acqs.keys():
-        orbit_ipf_dict[orbitnumber] = util.get_ipf_count(selected_track_acqs[orbitnumber])
-
-    number_of_orbits = len(orbit_ipf_dict.keys())
-    for orbitnumber in sorted(selected_track_acqs.keys(), reverse=True):
-        logger.info(orbitnumber)
-
-    if number_of_orbits <=1:
-        logger.info("Returning as number of orbit is : %s" %number_of_orbits)
-        return 0, candidate_pair_list
-    elif number_of_orbits == 2:
-        master_orbit_number = sorted(orbit_ipf_dict.keys(), reverse=True)[0]
-        logger.info("master_orbit_number : %s" %master_orbit_number)
-        slave_orbit_number = sorted(orbit_ipf_dict.keys(), reverse=True)[1]
-        logger.info("slave_orbit_number : %s" %slave_orbit_number)
-        master_ipf_count = orbit_ipf_dict[master_orbit_number]
-        master_acqs = selected_track_acqs[master_orbit_number]
-        slave_ipf_count = orbit_ipf_dict[slave_orbit_number]
-        slave_acqs = selected_track_acqs[slave_orbit_number]
-        result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_blacklist)
-        if result and len(orbit_candidate_pair_list)>0:
-            candidate_pair_list.extend(orbit_candidate_pair_list)
-            min_max_count = min_max_count + 1
-            if min_max_count>=MIN_MATCH:
-                return min_max_count, candidate_pair_list
-        
-    elif number_of_orbits > 2:
-
-        for i in range(number_of_orbits-2):
-            logger.info("\n\nProcessing : %s" %i)
-            logger.info("OrbitNumbers : %s" %orbit_ipf_dict.keys())
-            master_orbit_number = sorted(orbit_ipf_dict.keys(), reverse=True)[i]
-            logger.info("master_orbit_number : %s" %master_orbit_number) 
-            master_acqs = selected_track_acqs[master_orbit_number]
-            master_ipf_count = orbit_ipf_dict[master_orbit_number]
-            j = i+1
-
-            while j<number_of_orbits:
-                slave_orbit_number = sorted(orbit_ipf_dict.keys(), reverse=True)[j]
-                logger.info("slave_orbit_number : %s" %slave_orbit_number)
-                slave_ipf_count = orbit_ipf_dict[slave_orbit_number]
-                slave_acqs = selected_track_acqs[slave_orbit_number]
-                result, orbit_candidate_pair_list = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_blacklist)
-                if result and len(orbit_candidate_pair_list)>0:
-                    candidate_pair_list.extend(orbit_candidate_pair_list)
-                    min_max_count = min_max_count + 1
-                    if min_max_count>=MIN_MATCH:
-                        return min_max_count, candidate_pair_list
-    return min_max_count, candidate_pair_list
     
 def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist):
     result = False
     candidate_pair_list = []
     
-    #master_ipf_count=2
 
     logger.info("Master IPF Count : %s and Slave IPF Count : %s" %(master_ipf_count, slave_ipf_count)) 
     ref_type = None
@@ -284,11 +229,17 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
             result, candidate_pair = check_match(acq, slave_acqs, aoi_location, "master") 
             if not result:
                 logger.info("CheckMatch Failed. So Returning False")
+                logger.info("Candidate Pair NOT SELECTED")
                 return False, []
             elif black_list_check(candidate_pair, aoi_blacklist):
                 candidate_pair_list.append(candidate_pair)
+                logger.info("Candidate Pair SELECTED")
                 logger.info("process_enumeration: CheckMatch Passed. Adding candidate pair: ")
                 print_candidate_pair(candidate_pair)
+                # Publish the pair right way
+                publish_initiator_pair(candidate_pair)
+            else:
+                logger.info("Candidate Pair NOT SELECTED")
     elif slave_ipf_count > 1 and master_ipf_count == 1:
         logger.info("process_enumeration : Ref : Slave, #of acq : %s" %len(slave_acqs))
         for acq in slave_acqs:
@@ -301,10 +252,12 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 candidate_pair_list.append(candidate_pair)
                 logger.info("Candidate Pair SELECTED")
                 print_candidate_pair(candidate_pair)
+                publish_initiator_pair(candidate_pair)
             else:
                 logger.info("Candidate Pair NOT SELECTED")
     else:
         logger.warn("No Selection as both Master and Slave has multiple ipf")
+        logger.info("Candidate Pair NOT SELECTED")
 
     if len(candidate_pair_list) == 0:
         result = False
@@ -316,6 +269,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
 def enumerate_acquisations(orbit_acq_selections):
 
     global MIN_MATCH
+    global job_data
 
     logger.info("\n\n\nENUMERATE\n")
     #logger.info("orbit_dt : %s" %orbit_dt)
@@ -353,11 +307,13 @@ def enumerate_acquisations(orbit_acq_selections):
                 if len(track_candidate_pair_list) > 0:
                     for track_dt_list in track_candidate_pair_list:
                         candidate_pair_list.extend(track_dt_list)
+            '''
             if len(candidate_pair_list)>0:
                 logger.info("\nPublishing ACQ List for AOI : %s" %aoi_id)
                 publish_initiator(candidate_pair_list, job_data)
             else:
                 logger.info("\nNOTHING to publish for AOI : %s" %aoi_id)
+            '''
         except Exception as err:
             logger.warn("Error with Enumeration for aoi : %s : %s" %(aoi_id, str(err)))
             logger.warn("Traceback: {}".format(traceback.format_exc()))
@@ -637,8 +593,10 @@ def publish_initiator(candidate_pair_list, job_data):
         publish_initiator_pair(candidate_pair, job_data)
 
 
-def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
+def publish_initiator_pair(candidate_pair, publish_job_data = job_data, wuid=None, job_num=None):
   
+
+    logger.info("\nPUBLISH CANDIDATE PAIR : %s" %candidate_pair)
     master_ids_str=""
     slave_ids_str=""
     job_priority = 0
@@ -650,7 +608,7 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     endtime = candidate_pair["endtime"]
 
 
-    project = job_data["project"] 
+    project = publish_job_data["project"] 
     '''
     spyddder_extract_version = job_data["spyddder_extract_version"] 
     standard_product_ifg_version = job_data["standard_product_ifg_version"] 
@@ -659,7 +617,7 @@ def publish_initiator_pair(candidate_pair, job_data, wuid=None, job_num=None):
     '''
     #job_data["job_type"] = job_type
     #job_data["job_version"] = job_version
-    job_priority = job_data["job_priority"] 
+    job_priority = publish_job_data["job_priority"] 
 
 
     logger.info("MASTER : %s " %master_acquisitions)
