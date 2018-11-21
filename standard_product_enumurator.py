@@ -236,8 +236,6 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 logger.info("Candidate Pair SELECTED")
                 logger.info("process_enumeration: CheckMatch Passed. Adding candidate pair: ")
                 print_candidate_pair(candidate_pair)
-                # Publish the pair right way
-                publish_initiator_pair(candidate_pair, job_data)
             else:
                 logger.info("Candidate Pair NOT SELECTED")
     elif slave_ipf_count > 1 and master_ipf_count == 1:
@@ -252,7 +250,6 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 candidate_pair_list.append(candidate_pair)
                 logger.info("Candidate Pair SELECTED")
                 print_candidate_pair(candidate_pair)
-                publish_initiator_pair(candidate_pair, job_data)
             else:
                 logger.info("Candidate Pair NOT SELECTED")
     else:
@@ -442,6 +439,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
 
             result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data)            
             if result:
+                for candidate_pair in orbit_candidate_pair:
+                    publish_initiator_pair(candidate_pair, job_data)   
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
                 if min_max_count>=MIN_MATCH:
