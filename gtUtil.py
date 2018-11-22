@@ -210,6 +210,11 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
     acqs_land = []
     acqs_water = []
     gt_polygons = []
+    result = {}
+    result['aoi'] = aoi_id
+    result['track'] = track
+    result['dt']  = orbit_or_track_dt
+    
     logger.info("water_mask_test1 : aoi_location : %s" %aoi_location)
     acq_area_array = []
     gt_area_array = []
@@ -261,7 +266,8 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         logger.info("RESULT : AOI : %s, Track : %s, Date :  %s, Union_Acq_AOI, union_land : %s, union_water : %s, intersection : %s" %(aoi_id, track, orbit_or_track_dt, union_land_no_orbit, union_water_no_orbit, union_intersection_no_orbit))
 
 
-
+        result['acq_union_land_area'] = union_land_no_orbit
+        result['acq_union_aoi_intersection'] = union_intersection_no_orbit
 
         ''' Now Try With Orbit File '''
         logger.info("water_mask_test1 with Orbit File")
@@ -269,24 +275,27 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         logger.info("union_gt_geojson : %s" %union_gt_polygon)
         union_land, union_water, union_intersection = get_aoi_area_multipolygon(union_gt_polygon, aoi_location)
         logger.info("water_mask_test1 with Orbit File: union_land : %s union_water : %s union intersection : %s" %(union_land, union_water, union_intersection))
-
+        result['ACQ_POERB_AOI_Intersection'] = union_intersection
+        result['ACQ_Union_POERB_Land'] = union_land
         
         #get lowest starttime minus 10 minutes as starttime
         tstart = getUpdatedTime(sorted(starttimes)[0], -5)
         logger.info("tstart : %s" %tstart)
         tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 5)
         logger.info("tend : %s" %tend)
-
+        
 
         track_gt_geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
         logger.info("track_gt_geojson : %s" %track_gt_geojson)
         track_land, track_water, track_intersection = get_aoi_area_multipolygon(track_gt_geojson, aoi_location)
         logger.info("water_mask_test1 with Orbit File: track_land : %s track_water : %s intersection : %s" %(track_land, track_water, track_intersection))
+        result['Track_POERB_Land'] = track_land
+        result['Track_AOI_Intersection'] = track_intersection
 
-        return isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection)
+        return isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection, result)
     else:  
         logger.info("\n\nNO ORBIT\n\n")
-        return False
+        return False, result
       
         '''
         union_polygon = util.get_union_geometry(polygons)
@@ -303,7 +312,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         '''
 
 
-def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection):
+def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection, result):
     selected = False
     logger.info("RESULT : AOI : %s, Track : %s, Date :  %s, Union_POEORB_Acq_AOI, union_land : %s, union_water : %s, intersection : %s" %(aoi_id, track, orbit_or_track_dt, union_land, union_water, union_intersection))
     logger.info("RESULT : AOI : %s, Track : %s, Date :  %s, POEORB_Track_AOI, union_land : %s, union_water : %s, intersection : %s" %(aoi_id, track, orbit_or_track_dt, track_land, track_water, track_intersection))
@@ -324,12 +333,14 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
 
     logger.info("res : %s, threshold_pixel : %s" %(res, threshold_pixel))    
 
+    result['res'] = res
     #if pctDelta <.1:
     if res <threshold_pixel:
         logger.info("Track is SELECTED !!")
-        return True
+        result['WATER_MSASK_PASSED'] = True
+        return True, result
     logger.info("Track is NOT SELECTED !!")
-    return False
+    return False, result
 
 def get_area_from_acq_location(geojson, aoi_location):
     logger.info("geojson : %s" %geojson)

@@ -214,10 +214,10 @@ def black_list_check(candidate_pair, black_list):
     return passed
 
     
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data):
-    result = False
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data, result):
+    matched = False
     candidate_pair_list = []
-    
+    result['matched'] = matched
 
     logger.info("Master IPF Count : %s and Slave IPF Count : %s" %(master_ipf_count, slave_ipf_count)) 
     ref_type = None
@@ -226,41 +226,51 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
         logger.info("process_enumeration : Ref : Master, #of acq : %s" %len(master_acqs))
         for acq in master_acqs:
             logger.info("Running CheckMatch for Master acq : %s" %acq.acq_id)
-            result, candidate_pair = check_match(acq, slave_acqs, aoi_location, "master") 
-            if not result:
+            matched, candidate_pair = check_match(acq, slave_acqs, aoi_location, "master") 
+            result['matched'] = matched
+            if not matched:
                 logger.info("CheckMatch Failed. So Returning False")
                 logger.info("Candidate Pair NOT SELECTED")
                 return False, []
-            elif black_list_check(candidate_pair, aoi_blacklist):
-                candidate_pair_list.append(candidate_pair)
-                logger.info("Candidate Pair SELECTED")
-                logger.info("process_enumeration: CheckMatch Passed. Adding candidate pair: ")
-                print_candidate_pair(candidate_pair)
             else:
-                logger.info("Candidate Pair NOT SELECTED")
+                bl_passed = black_list_check(candidate_pair, aoi_blacklist)
+                result['BL_PASSED'] = bl_passed
+                if bl_passed:
+                    candidate_pair_list.append(candidate_pair)
+                    logger.info("Candidate Pair SELECTED")
+                    logger.info("process_enumeration: CheckMatch Passed. Adding candidate pair: ")
+                    print_candidate_pair(candidate_pair)
+                else:
+                    logger.info("BL Check failed. Candidate Pair NOT SELECTED")
+                    return False, []
+
     elif slave_ipf_count > 1 and master_ipf_count == 1:
         logger.info("process_enumeration : Ref : Slave, #of acq : %s" %len(slave_acqs))
         for acq in slave_acqs:
             logger.info("Running CheckMatch for Slave acq : %s" %acq.acq_id)
-            result, candidate_pair = check_match(acq, master_acqs, aoi_location, "slave")         
-            if not result:
+            matched, candidate_pair = check_match(acq, master_acqs, aoi_location, "slave")         
+            if not matched:
                 logger.info("CheckMatch Failed. So Returning False")
                 return False, []
-            elif black_list_check(candidate_pair, aoi_blacklist):
-                candidate_pair_list.append(candidate_pair)
-                logger.info("Candidate Pair SELECTED")
-                print_candidate_pair(candidate_pair)
             else:
-                logger.info("Candidate Pair NOT SELECTED")
+                bl_passed = black_list_check(candidate_pair, aoi_blacklist)
+                result['BL_PASSED'] = bl_passed
+                if bl_passed:
+                    candidate_pair_list.append(candidate_pair)
+                    logger.info("Candidate Pair SELECTED")
+                    print_candidate_pair(candidate_pair)
+                else:
+                    logger.info("BL Check Failed. Candidate Pair NOT SELECTED")
+                    return False, []
     else:
         logger.warn("No Selection as both Master and Slave has multiple ipf")
         logger.info("Candidate Pair NOT SELECTED")
 
     if len(candidate_pair_list) == 0:
-        result = False
+        matched = False
     else:
-        result = True
-    return result, candidate_pair_list
+        matched = True
+    return matched, candidate_pair_list, result
 
 
 def enumerate_acquisations(orbit_acq_selections):
@@ -405,14 +415,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                     orbit_file = slave_orbit_file_path
             if orbit_file:
                 logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s " %(slave_track_dt, orbit_file))
-                selected = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel, orbit_file)
+                selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel, orbit_file)
                 if not selected:
                     logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
                     rejected_slave_track_dt.append(slave_track_dt)
                     continue
             else:
                 logger.info("Orbit File NOT Exists, so Running water_mask_check for slave for date %s is running without orbit file." %slave_track_dt)
-                selected = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel)
+                selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel)
                 if not selected:
                     logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
                     rejected_slave_track_dt.append(slave_track_dt)
@@ -436,9 +446,12 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 #continue
             #slave_acqs = selected_slave_acqs_by_track_dt[slave_track_dt]
             
-
-            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data)            
-            if result:
+            result['master_ipf_count'] = master_ipf_count
+            result['slave_ipf_count'] = slave_ipf_count
+            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data, result)            
+            result['matched'] = matched
+            result['candidate_pairs'] = orbit_candidate_pair
+            if matched:
                 for candidate_pair in orbit_candidate_pair:
                     publish_initiator_pair(candidate_pair, job_data)   
                 candidate_pair_list.append(orbit_candidate_pair)
@@ -491,7 +504,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
         rejected_slave_orbitnumber = []
         for slave_orbitnumber in sorted( slave_grouped_matched["grouped"][track], reverse=True):
             selected_slave_acqs=[]
-            selected = gtUtil.water_mask_check(track, slave_orbitnumber, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location, aoi, threshold_pixel)
+            selected, result = gtUtil.water_mask_check(track, slave_orbitnumber, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_orbitnumber],  aoi_location, aoi, threshold_pixel)
             if not selected:
                 logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_orbitnumber)
                 rejected_slave_orbitnumber.append(slave_orbitnumber)
@@ -510,9 +523,13 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
             slave_acqs = selected_slave_acqs_by_orbitnumber[slave_orbitnumber]
             
+            result['master_ipf_count'] = master_ipf_count
+            result['slave_ipf_count'] = slave_ipf_count
 
-            result, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data)            
-            if result:
+            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data, result)            
+            result['matched'] = matched
+            result['candidate_pairs'] = orbit_candidate_pair
+            if matched:
                 for candidate_pair in orbit_candidate_pair:
                     publish_initiator_pair(candidate_pair, job_data)
                 candidate_pair_list.append(orbit_candidate_pair)
