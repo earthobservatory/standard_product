@@ -58,15 +58,15 @@ def get_groundTrack_footprint(tstart, tend, orbit_file):
 
 def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, orbit_file=None):
 
-    result = False
+    passed = False
     if not aoi_location:
         logger.info("water_mask_check FAILED as aoi_location NOT found")
-        return False
+        return False, {}
     try:
-        result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, orbit_file)
+        passed, result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, orbit_file)
     except Exception as err:
         traceback.print_exc()
-    return result
+    return passed, result
 
 
 def get_time(t):
@@ -210,7 +210,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
     acqs_land = []
     acqs_water = []
     gt_polygons = []
-    result = {}
+    result = util.get_result_dict()
     result['aoi'] = aoi_id
     result['track'] = track
     result['dt']  = orbit_or_track_dt
