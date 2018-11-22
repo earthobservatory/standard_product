@@ -384,7 +384,7 @@ def print_groups(grouped_matched):
 
 
 
-def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file):
+def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, result_file):
     #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
 
 
@@ -404,12 +404,15 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
     selected_track_acqs = {}
 
 
-
     for track in grouped_matched["grouped"]:
         selected_track_dt_acqs = {}
         for track_dt in grouped_matched["grouped"][track]:
             #water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id,  orbit_file = None)
             selected, result = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], aoi['id'], threshold_pixel, orbit_file)
+            with open(result_file, 'a') as fo:
+                cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                cw.writerow([result['dt'], result['track'],result['Track_POERB_Land'] , result['ACQ_Union_POERB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MSASK_PASSED'], result['master_ipf_count'], result['slave_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POERB_AOI_Intersection'], result['acq_union_aoi_intersection'] ])
+
             if selected:
                 logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
                 selected_acqs = []
@@ -543,10 +546,10 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, threshold_p
         result_file = "RESULT_SUMMARY_%s.csv" %aoi['id']
         with open(result_file, 'w') as fo:
             cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            cw.writerow(["Date","Track","Track_PEORB_Land","ACQ_Union_POERB_Land", "ACQ_Union_POERB_Water", "ACQ_Union_Land","ACQ_Union_Water","Track_AOI_Intersection", "ACQ_POERB_AOI_Intersection", "ACQ_AOI_Ingtersection"])
+            cw.writerow(["Date","Track","Track_PEORB_Land","ACQ_Union_POERB_Land", "ACQ_Union_Land", "RES", "WATER_MASK_PASSED", "Master_Ipf_Count", "Slave_Ipf_Count", "MATCHED", "BL_PASSED", "Candidate_Pairs", "Track_AOI_Intersection", "ACQ_POERB_AOI_Intersection", "ACQ_AOI_Ingtersection"])
         try:
             #selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
-            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file)
+            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, result_file)
         except Exception as  err:
             logger.info("Error from get_covered_acquisitions: %s " %str(err))
             traceback.print_exc()

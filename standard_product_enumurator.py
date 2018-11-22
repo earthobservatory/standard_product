@@ -14,6 +14,7 @@ from util import ACQ
 import gtUtil
 import dateutil.parser
 import pickle
+import csv
 
 #import isce
 #from UrlUtils import UrlUtils as UU
@@ -361,6 +362,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
     min_max_count = 0
     aoi_location = aoi_data['aoi_location']
     logger.info("aoi_location : %s " %aoi_location)
+    result_file = "RESULT_SUMMARY_%s.csv" %aoi
 
     for track_dt in sorted(selected_track_acqs.keys(), reverse=True):
         logger.info(track_dt)
@@ -419,6 +421,9 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 if not selected:
                     logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
                     rejected_slave_track_dt.append(slave_track_dt)
+                    with open(result_file, 'a') as fo:
+                        cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                        cw.writerow([result['dt'], result['track'],result['Track_POERB_Land'] , result['ACQ_Union_POERB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MSASK_PASSED'], result['master_ipf_count'], result['slave_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POERB_AOI_Intersection'], result['acq_union_aoi_intersection']])
                     continue
             else:
                 logger.info("Orbit File NOT Exists, so Running water_mask_check for slave for date %s is running without orbit file." %slave_track_dt)
@@ -529,6 +534,9 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data, result)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
+            with open(result_file, 'a') as fo:
+                cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                cw.writerow([result['dt'], result['track'],result['Track_POERB_Land'] , result['ACQ_Union_POERB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MSASK_PASSED'], result['master_ipf_count'], result['slave_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POERB_AOI_Intersection'], result['acq_union_aoi_intersection']] )
             if matched:
                 for candidate_pair in orbit_candidate_pair:
                     publish_initiator_pair(candidate_pair, job_data)
