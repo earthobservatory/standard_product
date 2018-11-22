@@ -322,6 +322,26 @@ def group_frames_by_track_date(frames):
     }
 
 
+def get_result_dict():
+    result = {}
+    result['aoi'] = None
+    result['track'] = None
+    result['dt']  = None
+    result['acq_union_land_area'] = None
+    result['acq_union_aoi_intersection'] = None
+    result['ACQ_POERB_AOI_Intersection'] = None   
+    result['ACQ_Union_POERB_Land'] = None
+    result['Track_POERB_Land'] = None
+    result['Track_AOI_Intersection'] = None
+    result['res'] = None
+    result['WATER_MSASK_PASSED'] = None
+    result['matched'] = None
+    result['BL_PASSED'] = None
+    result['master_ipf_count'] = None
+    result['slave_ipf_count'] = None
+    result['candidate_pairs'] = None
+
+    return result
 
 def dataset_exists(id, index_suffix):
     """Query for existence of dataset by ID."""

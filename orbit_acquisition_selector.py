@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 import groundTrack
 from osgeo import ogr
 import lightweight_water_mask
-
+import csv
 
 # set logger
 log_format = "[%(asctime)s: %(levelname)s/%(name)s/%(funcName)s] %(message)s"
@@ -540,6 +540,10 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, threshold_p
         if len(acqs) <=0:
             logger.info("Excluding AOI %s as no acquisitions there" %aoi['id'])
         selected_track_acqs = {}
+        result_file = "RESULT_SUMMARY_%s.csv" %aoi['id']
+        with open(result_file, 'w') as fo:
+            cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            cw.writerow(["Date","Track","Track_PEORB_Land","ACQ_Union_POERB_Land", "ACQ_Union_POERB_Water", "ACQ_Union_Land","ACQ_Union_Water","Track_AOI_Intersection", "ACQ_POERB_AOI_Intersection", "ACQ_AOI_Ingtersection"])
         try:
             #selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
             selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file)
