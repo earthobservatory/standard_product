@@ -539,7 +539,12 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
                 cw.writerow([result['dt'], result['track'],result['Track_POERB_Land'] , result['ACQ_Union_POERB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MSASK_PASSED'], result['master_ipf_count'], result['slave_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POERB_AOI_Intersection'], result['acq_union_aoi_intersection']] )
             if matched:
                 for candidate_pair in orbit_candidate_pair:
-                    publish_initiator_pair(candidate_pair, job_data)
+                    try:
+                        publish_initiator_pair(candidate_pair, job_data)
+                        logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
+                    except Exception as err:
+                        logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err))
+                        traceback.print_exc() 
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
                 if min_max_count>=MIN_MATCH:
@@ -616,7 +621,13 @@ def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
             
 def publish_initiator(candidate_pair_list, job_data):
     for candidate_pair in candidate_pair_list:
-        publish_initiator_pair(candidate_pair, job_data)
+        try:
+            publish_initiator_pair(candidate_pair, job_data)
+            logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
+        except Exception as err:
+            logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err))
+            traceback.print_exc() 
+        #publish_initiator_pair(candidate_pair, job_data)
 
 
 def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=None):
