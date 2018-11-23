@@ -458,8 +458,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             result['candidate_pairs'] = orbit_candidate_pair
             if matched:
                 for candidate_pair in orbit_candidate_pair:
-                    publish_initiator_pair(candidate_pair, job_data)   
-                candidate_pair_list.append(orbit_candidate_pair)
+                    try:
+                        publish_initiator_pair(candidate_pair, job_data)   
+                    except Exception as err:
+                        logger.info(str(err))
+                        logger.warn("Traceback: {}".format(traceback.format_exc()))
+
+                    candidate_pair_list.append(orbit_candidate_pair)
+                
                 min_max_count = min_max_count + 1
                 if min_max_count>=MIN_MATCH:
                     return min_max_count, candidate_pair_list
@@ -544,7 +550,8 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
                         logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
                     except Exception as err:
                         logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err))
-                        traceback.print_exc() 
+                        logger.warn("Traceback: {}".format(traceback.format_exc()))
+
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
                 if min_max_count>=MIN_MATCH:
@@ -626,7 +633,7 @@ def publish_initiator(candidate_pair_list, job_data):
             logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
         except Exception as err:
             logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err))
-            traceback.print_exc() 
+            logger.warn("Traceback: {}".format(traceback.format_exc()))
         #publish_initiator_pair(candidate_pair, job_data)
 
 
