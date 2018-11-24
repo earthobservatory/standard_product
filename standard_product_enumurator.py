@@ -324,7 +324,8 @@ def enumerate_acquisations(orbit_acq_selections):
             '''
         except Exception as err:
             logger.warn("Error with Enumeration for aoi : %s : %s" %(aoi_id, str(err)))
-            logger.warn("Traceback: {}".format(traceback.format_exc()))
+            traceback.print_exc()
+            #logger.warn("Traceback: {}".format(traceback.format_exc()))
                   
     #return candidate_pair_list
 
@@ -462,7 +463,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                         publish_initiator_pair(candidate_pair, job_data)   
                     except Exception as err:
                         logger.info(str(err))
-                        logger.warn("Traceback: {}".format(traceback.format_exc()))
+                        traceback.print_exc()
+                        #logger.warn("Traceback: {}".format(traceback.format_exc()))
 
                     candidate_pair_list.append(orbit_candidate_pair)
                 
@@ -549,8 +551,9 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
                         publish_initiator_pair(candidate_pair, job_data)
                         logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
                     except Exception as err:
-                        logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err))
-                        logger.warn("Traceback: {}".format(traceback.format_exc()))
+                        logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err)))
+                        traceback.print_exc()
+                        #logger.warn("Traceback: {}".format(traceback.format_exc()))
 
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
@@ -605,7 +608,8 @@ def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
             is_overlapped, overlap = util.find_overlap_within_aoi(ref_acq.location, union_loc, aoi_location)
         except Exception as err:
             logger.warn(str(err))
-            logger.warn("Traceback: {}".format(traceback.format_exc()))
+            traceback.print_exc()
+            #logger.warn("Traceback: {}".format(traceback.format_exc()))
 
         logger.info("is_ref_truncated : %s" %is_ref_truncated)
         logger.info("is_within : %s" %is_covered)
@@ -813,7 +817,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=
         md['bbox'] = bbox
     except Exception as e:
         logger.warn("Got exception creating bbox : {}".format( str(e)))
-        logger.warn("Traceback: {}".format(traceback.format_exc()))
+        traceback.print_exc()
+        #logger.warn("Traceback: {}".format(traceback.format_exc()))
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
