@@ -636,7 +636,7 @@ def publish_initiator(candidate_pair_list, job_data):
             publish_initiator_pair(candidate_pair, job_data)
             logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
         except Exception as err:
-            logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err))
+            logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err)))
             logger.warn("Traceback: {}".format(traceback.format_exc()))
         #publish_initiator_pair(candidate_pair, job_data)
 
