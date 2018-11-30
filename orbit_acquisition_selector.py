@@ -573,7 +573,8 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, threshold_p
 	#aoi_acq[aoi] = acq_info 
         #logger.info("Acquistions to localize: {}".format(json.dumps(acq_info, indent=2)))
     if len(orbit_aoi_data.keys())<=0:
-        raise("Existing as NOTHING selected for any aois")
+        logger.info("Existing as NOTHING selected for any aois")
+        sys.exit(0)
     return orbit_aoi_data
     
 
