@@ -372,6 +372,10 @@ def resolve_source(ctx_file):
     job_priority = ctx["input_metadata"]["job_priority"]
     job_type, job_version = ctx['job_specification']['id'].split(':') 
 
+    orbitNumber = []
+    if "orbitNumber" in ctx["input_metadata"]:
+        orbitNumber = ctx["input_metadata"]["orbitNumber"]
+
 
     acq_info = {}
    
@@ -387,10 +391,10 @@ def resolve_source(ctx_file):
 	acq_type = "slave"
 	acq_info[acq]=get_acq_object(acq, acq_type)
 
-    return acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox
+    return acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, union_geojson, bbox
 
 
-def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox):
+def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, union_geojson, bbox):
     '''
 	This function submits acquisition localizer jobs for mastrer and slaves.
     '''
@@ -474,6 +478,9 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
     union_geojsons =[]
     master_scenes = []
     slave_scenes = []
+    orbitNumbers = []
+    orbitNumbers.append(orbitNumber)
+
     master_scenes.append(master_scene)
     slave_scenes.append(slave_scene)
 
@@ -489,7 +496,7 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
     if bbox:
         bboxes.append(bbox)
 
-    return acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, union_geojsons, bboxes
+    return acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, union_geojsons, bboxes
 
 def get_id_hash(acq_info, job_priority, dem_type):
     id_hash = ""
@@ -541,11 +548,11 @@ def check_all_job_completed(job_info):
 
 
 
-def publish_localized_info( acq_info, project, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox, wuid=None, job_num=None):
+def publish_localized_info( acq_info, project, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, union_geojson, bbox, wuid=None, job_num=None):
     for i in range(len(project)):
-        publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], union_geojson[i], bbox[i])
+        publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], union_geojson[i], bbox[i])
 
-def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, union_geojson, bbox, wuid=None, job_num=None):
+def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, orbitNumber, union_geojson, bbox, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
@@ -555,14 +562,14 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     logger.info("starttime, endtime, : %s : %s " %(starttime, endtime))
     logger.info(" master_scene, slave_scene : %s, %s" %(master_scene, slave_scene))
     logger.info(" union_geojson : %s, bbox : %s " %( union_geojson, bbox))
-   
+    logger.info("publish_data : orbitNumber : %s" %orbitNumber)
     #version = get_version()
     version = "v2.0.0"
 
     if type(project) is list:
         project = project[0]
     logger.info("project : %s" %project)
-
+    
     # set job type and disk space reqs
     disk_usage = "100GB"
 
@@ -617,6 +624,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['slave_scenes'] = slave_scene
     md['master_slcs'] = master_slcs
     md['slave_slcs'] = slave_slcs
+    md['orbitNumber'] = orbitNumber
 
     if bbox:
         md['bbox'] = bbox

@@ -365,6 +365,9 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
     logger.info("aoi_location : %s " %aoi_location)
     result_file = "RESULT_SUMMARY_%s.csv" %aoi
 
+    orbitNumber = []
+   
+
     for track_dt in sorted(selected_track_acqs.keys(), reverse=True):
         logger.info(track_dt)
    
@@ -375,6 +378,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
         #master_ipf_count = util.get_ipf_count(master_acqs)
         #master_union_geojson = util.get_union_geojson_acqs(master_acqs)
+        orbitNumber.append(master_orbitnumber)
 
         #util.print_acquisitions(aoi_data['aoi_id'], master_acqs)
         query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumber)
@@ -589,10 +593,21 @@ def get_union_geometry(acq_dict):
     union_geojson =  json.loads(union.ExportToJson())
     return union_geojson
 
+def get_orbit_number_list(ref_acq,  overlapped_acqs):
+    orbitNumber = []
+    orbitNumber.append(ref_acq.orbitnumber)
+
+    for acq in overlapped_acqs:
+        orbitNumber.append(acq.orbitnumber)
+
+    return list(set(orbitNumber))
+
 def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
     matched = False
     candidate_pair = {}
     master_slave_union_loc = None
+    orbitNumber = []
+
     overlapped_matches = util.find_overlap_match(ref_acq, matched_acqs)
     if len(overlapped_matches)>0:
         overlapped_acqs = []
@@ -621,13 +636,14 @@ def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
         if is_overlapped: # and overlap>=0.98: # and overlap >=covth:
             logger.info("MATCHED")
             matched = True
+            orbitNumber = get_orbit_number_list(ref_acq,  overlapped_acqs)
             starttime = ref_acq.starttime
             endtime = ref_acq.endtime
             pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
             if ref_type == "master":
-                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime}
+                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber}
             else:
-                candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime}
+                candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber}
     return matched, candidate_pair
             
 def publish_initiator(candidate_pair_list, job_data):
@@ -654,7 +670,9 @@ def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=
     union_geojson = candidate_pair["intersect_geojson"]
     starttime = candidate_pair["starttime"]
     endtime = candidate_pair["endtime"]
-
+    orbitNumber = candidate_pair['orbitNumber']
+    
+    logger.info("publish_data : orbitNumber : %s" %orbitNumber)
 
     project = publish_job_data["project"] 
     '''
@@ -802,6 +820,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=
     md['union_geojson'] = union_geojson
     md['master_scenes'] = master_acquisitions 
     md['slave_scenes'] = slave_acquisitions
+    md['orbitNumber'] = orbitNumber
 
 
  
