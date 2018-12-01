@@ -637,7 +637,7 @@ def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
         if is_overlapped: # and overlap>=0.98: # and overlap >=covth:
             logger.info("MATCHED")
             matched = True
-            orbitNumber = get_orbit_number_list(ref_acq,  overlapped_acqs)
+            orbitNumber = get_orbit_number_list(ref_acq,  overlapped_matches)
             starttime = ref_acq.starttime
             endtime = ref_acq.endtime
             pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
