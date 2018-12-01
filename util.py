@@ -744,7 +744,7 @@ def find_overlap_match(master_acq, slave_acqs):
         logger.info("is_overlap : %s" %is_over)
         logger.info("overlap area : %s" %overlap)
         if is_over:
-            overlapped_matches[slave.acq_id] = slave.location
+            overlapped_matches[slave.acq_id] = slave
             logger.info("Overlapped slave : %s" %slave.acq_id)
 
     return overlapped_matches

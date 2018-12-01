@@ -587,7 +587,7 @@ def get_union_geometry(acq_dict):
     #logger.info(acq_dict)
     ids = sorted(acq_dict.keys())
     for id in ids:
-        geom = ogr.CreateGeometryFromJson(json.dumps(acq_dict[id]))
+        geom = ogr.CreateGeometryFromJson(json.dumps(acq_dict[id].location))
         geoms.append(geom)
         union = geom if union is None else union.Union(geom)
     union_geojson =  json.loads(union.ExportToJson())
@@ -597,8 +597,9 @@ def get_orbit_number_list(ref_acq,  overlapped_acqs):
     orbitNumber = []
     orbitNumber.append(ref_acq.orbitnumber)
 
-    for acq in overlapped_acqs:
-        orbitNumber.append(acq.orbitnumber)
+    ids = sorted(overlapped_acqs.keys())
+    for id in ids:
+        orbitNumber.append(overlapped_acqs[id].orbitnumber)
 
     return list(set(orbitNumber))
 
@@ -615,7 +616,7 @@ def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
         #logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
         union_loc = get_union_geometry(overlapped_matches)
         logger.info("union loc : %s" %union_loc)
-        is_ref_truncated = util.ref_truncated(ref_acq, overlapped_matches, covth=.99)
+        #is_ref_truncated = util.ref_truncated(ref_acq, overlapped_matches, covth=.99)
         is_covered = util.is_within(ref_acq.location["coordinates"], union_loc["coordinates"])
         is_overlapped = True
         overlap = 0
@@ -626,7 +627,7 @@ def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
             traceback.print_exc()
             #logger.warn("Traceback: {}".format(traceback.format_exc()))
 
-        logger.info("is_ref_truncated : %s" %is_ref_truncated)
+        #logger.info("is_ref_truncated : %s" %is_ref_truncated)
         logger.info("is_within : %s" %is_covered)
         logger.info("is_overlapped : %s, overlap : %s" %(is_overlapped, overlap))
         for acq_id in overlapped_matches.keys():
