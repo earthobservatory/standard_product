@@ -2,8 +2,7 @@
 import os, sys, time, json, requests, logging
 import re, traceback, argparse, copy, bisect
 from xml.etree import ElementTree
-#from hysds_commons.job_utils import resolve_hysds_job
-#from hysds.celery import app
+from UrlUtils import UrlUtils
 import util
 import gtUtil
 from util import ACQ

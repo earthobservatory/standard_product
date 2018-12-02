@@ -3,6 +3,7 @@ import util
 #from hysds.celery import app
 import os, sys, re, requests, json, logging, traceback, argparse, copy, bisect
 import hashlib
+from UrlUtils import UrlUtils
 from itertools import product, chain
 from datetime import datetime, timedelta
 import numpy as np
