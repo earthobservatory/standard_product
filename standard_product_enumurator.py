@@ -47,9 +47,8 @@ ACQ_LIST_ID_TMPL = "acq-list_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%
 
 
 BASE_PATH = os.path.dirname(__file__)
-GRQ_ES_URL = "http://100.64.134.208:9200/"
 covth = 0.98
-MIN_MATCH = 100
+MIN_MATCH = 2
 es_index = "grq_*_*acquisition*"
 job_data = None
 
@@ -61,8 +60,8 @@ def get_orbit_date(s):
 
 def query_es(query, es_index=None):
     """Query ES."""
-    es_url = "http://100.64.134.208:9200/"
-    #es_url = app.conf.GRQ_ES_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
     if es_index:
@@ -84,16 +83,15 @@ def query_es(query, es_index=None):
     return hits
 
 def process_query(query):
-
-    rest_url = GRQ_ES_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
+    rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     #dav_url =  "https://aria-dav.jpl.nasa.gov"
     #version = "v1.1"
     grq_index_prefix = "grq"
 
     logger.info("query: {}".format(json.dumps(query, indent=2)))
 
-    if rest_url.endswith('/'):
-        rest_url = rest_url[:-1]
 
     # get index name and url
     url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, grq_index_prefix)
@@ -697,8 +695,10 @@ def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=
     # set job type and disk space reqs
     disk_usage = "300GB"
 
-    # query docs
-    es_url = GRQ_ES_URL
+    # query doc
+    uu = UrlUtils()
+    es_url = uu.rest_url
+
     grq_index_prefix = "grq"
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, grq_index_prefix)

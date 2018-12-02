@@ -4,6 +4,7 @@ import re, traceback, argparse, copy, bisect
 from xml.etree import ElementTree
 #from hysds_commons.job_utils import resolve_hysds_job
 #from hysds.celery import app
+from UrlUtils import UrlUtils
 from shapely.geometry import Polygon
 from shapely.ops import cascaded_union
 import datetime
@@ -15,8 +16,6 @@ import elasticsearch
 import lightweight_water_mask
 
 
-GRQ_URL="http://100.64.134.208:9200/"
-ES = elasticsearch.Elasticsearch(GRQ_URL)
 
 logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 logger.setLevel(logging.INFO)
@@ -347,7 +346,8 @@ def dataset_exists(id, index_suffix):
     """Query for existence of dataset by ID."""
 
     # es_url and es_index
-    es_url = GRQ_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     es_index = "grq_*_{}".format(index_suffix.lower())
     
     # query
@@ -382,7 +382,8 @@ def get_dataset(id, index_suffix):
     """Query for existence of dataset by ID."""
 
     # es_url and es_index
-    es_url = GRQ_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     es_index = "grq_*_{}".format(index_suffix.lower())
     #es_index = "grq"
 
@@ -420,7 +421,8 @@ def get_dataset(id):
     """Query for existence of dataset by ID."""
 
     # es_url and es_index
-    es_url = GRQ_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     #es_index = "grq_*_{}".format(index_suffix.lower())
     es_index = "grq"
 
@@ -457,8 +459,8 @@ def get_dataset(id):
 
 def query_es(query, es_index=None):
     """Query ES."""
-    es_url = "http://100.64.134.208:9200/"
-    #es_url = app.conf.GRQ_ES_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
     if es_index:
@@ -483,8 +485,8 @@ def query_es(query, es_index=None):
 def query_es2(query, es_index=None):
     """Query ES."""
     logger.info(query)
-    es_url = "http://100.64.134.208:9200/"
-    #es_url = app.conf.GRQ_ES_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
     if es_index:
@@ -517,7 +519,8 @@ def print_groups(grouped_matched):
 
 
 def get_complete_grq_data(id):
-    es_url = GRQ_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     es_index = "grq"
     query = {
       "query": {
@@ -553,7 +556,8 @@ def get_complete_grq_data(id):
     return result['hits']['hits']
 
 def get_partial_grq_data(id):
-    es_url = GRQ_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     es_index = "grq"
 
     query = {
@@ -588,7 +592,8 @@ def get_partial_grq_data(id):
     return result['hits']['hits'][0]
 
 def get_acquisition_data(id):
-    es_url = GRQ_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     es_index = "grq_*_*acquisition*"
     query = {
       "query": {
@@ -913,6 +918,9 @@ def print_acquisitions(aoi_id, acqs):
     logger.info("\n")
 
 def update_doc(body=None, index=None, doc_type=None, doc_id=None):
+    uu = UrlUtils()
+    es_url = uu.rest_url
+    ES = elasticsearch.Elasticsearch(es_url)
     ES.update(index= index, doc_type= doc_type, id=doc_id,
               body=body)
 
@@ -1536,7 +1544,8 @@ def get_query2(acq):
 def query_es(query, es_index):
     """Query ES."""
 
-    es_url = GRQ_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
     #logger.info("url: {}".format(url))

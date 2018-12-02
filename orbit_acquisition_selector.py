@@ -40,8 +40,8 @@ MISSION = 'S1A'
 
 def query_es(query, es_index=None):
     """Query ES."""
-    es_url = "http://100.64.134.208:9200/"
-    #es_url = app.conf.GRQ_ES_URL
+    uu = UrlUtils()
+    es_url = uu.rest_url
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
     if es_index:
