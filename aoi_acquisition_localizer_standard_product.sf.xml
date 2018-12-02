@@ -95,7 +95,7 @@
           <endtimes from="@#previous"/>
           <master_scenes from="@#previous"/>
           <slave_scenes from="@#previous"/>
-          <orbitNumber from="@#previous"/>
+          <orbitNumbers from="@#previous"/>
           <union_geojsons from="@#previous"/>
           <bboxes from="@#previous"/>
         </sf:inputs>
