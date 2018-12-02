@@ -45,7 +45,7 @@ RUN set -ex \
 
 RUN set -ex \
  && sudo chown -R ops:ops /home/ops/verdi/ops/standard_product \
- && mv /home/ops/verdi/ops/standard_product/acquisition_localizer /home/ops/verdi/ops/ \
+ && mv /home/ops/verdi/ops/standard_product/multi_acquisition_localizer /home/ops/verdi/ops/ \
  && mv /home/ops/verdi/ops/standard_product/ariamh/ /home/ops/
 
 
