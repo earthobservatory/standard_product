@@ -463,7 +463,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             if matched:
                 for candidate_pair in orbit_candidate_pair:
                     try:
-                        publish_initiator_pair(candidate_pair, job_data)   
+                        publish_initiator_pair(candidate_pair, job_data, orbit_data)   
                     except Exception as err:
                         logger.info("Error Publishing Candidate Pair : %s : %s" %(candidate_pair, str(err)))
                         traceback.print_exc()
@@ -551,7 +551,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             if matched:
                 for candidate_pair in orbit_candidate_pair:
                     try:
-                        publish_initiator_pair(candidate_pair, job_data)
+                        publish_initiator_pair(candidate_pair, job_data, orbit_data)
                         logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
                     except Exception as err:
                         logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err)))
@@ -649,7 +649,7 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
 def publish_initiator(candidate_pair_list, job_data):
     for candidate_pair in candidate_pair_list:
         try:
-            publish_initiator_pair(candidate_pair, job_data)
+            publish_initiator_pair(candidate_pair, job_data, orbit_data)
             logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
         except Exception as err:
             logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err)))
@@ -657,7 +657,7 @@ def publish_initiator(candidate_pair_list, job_data):
         #publish_initiator_pair(candidate_pair, job_data)
 
 
-def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=None):
+def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=None, job_num=None):
   
 
     logger.info("\nPUBLISH CANDIDATE PAIR : %s" %candidate_pair)
@@ -672,7 +672,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=
     endtime = candidate_pair["endtime"]
     orbitNumber = candidate_pair['orbitNumber']
     direction = candidate_pair['direction']
- 
+    platform = orbit_data['platform'] 
     logger.info("publish_data : orbitNumber : %s, direction : %s" %(orbitNumber, direction))
 
     project = publish_job_data["project"] 
@@ -825,6 +825,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=
     md['slave_scenes'] = slave_acquisitions
     md['orbitNumber'] = orbitNumber
     md['direction'] = direction
+    md['platform'] = platform
 
  
     try:

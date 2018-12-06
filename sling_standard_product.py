@@ -366,6 +366,7 @@ def resolve_source(ctx_file):
 
     union_geojson = ctx["input_metadata"]["union_geojson"]
     direction = ctx["input_metadata"]["direction"] 
+    platform = ctx["input_metadata"]["platform"]
     spyddder_extract_version = get_value(ctx, "spyddder_extract_version", "develop")
     multi_acquisition_localizer_version = get_value(ctx, "multi_acquisition_localizer_version", "master")
 
@@ -391,10 +392,10 @@ def resolve_source(ctx_file):
 	acq_type = "slave"
 	acq_info[acq]=get_acq_object(acq, acq_type)
 
-    return acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, union_geojson, bbox
+    return acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox
 
 
-def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, union_geojson, bbox):
+def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox):
     '''
 	This function submits acquisition localizer jobs for mastrer and slaves.
     '''
@@ -482,6 +483,8 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
     orbitNumbers.append(orbitNumber)
     directions = []
     directions.append(direction)
+    platforms = []
+    platforms.append(platform)
 
     master_scenes.append(master_scene)
     slave_scenes.append(slave_scene)
@@ -498,7 +501,8 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
     if bbox:
         bboxes.append(bbox)
 
-    return acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, union_geojsons, bboxes
+    return acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, platform, union_geojsons, bboxes
+       
 
 def get_id_hash(acq_info, job_priority, dem_type):
     id_hash = ""
@@ -550,11 +554,11 @@ def check_all_job_completed(job_info):
 
 
 
-def publish_localized_info( acq_info, project, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, union_geojson, bbox, wuid=None, job_num=None):
+def publish_localized_info( acq_info, project, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
     for i in range(len(project)):
-        publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], direction[i], union_geojson[i], bbox[i])
+        publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], direction[i], platform[i], union_geojson[i], bbox[i])
 
-def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, orbitNumber, direction, union_geojson, bbox, wuid=None, job_num=None):
+def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
@@ -591,7 +595,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     slave_slcs = get_acq_data_from_list(slave_scene)
     logger.info(" master_scene : %s slave_slcs : %s" %(master_slcs, slave_slcs))
     orbit_type = 'poeorb'
-    logger.info("Publish IFG job: direction : %s" %direction)
+    logger.info("Publish IFG job: direction : %s, platform : %s" %(direction, platform))
 
     id = IFG_CFG_ID_TMPL.format('M', len(master_scene), len(slave_scene), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4])
 
@@ -629,6 +633,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['slave_slcs'] = slave_slcs
     md['orbitNumber'] = orbitNumber
     md['direction'] = direction
+    md['platform'] = platform
 
     if bbox:
         md['bbox'] = bbox
