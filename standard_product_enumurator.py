@@ -214,7 +214,7 @@ def black_list_check(candidate_pair, black_list):
     return passed
 
     
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data, result):
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result):
     matched = False
     candidate_pair_list = []
     result['matched'] = matched
@@ -226,7 +226,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
         logger.info("process_enumeration : Ref : Master, #of acq : %s" %len(master_acqs))
         for acq in master_acqs:
             logger.info("Running CheckMatch for Master acq : %s" %acq.acq_id)
-            matched, candidate_pair = check_match(acq, slave_acqs, aoi_location, "master") 
+            matched, candidate_pair = check_match(acq, slave_acqs, aoi_location, direction, "master") 
             result['matched'] = matched
             if not matched:
                 logger.info("CheckMatch Failed. So Returning False")
@@ -248,7 +248,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
         logger.info("process_enumeration : Ref : Slave, #of acq : %s" %len(slave_acqs))
         for acq in slave_acqs:
             logger.info("Running CheckMatch for Slave acq : %s" %acq.acq_id)
-            matched, candidate_pair = check_match(acq, master_acqs, aoi_location, "slave")         
+            matched, candidate_pair = check_match(acq, master_acqs, aoi_location, direction, "slave")         
             if not matched:
                 logger.info("CheckMatch Failed. So Returning False")
                 return False, []
@@ -457,7 +457,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             
             result['master_ipf_count'] = master_ipf_count
             result['slave_ipf_count'] = slave_ipf_count
-            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data, result)            
+            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             if matched:
@@ -542,7 +542,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             result['master_ipf_count'] = master_ipf_count
             result['slave_ipf_count'] = slave_ipf_count
 
-            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, aoi_location, aoi_blacklist, job_data, result)            
+            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             with open(result_file, 'a') as fo:
@@ -602,7 +602,7 @@ def get_orbit_number_list(ref_acq,  overlapped_acqs):
 
     return list(set(orbitNumber))
 
-def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
+def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "master"):
     matched = False
     candidate_pair = {}
     master_slave_union_loc = None
@@ -641,9 +641,9 @@ def check_match(ref_acq, matched_acqs, aoi_location, ref_type = "master"):
             endtime = ref_acq.endtime
             pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
             if ref_type == "master":
-                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber}
+                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
             else:
-                candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber}
+                candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
     return matched, candidate_pair
             
 def publish_initiator(candidate_pair_list, job_data):
@@ -671,8 +671,9 @@ def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=
     starttime = candidate_pair["starttime"]
     endtime = candidate_pair["endtime"]
     orbitNumber = candidate_pair['orbitNumber']
-    
-    logger.info("publish_data : orbitNumber : %s" %orbitNumber)
+    direction = candidate_pair['direction']
+ 
+    logger.info("publish_data : orbitNumber : %s, direction : %s" %(orbitNumber, direction))
 
     project = publish_job_data["project"] 
     '''
@@ -823,7 +824,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, wuid=None, job_num=
     md['master_scenes'] = master_acquisitions 
     md['slave_scenes'] = slave_acquisitions
     md['orbitNumber'] = orbitNumber
-
+    md['direction'] = direction
 
  
     try:
