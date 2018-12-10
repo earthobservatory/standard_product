@@ -235,8 +235,9 @@ def create_acq_obj_from_metadata(acq):
     #create ACQ(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv)
     #logger.info("ACQ = %s\n" %acq)
     acq_data = acq #acq['fields']['partial'][0]
+    missing_pcv_list = list()
     acq_id = acq['id']
-    #print("acq_id : %s : %s" %(type(acq_id), acq_id))
+    logger.info("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
     match = SLC_RE.search(acq_id)
     if not match:
         logger.info("Error : No Match : %s" %acq_id)
@@ -252,8 +253,12 @@ def create_acq_obj_from_metadata(acq):
     pv = None
     if "processing_version" in  acq_data['metadata']:
         pv = acq_data['metadata']['processing_version']
+        logger.info("pv found in metadata : %s" %pv)
     else:
+        missing_pcv_list.append(acq_id)
+        logger.info("pv NOT in metadata,so calling ASF")
         pv = get_processing_version(identifier)
+        logger.info("ASF returned pv : %s" %pv)
         update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv)
 
@@ -262,6 +267,7 @@ def create_acqs_from_metadata(frames):
     acqs = []
     #print("frame length : %s" %len(frames))
     for acq in frames:
+        logger.info("create_acqs_from_metadata : %s" %acq['id'])
         acq_obj = create_acq_obj_from_metadata(acq)
         if acq_obj:
             acqs.append(acq_obj)

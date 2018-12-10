@@ -62,7 +62,8 @@ def get_group_platform(grouped_matched_orbit_number, acq_info):
             logger.info("\n%s : %s" %(pv, acq_id))
             acq = acq_info[acq_id]
             if not platform:
-                platform = acq.platform
+                platform = acq.platforma
+                logger.info("get_group_platform : platform : %s" %platform)
             else:
                 if platform != acq.platform:
                     raise("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
@@ -429,6 +430,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             orbit_dt = slave_track_dt.replace(minute=0, hour=12, second=0).isoformat()
             logger.info("\n\n\nProcessing AOI: %s Track : %s  orbit_dt : %s" %(aoi, track, orbit_dt))
             slave_platform = get_group_platform(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
+            logger.info("slave_platform : %s" %slave_platform)
             isOrbitFile, orbit_id, orbit_url = util.get_orbit_file(orbit_dt, slave_platform)
             if isOrbitFile:
                 logger.info("%s : %s" %(orbit_id, orbit_url))
