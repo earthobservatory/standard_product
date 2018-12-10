@@ -1028,6 +1028,11 @@ def get_overlapping_slaves_query(starttime, location, track, direction, platform
                   }
                 },
                 {
+                 "term": {
+                    "metadata.platformname.raw": "Sentinel-1"
+                  }
+                },
+                {
                   "term": {
                     "trackNumber": track
                   }
