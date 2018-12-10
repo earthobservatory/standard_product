@@ -59,10 +59,10 @@ def get_group_platform(grouped_matched_orbit_number, acq_info):
     for pv in grouped_matched_orbit_number:
         acq_ids = grouped_matched_orbit_number[pv]
         for acq_id in acq_ids:
-            logger.info("\n%s : %s" %(pv, acq_id))
+            logger.info("\nget_group_platform : %s : %s" %(pv, acq_id))
             acq = acq_info[acq_id]
             if not platform:
-                platform = acq.platforma
+                platform = acq.platform
                 logger.info("get_group_platform : platform : %s" %platform)
             else:
                 if platform != acq.platform:
