@@ -19,8 +19,24 @@ import urllib.request
 
 GRQ_URL="http://100.64.134.208:9200/"
 
-logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+#logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+#logger.setLevel(logging.INFO)
+
+# set logger and custom filter to handle being run from sciflo
+log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
+logging.basicConfig(format=log_format, level=logging.INFO)
+
+class LogFilter(logging.Filter):
+    def filter(self, record):
+        if not hasattr(record, 'id'): record.id = '--'
+        return True
+
+logger = logging.getLogger('gtUtil')
 logger.setLevel(logging.INFO)
+logger.addFilter(LogFilter())
+
+
+
 #logger.addFilter(LogFilter())
 
 SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
@@ -62,10 +78,8 @@ def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
     if not aoi_location:
         logger.info("water_mask_check FAILED as aoi_location NOT found")
         return False, {}
-    try:
-        passed, result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, orbit_file)
-    except Exception as err:
-        traceback.print_exc()
+   
+    passed, result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, orbit_file)
     return passed, result
 
 

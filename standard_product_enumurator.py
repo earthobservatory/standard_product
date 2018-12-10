@@ -53,6 +53,24 @@ MIN_MATCH = 2
 es_index = "grq_*_*acquisition*"
 job_data = None
 
+
+def get_group_platform(grouped_matched_orbit_number, acq_info):
+    platform = None
+    for pv in grouped_matched_orbit_number:
+        acq_ids = grouped_matched_orbit_number[pv]
+        for acq_id in acq_ids:
+            logger.info("\n%s : %s" %(pv, acq_id))
+            acq = acq_info[acq_id]
+            if not platform:
+                platform = acq.platform
+            else:
+                if platform != acq.platform:
+                    raise("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
+    return platform
+      
+
+
+
 def get_orbit_date(s):
     date = dateutil.parser.parse(s, ignoretz=True)
     date = date.replace(minute=0, hour=12, second=0)
@@ -410,8 +428,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             orbit_file = None
             orbit_dt = slave_track_dt.replace(minute=0, hour=12, second=0).isoformat()
             logger.info("\n\n\nProcessing AOI: %s Track : %s  orbit_dt : %s" %(aoi, track, orbit_dt))
-
-            isOrbitFile, orbit_id, orbit_url = util.get_orbit_file(orbit_dt, orbit_data['platform'])
+            slave_platform = get_group_platform(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
+            isOrbitFile, orbit_id, orbit_url = util.get_orbit_file(orbit_dt, slave_platform)
             if isOrbitFile:
                 logger.info("%s : %s" %(orbit_id, orbit_url))
                 slave_orbit_file_path = os.path.basename(orbit_url)

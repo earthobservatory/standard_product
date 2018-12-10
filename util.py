@@ -17,9 +17,21 @@ import lightweight_water_mask
 
 
 
-logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
-logger.setLevel(logging.INFO)
+#logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+#logger.setLevel(logging.INFO)
 #logger.addFilter(LogFilter())
+log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
+logging.basicConfig(format=log_format, level=logging.INFO)
+
+class LogFilter(logging.Filter):
+    def filter(self, record):
+        if not hasattr(record, 'id'): record.id = '--'
+        return True
+
+logger = logging.getLogger('util')
+logger.setLevel(logging.INFO)
+logger.addFilter(LogFilter())
+
 
 SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
                     r'_(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
