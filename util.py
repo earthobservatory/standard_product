@@ -53,7 +53,7 @@ MISSION = 'S1A'
 
 
 class ACQ:
-    def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv,  ):
+    def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform = None  ):
         self.acq_id=acq_id,
         self.download_url = download_url
         self.tracknumber = tracknumber
@@ -64,6 +64,7 @@ class ACQ:
         self.direction = direction
         self.orbitnumber = orbitnumber
         self.identifier = identifier
+        self.platform = platform
         self.covers_only_water = lightweight_water_mask.covers_only_water(location)
         self.covers_only_land = lightweight_water_mask.covers_only_land(location)
         
@@ -237,7 +238,8 @@ def create_acq_obj_from_metadata(acq):
     acq_data = acq #acq['fields']['partial'][0]
     missing_pcv_list = list()
     acq_id = acq['id']
-    logger.info("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
+    print("logger level : %s" %logger.level)
+    print("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
     match = SLC_RE.search(acq_id)
     if not match:
         logger.info("Error : No Match : %s" %acq_id)
@@ -249,6 +251,7 @@ def create_acq_obj_from_metadata(acq):
     endtime = acq_data['endtime']
     direction = acq_data['metadata']['direction']
     orbitnumber = acq_data['metadata']['orbitNumber']
+    platform = acq_data['metadata']['platform']
     identifier = acq_data['metadata']['identifier']
     pv = None
     if "processing_version" in  acq_data['metadata']:
@@ -260,7 +263,7 @@ def create_acq_obj_from_metadata(acq):
         pv = get_processing_version(identifier)
         logger.info("ASF returned pv : %s" %pv)
         update_acq_pv(acq_id, pv) 
-    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv)
+    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
 
 
 def create_acqs_from_metadata(frames):
@@ -680,10 +683,12 @@ def group_acqs_by_track(frames):
         direction = acq_data['metadata']['direction']
         orbitnumber = acq_data['metadata']['orbitNumber']
         identifier = acq['metadata']['identifier']
+        platform = acq_data['metadata']['platform']
+
         pv = None
         if "processing_version" in  acq_data['metadata']:
             pv = acq_data['metadata']['processing_version']
-        this_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv)
+        this_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
         acq_info[acq_id] = this_acq
 
         #logger.info("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
