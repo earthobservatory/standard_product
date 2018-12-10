@@ -1029,11 +1029,6 @@ def get_overlapping_slaves_query(starttime, location, track, direction, platform
                 },
                 {
                   "term": {
-                    "metadata.platform.raw": platform
-                  }
-                },
-                {
-                  "term": {
                     "trackNumber": track
                   }
                 },
