@@ -501,7 +501,7 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
     if bbox:
         bboxes.append(bbox)
 
-    return acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, platform, union_geojsons, bboxes
+    return acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, platforms, union_geojsons, bboxes
        
 
 def get_id_hash(acq_info, job_priority, dem_type):
