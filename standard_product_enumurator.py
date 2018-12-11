@@ -54,6 +54,50 @@ es_index = "grq_*_*acquisition*"
 job_data = None
 
 
+def create_acq_obj_from_metadata(acq):
+    #create ACQ(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv)
+    #logger.info("ACQ = %s\n" %acq)
+    acq_data = acq #acq['fields']['partial'][0]
+    missing_pcv_list = list()
+    acq_id = acq['id']
+    logger.info("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
+    match = SLC_RE.search(acq_id)
+    if not match:
+        logger.info("Error : No Match : %s" %acq_id)
+        return None
+    download_url = acq_data['metadata']['download_url']
+    track = acq_data['metadata']['trackNumber']
+    location = acq_data['metadata']['location']
+    starttime = acq_data['starttime']
+    endtime = acq_data['endtime']
+    direction = acq_data['metadata']['direction']
+    orbitnumber = acq_data['metadata']['orbitNumber']
+    identifier = acq_data['metadata']['identifier']
+    pv = None
+    if "processing_version" in  acq_data['metadata']:
+        pv = acq_data['metadata']['processing_version']
+        logger.info("pv found in metadata : %s" %pv)
+    else:
+        missing_pcv_list.append(acq_id)
+        logger.info("pv NOT in metadata,so calling ASF")
+        pv = util.get_processing_version(identifier)
+        logger.info("ASF returned pv : %s" %pv)
+        util.update_acq_pv(acq_id, pv) 
+    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv)
+
+
+def create_acqs_from_metadata(frames):
+    acqs = []
+    #print("frame length : %s" %len(frames))
+    for acq in frames:
+        logger.info("create_acqs_from_metadata : %s" %acq['id'])
+        acq_obj = create_acq_obj_from_metadata(acq)
+        if acq_obj:
+            acqs.append(acq_obj)
+    return acqs
+
+
+
 def get_group_platform(grouped_matched_orbit_number, acq_info):
     platform = None
     for pv in grouped_matched_orbit_number:
@@ -412,7 +456,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             continue
 
         #matched_acqs = util.create_acqs_from_metadata(process_query(query))
-        slave_acqs = util.create_acqs_from_metadata(acqs)
+        slave_acqs = create_acqs_from_metadata(acqs)
         logger.info("\nSLAVE ACQS")
         #util.print_acquisitions(aoi_id, slave_acqs)
 
