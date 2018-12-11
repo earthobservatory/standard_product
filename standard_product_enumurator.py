@@ -73,6 +73,7 @@ def create_acq_obj_from_metadata(acq):
     direction = acq_data['metadata']['direction']
     orbitnumber = acq_data['metadata']['orbitNumber']
     identifier = acq_data['metadata']['identifier']
+    platform = acq_data['metadata']['platform']
     pv = None
     if "processing_version" in  acq_data['metadata']:
         pv = acq_data['metadata']['processing_version']
@@ -80,10 +81,10 @@ def create_acq_obj_from_metadata(acq):
     else:
         missing_pcv_list.append(acq_id)
         logger.info("pv NOT in metadata,so calling ASF")
-        pv = util.get_processing_version(identifier)
-        logger.info("ASF returned pv : %s" %pv)
-        util.update_acq_pv(acq_id, pv) 
-    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv)
+        #pv = util.get_processing_version(identifier)
+        #logger.info("ASF returned pv : %s" %pv)
+        #util.update_acq_pv(acq_id, pv) 
+    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
 
 
 def create_acqs_from_metadata(frames):
@@ -98,19 +99,16 @@ def create_acqs_from_metadata(frames):
 
 
 
-def get_group_platform(grouped_matched_orbit_number, acq_info):
+def get_group_platform(acq_ids, acq_info):
     platform = None
-    for pv in grouped_matched_orbit_number:
-        acq_ids = grouped_matched_orbit_number[pv]
-        for acq_id in acq_ids:
-            logger.info("\nget_group_platform : %s : %s" %(pv, acq_id))
-            acq = acq_info[acq_id]
-            if not platform:
-                platform = acq.platform
-                logger.info("get_group_platform : platform : %s" %platform)
-            else:
-                if platform != acq.platform:
-                    raise("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
+    for acq_id in acq_ids:
+        acq = acq_info[acq_id]
+        if not platform:
+            platform = acq.platform
+            logger.info("get_group_platform : platform : %s" %platform)
+        else:
+            if platform != acq.platform:
+                raise("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
     return platform
       
 
@@ -255,10 +253,8 @@ def print_groups(grouped_matched):
         logger.info("\nTrack : %s" %track)
         for day_dt in sorted(grouped_matched["grouped"][track], reverse=True):
             logger.info("\tDate : %s" %day_dt)
-            for pv in grouped_matched["grouped"][track][day_dt]:
-
-                for acq in grouped_matched["grouped"][track][day_dt][pv]:
-                    logger.info("\t\t%s : %s" %(pv, acq[0]))
+            for acq in grouped_matched["grouped"][track][day_dt]:
+                logger.info("\t\t %s" %acq[0])
 
 
 def black_list_check(candidate_pair, black_list):
@@ -276,7 +272,6 @@ def black_list_check(candidate_pair, black_list):
         passed = False
     return passed
 
-    
 def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result):
     matched = False
     candidate_pair_list = []
@@ -294,7 +289,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
             if not matched:
                 logger.info("CheckMatch Failed. So Returning False")
                 logger.info("Candidate Pair NOT SELECTED")
-                return False, []
+                return False, [], result
             else:
                 bl_passed = black_list_check(candidate_pair, aoi_blacklist)
                 result['BL_PASSED'] = bl_passed
@@ -305,7 +300,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                     print_candidate_pair(candidate_pair)
                 else:
                     logger.info("BL Check failed. Candidate Pair NOT SELECTED")
-                    return False, []
+                    return False, [], result
 
     elif slave_ipf_count > 1 and master_ipf_count == 1:
         logger.info("process_enumeration : Ref : Slave, #of acq : %s" %len(slave_acqs))
@@ -314,7 +309,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
             matched, candidate_pair = check_match(acq, master_acqs, aoi_location, direction, "slave")         
             if not matched:
                 logger.info("CheckMatch Failed. So Returning False")
-                return False, []
+                return False, [], result
             else:
                 bl_passed = black_list_check(candidate_pair, aoi_blacklist)
                 result['BL_PASSED'] = bl_passed
@@ -324,7 +319,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                     print_candidate_pair(candidate_pair)
                 else:
                     logger.info("BL Check Failed. Candidate Pair NOT SELECTED")
-                    return False, []
+                    return False, [], result
     else:
         logger.warn("No Selection as both Master and Slave has multiple ipf")
         logger.info("Candidate Pair NOT SELECTED")
@@ -491,7 +486,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                     rejected_slave_track_dt.append(slave_track_dt)
                     with open(result_file, 'a') as fo:
                         cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                        cw.writerow([result['dt'], result['track'],result['Track_POERB_Land'] , result['ACQ_Union_POERB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MSASK_PASSED'], result['master_ipf_count'], result['slave_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POERB_AOI_Intersection'], result['acq_union_aoi_intersection']])
+                        cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['master_ipf_count'], result['slave_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection']])
                     continue
             else:
                 logger.info("Orbit File NOT Exists, so Running water_mask_check for slave for date %s is running without orbit file." %slave_track_dt)
@@ -500,14 +495,12 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                     logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
                     rejected_slave_track_dt.append(slave_track_dt)
                     continue
-            pv_list = []
-            for pv in slave_grouped_matched["grouped"][track][slave_track_dt]:
-                logger.info("\tpv : %s" %pv)
-                pv_list.append(pv)
-                slave_ids= slave_grouped_matched["grouped"][track][slave_track_dt][pv]
-                for slave_id in slave_ids:
-                    selected_slave_acqs.append(slave_grouped_matched["acq_info"][slave_id])
-            slave_ipf_count = len(list(set(pv_list)))
+            slave_ipf_count = util.get_ipf_count_by_acq_id(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
+            logger.info("slave_ipf_count : %s" %slave_ipf_count)
+            selected_slave_acqs =list()
+            slave_ids= slave_grouped_matched["grouped"][track][slave_track_dt]
+            for slave_id in slave_ids:
+                selected_slave_acqs.append(slave_grouped_matched["acq_info"][slave_id])
             track_dt_pv[slave_track_dt] = slave_ipf_count
             selected_slave_acqs_by_track_dt[slave_track_dt] =  selected_slave_acqs
 
@@ -611,7 +604,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             result['candidate_pairs'] = orbit_candidate_pair
             with open(result_file, 'a') as fo:
                 cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                cw.writerow([result['dt'], result['track'],result['Track_POERB_Land'] , result['ACQ_Union_POERB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MSASK_PASSED'], result['master_ipf_count'], result['slave_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POERB_AOI_Intersection'], result['acq_union_aoi_intersection']] )
+                cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['master_ipf_count'], result['slave_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection']] )
             if matched:
                 for candidate_pair in orbit_candidate_pair:
                     try:
@@ -673,6 +666,7 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
     orbitNumber = []
 
     overlapped_matches = util.find_overlap_match(ref_acq, matched_acqs)
+    logger.info("overlapped_matches count : %s" %len(overlapped_matches))
     if len(overlapped_matches)>0:
         overlapped_acqs = []
         logger.info("Overlapped Acq exists")

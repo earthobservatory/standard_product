@@ -212,7 +212,7 @@ def change_union_coordinate_direction(union_geom):
 
     return union_geom
 
-def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id,  threshold_pixel, orbit_file = None):
+def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location, aoi_id,  threshold_pixel, orbit_file = None):
 
     logger.info("\n\n\nWATER MASK TEST\n")
     #return True
@@ -232,36 +232,34 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
     logger.info("water_mask_test1 : aoi_location : %s" %aoi_location)
     acq_area_array = []
     gt_area_array = []
-    for pv in grouped_matched_orbit_number:
-        acq_ids = grouped_matched_orbit_number[pv]
-        for acq_id in acq_ids:
-            logger.info("\n%s : %s" %(pv, acq_id))
-            acq = acq_info[acq_id]
-            if acq.covers_only_land:
-                logger.info("COVERS ONLY LAND")
-            elif acq.covers_only_water:
-                logger.info("COVERS ONLY WATER, SO RETURNING FALSE")
-                return False
-            else:
-                logger.info("COVERS BOTH LAND & WATER")
+    for acq_id in acq_ids:
+        logger.info("\n%s : " %acq_id)
+        acq = acq_info[acq_id]
+        if acq.covers_only_land:
+            logger.info("COVERS ONLY LAND")
+        elif acq.covers_only_water:
+            logger.info("COVERS ONLY WATER, SO RETURNING FALSE")
+            return False
+        else:
+            logger.info("COVERS BOTH LAND & WATER")
 
-            starttimes.append(get_time(acq.starttime))
-            endtimes.append(get_time(acq.endtime))
+        starttimes.append(get_time(acq.starttime))
+        endtimes.append(get_time(acq.endtime))
 
-            logger.info("ACQ start time : %s " %acq.starttime)
-            logger.info("ACQ end time : %s" %acq.endtime)
-            logger.info("ACQ location : %s" %acq.location)
-            land, water, acq_intersection = get_aoi_area_multipolygon(acq.location, aoi_location)
-            acq_area_array.append(land)
-            logger.info("Area from acq.location : %s" %land)
-            polygons.append(acq.location)
+        logger.info("ACQ start time : %s " %acq.starttime)
+        logger.info("ACQ end time : %s" %acq.endtime)
+        logger.info("ACQ location : %s" %acq.location)
+        land, water, acq_intersection = get_aoi_area_multipolygon(acq.location, aoi_location)
+        acq_area_array.append(land)
+        logger.info("Area from acq.location : %s" %land)
+        polygons.append(acq.location)
 
-            if orbit_file:
-                gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), orbit_file)
-                gt_polygons.append(gt_geojson)
-                land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
-                logger.info("Area from gt_geojson : %s" %land)
-                gt_area_array.append(land)
+        if orbit_file:
+            gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), orbit_file)
+            gt_polygons.append(gt_geojson)
+            land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
+            logger.info("Area from gt_geojson : %s" %land)
+            gt_area_array.append(land)
 
     logger.info("Sum of acq.location area : %s" %sum(acq_area_array))
     logger.info("Sum of gt location area : %s" %sum(gt_area_array))

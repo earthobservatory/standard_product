@@ -117,7 +117,7 @@ def group_acqs_by_track_date(acqs):
                           0, 0, 0)
         logger.info("day_dt : %s " %day_dt)
         #bisect.insort(grouped.setdefault(fields['metadata']['trackNumber'], {}).setdefault(day_dt, []), h['_id'])
-        bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(day_dt, {}).setdefault(acq.pv, []), acq.acq_id)
+        bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(day_dt, []), acq.acq_id)
     return {"grouped": grouped, "acq_info" : acqs_info}
 
 def group_acqs_by_orbit_number(acqs):
@@ -195,10 +195,18 @@ def get_ipf_count(acqs):
         else:
             pv = get_processing_version(acq.identifier)
             if pv:
-                update_grq(acq.acq_id, acq.pv)
+                update_acq_pv(acq.acq_id, acq.pv)
                 pv_list.append(pv)
 
     return len(list(set(pv_list)))
+
+def get_ipf_count_by_acq_id(acq_ids, acq_info):
+    acqs = []
+    for acq_id in acq_ids:
+        acq = acq_info[acq_id]
+        acqs.append(acq)
+    return get_ipf_count(acqs)
+
 
 def get_union_data_from_acqs(acqs):
     starttimes = []
@@ -215,7 +223,7 @@ def get_union_data_from_acqs(acqs):
         else:
             pv = get_processing_version(acq.identifier)
             if pv:
-                update_grq(acq.acq_id, acq.pv)
+                update_acq_pv(acq.acq_id, pv)
                 pv_list.append(pv)
 
         starttimes.append(get_time(acq.starttime))
@@ -260,9 +268,9 @@ def create_acq_obj_from_metadata(acq):
     else:
         missing_pcv_list.append(acq_id)
         logger.info("pv NOT in metadata,so calling ASF")
-        pv = get_processing_version(identifier)
-        logger.info("ASF returned pv : %s" %pv)
-        update_acq_pv(acq_id, pv) 
+        #pv = get_processing_version(identifier)
+        #logger.info("ASF returned pv : %s" %pv)
+        #update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
 
 
@@ -533,10 +541,8 @@ def print_groups(grouped_matched):
         logger.info("\nTrack : %s" %track)
         for day_dt in sorted(grouped_matched["grouped"][track], reverse=True):
             logger.info("\tDate : %s" %day_dt)
-            for pv in grouped_matched["grouped"][track][day_dt]:
-
-                for acq in grouped_matched["grouped"][track][day_dt][pv]:
-                    logger.info("\t\t%s : %s" %(pv, acq[0]))
+            for acq in grouped_matched["grouped"][track][day_dt][pv]:
+                logger.info("\t\t%s" %(acq[0]))
 
 
 def get_complete_grq_data(id):
@@ -765,11 +771,11 @@ def find_overlap_match(master_acq, slave_acqs):
     #logger.info("\n\nmaster_loc : %s" %master_loc)
     overlapped_matches = {}
     for slave in slave_acqs:
-        logger.info("SLAVE : %s" %slave.location)
+        print("SLAVE : %s" %slave.location)
         slave_loc = slave.location["coordinates"]
         #logger.info("\n\nslave_loc : %s" %slave_loc)
         is_over, overlap = is_overlap(master_loc, slave_loc)
-        logger.info("is_overlap : %s" %is_over)
+        print("is_overlap : %s" %is_over)
         logger.info("overlap area : %s" %overlap)
         if is_over:
             overlapped_matches[slave.acq_id] = slave

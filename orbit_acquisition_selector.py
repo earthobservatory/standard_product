@@ -376,10 +376,9 @@ def print_groups(grouped_matched):
         logger.info("\nTrack : %s" %track)
         for day_dt in sorted(grouped_matched["grouped"][track], reverse=True):
             logger.info("\tDate : %s" %day_dt)
-            for pv in grouped_matched["grouped"][track][day_dt]:
+            for acq in grouped_matched["grouped"][track][day_dt]:
 
-                for acq in grouped_matched["grouped"][track][day_dt][pv]:
-                    logger.info("\t\t%s : %s" %(pv, acq[0]))
+                logger.info("\t\t %s" %acq[0])
 
 
 
@@ -415,15 +414,13 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
             if selected:
                 logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
                 selected_acqs = []
-                for pv in grouped_matched["grouped"][track][track_dt]:
-                    for acq_id in grouped_matched["grouped"][track][track_dt][pv]:
-                        acq = grouped_matched["acq_info"][acq_id]
+                for acq_id in grouped_matched["grouped"][track][track_dt]:
+                    acq = grouped_matched["acq_info"][acq_id]
 
-                        if not acq.pv:
-                            acq.pv = pv #util.get_processing_version(acq.identifier)
-                            #util.update_grq(acq_id, acq.pv)
-                        logger.info("APPENDING : %s" %acq_id)
-                        selected_acqs.append(acq)
+                        #acq.pv = pv #util.get_processing_version(acq.identifier)
+                        #util.update_grq(acq_id, acq.pv)
+                    logger.info("APPENDING : %s" %acq_id)
+                    selected_acqs.append(acq)
                 selected_track_dt_acqs[track_dt] = selected_acqs
         selected_track_acqs[track] = selected_track_dt_acqs
 
