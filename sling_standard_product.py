@@ -449,9 +449,8 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
 
 		elif job_id != new_job_id:
                     logger.info("!!Job Id has CHANGED!! Removing old job : %s and adding new job : %s for %s" %(job_id, new_job_id, job_info[job_id]["job_type"]))
-                    del(job_info[job_id])
                     job_info[new_job_id] = get_job_object(job_info[job_id]["job_type"], new_job_id, job_info[job_id]["completed"])
-
+                    del(job_info[job_id])
 
         logger.info("Checking if all job completed")
 	all_done = check_all_job_completed(job_info)
