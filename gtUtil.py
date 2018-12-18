@@ -349,7 +349,7 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
     #if pctDelta <.1:
     if res <threshold_pixel:
         logger.info("Track is SELECTED !!")
-        result['WATER_MSASK_PASSED'] = True
+        result['WATER_MASK_PASSED'] = True
         return True, result
     logger.info("Track is NOT SELECTED !!")
     return False, result

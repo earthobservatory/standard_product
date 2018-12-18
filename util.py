@@ -362,7 +362,7 @@ def get_result_dict():
     result['Track_POEORB_Land'] = None
     result['Track_AOI_Intersection'] = None
     result['res'] = None
-    result['WATER_MSASK_PASSED'] = None
+    result['WATER_MASK_PASSED'] = None
     result['matched'] = None
     result['BL_PASSED'] = None
     result['master_ipf_count'] = None
