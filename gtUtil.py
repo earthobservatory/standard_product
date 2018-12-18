@@ -287,8 +287,8 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
         logger.info("union_gt_geojson : %s" %union_gt_polygon)
         union_land, union_water, union_intersection = get_aoi_area_multipolygon(union_gt_polygon, aoi_location)
         logger.info("water_mask_test1 with Orbit File: union_land : %s union_water : %s union intersection : %s" %(union_land, union_water, union_intersection))
-        result['ACQ_POERB_AOI_Intersection'] = union_intersection
-        result['ACQ_Union_POERB_Land'] = union_land
+        result['ACQ_POEORB_AOI_Intersection'] = union_intersection
+        result['ACQ_Union_POEORB_Land'] = union_land
         
         #get lowest starttime minus 10 minutes as starttime
         tstart = getUpdatedTime(sorted(starttimes)[0], -5)
@@ -301,7 +301,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
         logger.info("track_gt_geojson : %s" %track_gt_geojson)
         track_land, track_water, track_intersection = get_aoi_area_multipolygon(track_gt_geojson, aoi_location)
         logger.info("water_mask_test1 with Orbit File: track_land : %s track_water : %s intersection : %s" %(track_land, track_water, track_intersection))
-        result['Track_POERB_Land'] = track_land
+        result['Track_POEORB_Land'] = track_land
         result['Track_AOI_Intersection'] = track_intersection
 
         return isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection, result)
