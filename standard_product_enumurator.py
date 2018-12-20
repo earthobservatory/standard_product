@@ -134,6 +134,9 @@ def query_es(query, es_index=None):
     scan_result = r.json()
     #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
     count = scan_result['hits']['total']
+    if count == 0:
+        return []
+
     if '_scroll_id' not in scan_result:
         logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []
@@ -167,6 +170,10 @@ def process_query(query):
     scan_result = r.json()
     count = scan_result['hits']['total']
     print("count : %s" %count)
+    if count == 0:
+        return []
+
+
     if '_scroll_id' not in scan_result:
         logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []

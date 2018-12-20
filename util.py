@@ -530,6 +530,9 @@ def query_es2(query, es_index=None):
     scan_result = r.json()
     #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
     count = scan_result['hits']['total']
+    if count == 0:
+        return []
+
     if '_scroll_id' not in scan_result:
         logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []
@@ -1000,7 +1003,11 @@ def get_metadata(id, rest_url, url):
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
+    
     count = scan_result['hits']['total']
+    if count == 0:
+        return []
+
     if '_scroll_id' not in scan_result:
         logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []
@@ -1595,6 +1602,9 @@ def query_es(query, es_index):
     scan_result = r.json()
     #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
     count = scan_result['hits']['total']
+    if count == 0:
+        return []
+
     if '_scroll_id' not in scan_result:
         logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []
