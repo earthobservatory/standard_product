@@ -328,12 +328,12 @@ def get_acq_data_from_list(acq_list):
 
 
 def get_value(ctx, param, default_value):
-    param = default_value
+    value = default_value
     if param in ctx:
-        param = ctx[param]
+        value = ctx[param]
     elif param in ctx["input_metadata"]:
-        param = ctx["input_metadata"][param]
-    return param
+        value = ctx["input_metadata"][param]
+    return value
 
 def resolve_source(ctx_file):
     """Resolve best URL from acquisition."""
