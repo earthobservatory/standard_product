@@ -357,12 +357,12 @@ def get_result_dict():
     result['dt']  = None
     result['acq_union_land_area'] = None
     result['acq_union_aoi_intersection'] = None
-    result['ACQ_POERB_AOI_Intersection'] = None   
-    result['ACQ_Union_POERB_Land'] = None
-    result['Track_POERB_Land'] = None
+    result['ACQ_POEORB_AOI_Intersection'] = None   
+    result['ACQ_Union_POEORB_Land'] = None
+    result['Track_POEORB_Land'] = None
     result['Track_AOI_Intersection'] = None
     result['res'] = None
-    result['WATER_MSASK_PASSED'] = None
+    result['WATER_MASK_PASSED'] = None
     result['matched'] = None
     result['BL_PASSED'] = None
     result['master_ipf_count'] = None
