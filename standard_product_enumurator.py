@@ -134,6 +134,10 @@ def query_es(query, es_index=None):
     scan_result = r.json()
     #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
     count = scan_result['hits']['total']
+    if '_scroll_id' not in scan_result:
+        logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
+        return []
+
     scroll_id = scan_result['_scroll_id']
     hits = []
     while True:
@@ -163,6 +167,9 @@ def process_query(query):
     scan_result = r.json()
     count = scan_result['hits']['total']
     print("count : %s" %count)
+    if '_scroll_id' not in scan_result:
+        logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
+        return []
     scroll_id = scan_result['_scroll_id']
     ref_hits = []
     while True:
@@ -211,7 +218,7 @@ def get_aoi_blacklist_data(aoi):
 
 
     logger.info(query)
-    bls = [i['fields']['partial'][0] for i in util.query_es(query, es_index)]
+    bls = [i['fields']['partial'][0] for i in query_es(query, es_index)]
     logger.info("Found {} bls for {}: {}".format(len(bls), aoi['aoi_id'],
                     json.dumps([i['id'] for i in bls], indent=2)))
 
