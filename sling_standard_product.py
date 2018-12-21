@@ -510,7 +510,7 @@ def get_id_hash(acq_info, job_priority, dem_type):
     master_slcs = []
     slave_slcs = []
 
-    for acq in acq_info.keys():
+    for acq in sorted(acq_info.keys()):
         acq_type = acq_info[acq]['acq_type']
         master_slcs.append(acq_info[acq]['acq_type'])
 	if acq_type == "master":

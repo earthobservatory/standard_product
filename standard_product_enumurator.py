@@ -846,14 +846,14 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
         project = project[0]
 
 
-    for acq in master_acquisitions:
+    for acq in sorted(master_acquisitions):
         #logger.info("master acq : %s" %acq)
         if master_ids_str=="":
             master_ids_str= acq
         else:
             master_ids_str += " "+acq
 
-    for acq in slave_acquisitions:
+    for acq in sorted(slave_acquisitions):
         #logger.info("slave acq : %s" %acq)
         if slave_ids_str=="":
             slave_ids_str= acq
