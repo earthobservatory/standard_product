@@ -16,6 +16,7 @@ import gtUtil
 import dateutil.parser
 import pickle
 import csv
+#import osaka.main
 
 #import isce
 #from UrlUtils import UrlUtils as UU
@@ -86,6 +87,16 @@ def create_acq_obj_from_metadata(acq):
         #util.update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
 
+'''
+def download_orbit_file(orbit_url):
+    downloaded = False
+    try:
+        osaka.main.get(orbit_url)
+        downloaded = True
+    except Exception as err:
+        logger.info("Error downloading orbit file : %s: " %str(err))
+        traceback.print_exc()
+'''     
 
 def create_acqs_from_metadata(frames):
     acqs = []
@@ -484,14 +495,15 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             logger.info("\n\n\nProcessing AOI: %s Track : %s  orbit_dt : %s" %(aoi, track, orbit_dt))
             slave_platform = get_group_platform(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
             logger.info("slave_platform : %s" %slave_platform)
-            isOrbitFile, orbit_id, orbit_url = util.get_orbit_file(orbit_dt, slave_platform)
+            isOrbitFile, orbit_id, orbit_url, orbit_file = util.get_orbit_file(orbit_dt, slave_platform)
             if isOrbitFile:
-                logger.info("%s : %s" %(orbit_id, orbit_url))
+                logger.info("orbit id : %s : orbit_url : %s" %(orbit_id, orbit_url))
                 slave_orbit_file_path = os.path.basename(orbit_url)
-                downloaded = gtUtil.download_orbit_file(orbit_url, slave_orbit_file_path)
+                downloaded = gtUtil.download_orbit_file(orbit_url, orbit_file)
+                #downloaded = download_orbit_file(orbit_ur)
                 if downloaded:
                     logger.info("Slave Orbiut File Downloaded")
-                    orbit_file = slave_orbit_file_path
+                    #orbit_file = slave_orbit_file_path
             if orbit_file:
                 logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s " %(slave_track_dt, orbit_file))
                 selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel, orbit_file)

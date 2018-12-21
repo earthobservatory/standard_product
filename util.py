@@ -1284,13 +1284,28 @@ def get_orbit_file(orbit_dt, platform):
 
     for hit in hits:
         metadata = hit["metadata"]
+        
         id = hit['id']
         orbit_platform = metadata["platform"]
         logger.info(orbit_platform)
         if orbit_platform == platform:
-            url = metadata["context"]["localize_urls"][0]["url"]
-            return True, id, url
-    return False, None, None
+            if "urls" in hit:
+                urls = hit["urls"]
+                url = urls[0]
+                if len(urls)>1:
+                    for u in urls:
+                        if u.startswith('http://') or u.startswith('https://'):
+                            url = u
+                            break
+            else:
+                url = metadata["context"]["localize_urls"][0]["url"]
+
+            if url.startswith('s3://'):
+                url = metadata["context"]["localize_urls"][0]["url"]
+            
+            orbit_url = "%s/%s" % (url, hit['metadata']['archive_filename'])
+            return True, id, orbit_url,  hit['metadata']['archive_filename']
+    return False, None, None, None
 
 
 def query_orbit_file(starttime, endtime, platform):
@@ -1346,7 +1361,9 @@ def query_orbit_file(starttime, endtime, platform):
             "starttime",
             "endtime",
             "metadata.platform",
-            "metadata.context.localize_urls"
+            "metadata.archive_filename",
+            "metadata.context.localize_urls",
+            "urls"
           ]
         }
       }
