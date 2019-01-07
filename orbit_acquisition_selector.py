@@ -390,7 +390,7 @@ def print_groups(grouped_matched):
 
 
 
-def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, result_file):
+def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file):
     #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
 
 
@@ -405,6 +405,12 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
 
     #logger.info("grouped_matched : %s" %grouped_matched)
     logger.info("matched_ids : %s" %matched_ids)
+    logger.info("PLATFORM : %s" %platform)
+
+    orbit_file = os.path.basename(orbit_file)
+    mission = "S1A"
+    if platform.startswith("S1B"):
+        mission = "S1B"
 
 
     selected_track_acqs = {}
@@ -414,7 +420,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
         selected_track_dt_acqs = {}
         for track_dt in grouped_matched["grouped"][track]:
             #water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id,  orbit_file = None)
-            selected, result = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], aoi['id'], threshold_pixel, orbit_file)
+            selected, result = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_file, orbit_dir)
             with open(result_file, 'a') as fo:
                 cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['master_ipf_count'], result['slave_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection'] ])
@@ -478,7 +484,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
 
     return selected_track_acqs
 
-def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, threshold_pixel):
+def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, threshold_pixel):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
     #aoi_acq = {}
@@ -553,7 +559,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, threshold_p
             cw.writerow(["Date","Track","Track_PEORB_Land","ACQ_Union_POEORB_Land", "ACQ_Union_Land", "RES", "WATER_MASK_PASSED", "Master_Ipf_Count", "Slave_Ipf_Count", "MATCHED", "BL_PASSED", "Candidate_Pairs", "Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection", "ACQ_AOI_Ingtersection"])
         try:
             #selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
-            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, result_file)
+            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file)
         except Exception as  err:
             logger.info("Error from get_covered_acquisitions: %s " %str(err))
             traceback.print_exc()
@@ -665,7 +671,7 @@ def resolve_aoi_acqs(ctx_file):
         logger.info("Orbit File : %s " %orbit_file)
 
 
-    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file, threshold_pixel)
+    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file, orbit_file_dir, threshold_pixel)
     #osaka.main.get("http://aux.sentinel1.eo.esa.int/POEORB/2018/09/15/S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF")
     #logger.info(orbit_aoi_data)
     #exit(0)

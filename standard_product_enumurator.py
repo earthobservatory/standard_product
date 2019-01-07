@@ -504,9 +504,20 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 if downloaded:
                     logger.info("Slave Orbiut File Downloaded")
                     #orbit_file = slave_orbit_file_path
+                    orbit_dir = os.getcwd()
+                    logger.info("orbit_file : %s\norbit_dir : %s" %(orbit_file, orbit_dir))
+                    #isValidOrbit = gtUtil.isValidOrbit(orbit_file, orbit_dir)
+                    #logger.info("isValidOrbit : %s" %isValidOrbit)
+                    #if not isValidOrbit:
+                        #exit(0)
+            orbit_dir = os.getcwd()
+            mission = "S1A"
+            if slave_platform.startswith("S1B"):
+                mission = "S1B"
+            logger.info("slave_platform : %s" %slave_platform)
             if orbit_file:
-                logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s " %(slave_track_dt, orbit_file))
-                selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel, orbit_file)
+                logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s in %s" %(slave_track_dt, orbit_file, orbit_dir))
+                selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel, mission, orbit_file, orbit_dir)
                 if not selected:
                     logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
                     rejected_slave_track_dt.append(slave_track_dt)

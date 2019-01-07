@@ -59,10 +59,11 @@ def download_orbit_file(url, file_name):
         logger.info(sys.exc_info())
     return downloaded
 
-def get_groundTrack_footprint(tstart, tend, orbit_file):
-    mission = MISSION
+
+def get_groundTrack_footprint(tstart, tend, mission, orbit_file, orbit_dir):
+    #mission = MISSION
     gt_footprint = []
-    gt_footprint_temp= groundTrack.get_ground_track(tstart, tend, mission, orbit_file)
+    gt_footprint_temp= groundTrack.get_ground_track(tstart, tend, mission, orbit_file, orbit_dir)
     for g in gt_footprint_temp:
         gt_footprint.append(list(g))
 
@@ -72,14 +73,14 @@ def get_groundTrack_footprint(tstart, tend, orbit_file):
     geojson = {"type":"Polygon", "coordinates": [gt_footprint]}
     return geojson
 
-def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, orbit_file=None):
+def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_file=None, orbit_dir=None):
 
     passed = False
     if not aoi_location:
         logger.info("water_mask_check FAILED as aoi_location NOT found")
         return False, {}
    
-    passed, result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, orbit_file)
+    passed, result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_file, orbit_dir)
     return passed, result
 
 
@@ -90,11 +91,11 @@ def get_time(t):
         t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S.%f').strftime("%Y-%m-%d %H:%M:%S")
         return datetime.strptime(t1, '%Y-%m-%d %H:%M:%S')
 
-def get_area_from_orbit_file(tstart, tend, orbit_file, aoi_location):
+def get_area_from_orbit_file(tstart, tend, mision, orbit_file, orbit_dir, aoi_location):
     water_area = 0
     land_area = 0
     logger.info("tstart : %s  tend : %s" %(tstart, tend))
-    geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
+    geojson = get_groundTrack_footprint(tstart, tend, mission, orbit_file, orbit_dir)
     intersection, int_env = util.get_intersection(aoi_location, geojson)
     logger.info("intersection : %s" %intersection)
     land_area = lightweight_water_mask.get_land_area(intersection)
@@ -212,7 +213,7 @@ def change_union_coordinate_direction(union_geom):
 
     return union_geom
 
-def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location, aoi_id,  threshold_pixel, orbit_file = None):
+def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location, aoi_id,  threshold_pixel, mission, orbit_file = None, orbit_dir = None):
 
     logger.info("\n\n\nWATER MASK TEST\n")
     #return True
@@ -255,7 +256,11 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
         polygons.append(acq.location)
 
         if orbit_file:
-            gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), orbit_file)
+            isValidOrbit = groundTrack.isValidOrbit(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
+            logger.info("gtUtil : isValidOrbit : %s" %isValidOrbit)
+            if not isValidOrbit:
+                return False, result
+            gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
             gt_polygons.append(gt_geojson)
             land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
             logger.info("Area from gt_geojson : %s" %land)
@@ -297,7 +302,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
         logger.info("tend : %s" %tend)
         
 
-        track_gt_geojson = get_groundTrack_footprint(tstart, tend, orbit_file)
+        track_gt_geojson = get_groundTrack_footprint(tstart, tend, mission, orbit_file, orbit_dir)
         logger.info("track_gt_geojson : %s" %track_gt_geojson)
         track_land, track_water, track_intersection = get_aoi_area_multipolygon(track_gt_geojson, aoi_location)
         logger.info("water_mask_test1 with Orbit File: track_land : %s track_water : %s intersection : %s" %(track_land, track_water, track_intersection))
