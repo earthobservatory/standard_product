@@ -197,8 +197,8 @@ def get_job_status(job_id):
         #print ("Original JOB info: \n%s"%json.dumps(orig_job_info))
         orig_job_info = orig_job_info["hits"]["hits"][0]
         orig_job_status = str(orig_job_info["_source"]["status"])
-	logger.info("Check Job Status : Job %s was Deduped. The new/origianl job id is %s whose status is : %s" %(job_id, return_job_id, return_job_status)) 
-	return_job_status = orig_job_status
+        logger.info("Check Job Status : Job %s was Deduped. The new/origianl job id is %s whose status is : %s" %(job_id, return_job_id, return_job_status)) 
+        return_job_status = orig_job_status
 
         if  orig_job_status == "job-failed":
             message = "Job was deduped against a failed job with id: %s, please retry job."%orig_job_id
@@ -210,8 +210,8 @@ def get_job_status(job_id):
             # return products staged and context of original job
             message = "success"
     else:
-	return_job_id = job_id
-    	return_job_status = result["_source"]["status"]
+        return_job_id = job_id
+        return_job_status = result["_source"]["status"]
 
     return return_job_status, return_job_id
 
@@ -290,7 +290,7 @@ def check_slc_status(slc_id, index_suffix):
     total = result['hits']['total']
 
     if total > 0:
-	return True
+        return True
 
     return False
 
@@ -385,13 +385,13 @@ def resolve_source(ctx_file):
     slave_slcs = []
  
     for acq in master_scene:
- 	acq_type = "master"
+        acq_type = "master"
         acq_info[acq]=get_acq_object(acq, acq_type)
 
     # Find out status of all Slave ACQs, create a ACQ object with that and update acq_info dictionary
     for acq in slave_scene:
-	acq_type = "slave"
-	acq_info[acq]=get_acq_object(acq, acq_type)
+        acq_type = "slave"
+        acq_info[acq]=get_acq_object(acq, acq_type)
 
     sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox)
 
@@ -438,30 +438,30 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
         for job_id in job_info.keys():
 	   
             if not job_info[job_id]["completed"]: 
-		job_status, new_job_id  = get_job_status(job_id)  
-  		if job_status == "job-completed":
-		    logger.info("Success! sling job for job_type : %s  with job id : %s COMPLETED!!" %(job_info[job_id]["job_type"], job_id))
-		    job_info[job_id]['completed'] = True
+                job_status, new_job_id  = get_job_status(job_id)  
+                if job_status == "job-completed":
+                    logger.info("Success! sling job for job_type : %s  with job id : %s COMPLETED!!" %(job_info[job_id]["job_type"], job_id))
+                    job_info[job_id]['completed'] = True
 
-		elif job_status == "job-failed":
-		    err_msg = "Error : Sling job %s FAILED. So existing out of the sciflo!!....." %job_id
-	            logger.info(err_msg)
-		    raise RuntimeError(err_msg)
+                elif job_status == "job-failed":
+                    err_msg = "Error : Sling job %s FAILED. So existing out of the sciflo!!....." %job_id
+                    logger.info(err_msg)
+                    raise RuntimeError(err_msg)
 
-		elif job_id != new_job_id:
+                elif job_id != new_job_id:
                     logger.info("!!Job Id has CHANGED!! Removing old job : %s and adding new job : %s for %s" %(job_id, new_job_id, job_info[job_id]["job_type"]))
                     job_info[new_job_id] = get_job_object(job_info[job_id]["job_type"], new_job_id, job_info[job_id]["completed"])
                     del(job_info[job_id])
 
         logger.info("Checking if all job completed")
-	all_done = check_all_job_completed(job_info)
-	if not all_done:
-	    now = datetime.utcnow()
-	    delta = (now - job_check_start_time).total_seconds()
+        all_done = check_all_job_completed(job_info)
+        if not all_done:
+            now = datetime.utcnow()
+            delta = (now - job_check_start_time).total_seconds()
             if delta >= sling_completion_max_sec:
             	raise RuntimeError("Error : Sling jobs NOT completed after %.2f hours!!" %(delta/3600))
-	    logger.info("All job not completed. So sleeping for %s seconds" %sleep_seconds)
-	    time.sleep(sleep_seconds)
+            logger.info("All job not completed. So sleeping for %s seconds" %sleep_seconds)
+            time.sleep(sleep_seconds)
 
 
     # At this point, we have all the slc downloaded and we are ready to submit a create standard product job
@@ -514,13 +514,13 @@ def get_id_hash(acq_info, job_priority, dem_type):
     for acq in sorted(acq_info.keys()):
         acq_type = acq_info[acq]['acq_type']
         master_slcs.append(acq_info[acq]['acq_type'])
-	if acq_type == "master":
-	    if master_ids_str=="":
-		master_ids_str=acq
-	    else:
-		master_ids_str += " "+acq
+        if acq_type == "master":
+            if master_ids_str=="":
+                master_ids_str=acq
+            else:
+                master_ids_str += " "+acq
 
-	elif acq_type == "slave":
+        elif acq_type == "slave":
             if slave_ids_str=="":
                 slave_ids_str=acq
             else:
@@ -546,9 +546,9 @@ def check_all_job_completed(job_info):
     all_done = True
     for job_id in job_info.keys():
         if not job_info[job_id]['completed']:  
-	    logger.info("\ncheck_all_job_completed : %s NOT completed!!" %job_id)	
+            logger.info("\ncheck_all_job_completed : %s NOT completed!!" %job_id)	
             all_done = False
-	    break
+            break
     return all_done
 
 
@@ -663,18 +663,18 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
     logger.info("project : %s" %project)
 
     for acq in acq_info.keys():
-	acq_data = acq_info[acq]['acq_data']
-	acq_type = acq_info[acq]['acq_type']
-	identifier =  acq_data["metadata"]["identifier"]
+        acq_data = acq_info[acq]['acq_data']
+        acq_type = acq_info[acq]['acq_type']
+        identifier =  acq_data["metadata"]["identifier"]
         logger.info("identifier : %s" %identifier)
-	if acq_type == "master":
-	    master_ids_list.append(identifier)
-	    if master_ids_str=="":
-		master_ids_str=identifier
-	    else:
-		master_ids_str += " "+identifier
+        if acq_type == "master":
+            master_ids_list.append(identifier)
+            if master_ids_str=="":
+                master_ids_str=identifier
+            else:
+                master_ids_str += " "+identifier
 
-	elif acq_type == "slave":
+        elif acq_type == "slave":
             slave_ids_list.append(identifier)
             if slave_ids_str=="":
                 slave_ids_str=identifier
