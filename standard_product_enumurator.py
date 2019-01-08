@@ -512,7 +512,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                         #exit(0)
             orbit_dir = os.getcwd()
             mission = "S1A"
-            if slave_platform.startswith("S1B"):
+            if slave_platform == "Sentinel-1B":
                 mission = "S1B"
             logger.info("slave_platform : %s" %slave_platform)
             if orbit_file:
