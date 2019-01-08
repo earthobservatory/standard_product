@@ -330,23 +330,8 @@ def resolve_source(ctx_file):
     project = ctx["input_metadata"]["project"]
     if type(project) is list:
         project = project[0]
-    dem_type= ctx["input_metadata"]["dem_type"]
-    track = ctx["input_metadata"]["track"]
-    master_acqs = [i.strip() for i in ctx["input_metadata"]['master_acquisitions'].split()]
-    slave_acqs = [i.strip() for i in ctx["input_metadata"]['slave_acquisitions'].split()]
-    logger.info("master_acqs : %s" %master_acqs)
-    logger.info("slave_acqs : %s" %slave_acqs)
 
-
-    master_scene = ctx["input_metadata"]["master_scenes"]   
-    slave_scene = ctx["input_metadata"]["slave_scenes"]
-    starttime = ctx["input_metadata"]["starttime"]
-    endtime = ctx["input_metadata"]["endtime"]
-    bbox = None
-    if "bbox" in ctx["input_metadata"]:
-        bbox = ctx["input_metadata"]["bbox"]
-
-    union_geojson = ctx["input_metadata"]["union_geojson"]
+    acq_list = ctx["input_metadata"]["acq_list"]   
  
     spyddder_extract_version = ctx["spyddder_extract_version"]
     acquisition_localizer_version = ctx["acquisition_localizer_version"]
@@ -370,7 +355,7 @@ def resolve_source(ctx_file):
 
 
     # Find out status of all Master ACQs, create a ACQ object with that and update acq_info dictionary
-    for acq in master_acqs:
+    for acq in acq_list:
  	acq_type = "master"
 	#logger.info(acq)
         #acq_data = util.get_acquisition_data(acq)[0]['fields']['partial'][0]
@@ -437,6 +422,9 @@ def resolve_source(ctx_file):
     
     #return acq_infoes, spyddder_extract_versions, acquisition_localizer_versions, standard_product_ifg_versions, projects, job_priorities, job_types, job_versions
     return acq_info, spyddder_extract_version, acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scenes, slave_scenes, union_geojson, bbox
+
+
+def process_sling_job(acq_list, 
 
 
 def sling(acq_info, spyddder_extract_version, acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, union_geojson, bbox):

@@ -9,6 +9,7 @@ import uuid  # only need this import to simulate returned mozart job id
 from hysds.celery import app
 from hysds_commons.job_utils import submit_mozart_job
 import traceback
+import acquisition_localizer_multi
 
 
 # set logger
@@ -793,6 +794,10 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisiti
     logger.info("\nSubmitted sling job with id %s" %mozart_job_id)
 
     return mozart_job_id
+
+
+def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, acq_list, priority):
+    return acquisition_localizer_multi.sling(acq_list, spyddder_extract_version, multi_acquisition_localizer_version, esa_download_queue, asf_ngap_download_queue, job_priority, job_type, job_version)
 
 def check_ES_status(doc_id):
     """
