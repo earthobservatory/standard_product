@@ -39,8 +39,8 @@ sling_completion_max_sec = 11000
 
 class ACQ:
     def __init__(self, acq_id, acq_type):
-	self.acq_id=acq_id
-	self.acq_type = acq_type
+        self.acq_id=acq_id
+        self.acq_type = acq_type
 
 def get_acq_object(acq_id, acq_type):
     return {
@@ -501,7 +501,7 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
     if bbox:
         bboxes.append(bbox)
 
-    publish_localized_info(acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, platforms, union_geojsons, bboxes))
+    publish_localized_info(acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, platforms, union_geojsons, bboxes)
        
 
 def get_id_hash(acq_info, job_priority, dem_type):
