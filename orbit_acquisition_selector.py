@@ -409,7 +409,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
 
     orbit_file = os.path.basename(orbit_file)
     mission = "S1A"
-    if platform.startswith("S1B"):
+    if platform == "Sentinel-1B":
         mission = "S1B"
 
 
