@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import os, sys, time, json, requests, logging
 import orbit_acquisition_selector
@@ -11,7 +11,6 @@ def main():
     if not os.path.exists(context_file):
         raise(RuntimeError("Context file doesn't exist."))
     
-    orbit_acq_selections = orbit_acquisition_selector.resolve_aoi_acqs(context_file)
     standard_product_localizer.resolve_source(context_file)
 
 if __name__ == "__main__":
