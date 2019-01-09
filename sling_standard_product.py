@@ -395,8 +395,78 @@ def resolve_source(ctx_file):
 
     return acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox
 
-
 def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox):
+    '''
+	This function submits acquisition localizer jobs for mastrer and slaves.
+    '''
+    logger.info("%s : %s" %(type(spyddder_extract_version), spyddder_extract_version))
+    job_info = {}
+    
+    id_hash = get_id_hash(acq_info, job_priority, dem_type)
+    acq_list = acq_info.keys()
+
+    logger.info("\nSubmitting acquisition localizer job for Masters : %s" %master_scene)
+    all_done, data  = submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, master_scene, job_priority)
+    if not all_done:
+        err_str = "Failed to download following SLCs :"
+        for failed_acq_id in data:
+            err_str+="\n%s" %failed_acq_id
+            raise RuntimeError(err_str)
+    else:
+        logger.info("successfully completed localizing master slcs")
+            
+
+    logger.info("\nSubmitting acquisition localizer job for Slaves : %s" %slave_scene)
+    all_done, data = submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, slave_scene, job_priority)
+    if not all_done:
+        err_str = "Failed to download following SLCs :"
+        for failed_acq_id in data:
+            err_str+="\n%s" %failed_acq_id
+            raise RuntimeError(err_str)
+    else:
+        logger.info("successfully completed localizing slave slcs")
+
+    # At this point, we have all the slc downloaded and we are ready to submit a create standard product job
+    acq_infoes =[]
+    projects = []
+    job_priorities = []
+    job_types = []
+    job_versions = []
+    #standard_product_ifg_versions = []
+    dem_types = []
+    tracks = []
+    starttimes = []
+    endtimes = []
+    bboxes = []
+    union_geojsons =[]
+    master_scenes = []
+    slave_scenes = []
+    orbitNumbers = []
+    orbitNumbers.append(orbitNumber)
+    directions = []
+    directions.append(direction)
+    platforms = []
+    platforms.append(platform)
+
+    master_scenes.append(master_scene)
+    slave_scenes.append(slave_scene)
+
+    acq_infoes.append(acq_info)
+    projects.append(project)
+    job_priorities.append(job_priority)
+    #standard_product_ifg_versions.append(standard_product_ifg_version)
+    dem_types.append(dem_type)
+    tracks.append(track)
+    starttimes.append(starttime)
+    endtimes.append(endtime)
+    union_geojsons.append(union_geojson)
+    if bbox:
+        bboxes.append(bbox)
+
+    return acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, platforms, union_geojsons, bboxes
+
+
+def sling2(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox):
     '''
 	This function submits acquisition localizer jobs for mastrer and slaves.
     '''
@@ -797,7 +867,11 @@ def submit_sling_job2(id_hash, project, spyddder_extract_version, multi_acquisit
 
 
 def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, acq_list, priority):
-    return acquisition_localizer_multi.sling(acq_list, spyddder_extract_version, multi_acquisition_localizer_version, esa_download_queue, asf_ngap_download_queue, job_priority, job_type, job_version)
+    esa_download_queue = "factotum-job_worker-scihub_throttled"
+    asf_ngap_download_queue = "factotum-job_worker-scihub_throttled"
+    job_type = "job-acquisition_localizer_multi:{}".format(multi_acquisition_localizer_version)
+    job_version = multi_acquisition_localizer_version
+    return acquisition_localizer_multi.sling(acq_list, spyddder_extract_version, multi_acquisition_localizer_version, esa_download_queue, asf_ngap_download_queue, priority, job_type, job_version)
 
 def check_ES_status(doc_id):
     """
@@ -877,7 +951,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
