@@ -2,12 +2,12 @@
 import os, sys, time, json, requests, logging
 import hashlib
 from datetime import datetime
-from hysds_commons.job_utils import resolve_hysds_job
+#from hysds_commons.job_utils import resolve_hysds_job
 from hysds.celery import app
 import util
 import uuid  # only need this import to simulate returned mozart job id
 from hysds.celery import app
-from hysds_commons.job_utils import submit_mozart_job
+#from hysds_commons.job_utils import submit_mozart_job
 import traceback
 from multi_acquisition_localizer import acquisition_localizer_multi
 
@@ -738,6 +738,7 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
         }
     }
 
+'''
 def submit_sling_job2(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, acq_list, priority):
 
     """Map function for spyddder-man extract job."""
@@ -794,7 +795,7 @@ def submit_sling_job2(id_hash, project, spyddder_extract_version, multi_acquisit
     logger.info("\nSubmitted sling job with id %s" %mozart_job_id)
 
     return mozart_job_id
-
+'''
 
 def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, acq_list, priority):
     return acquisition_localizer_multi.sling(acq_list, spyddder_extract_version, multi_acquisition_localizer_version, esa_download_queue, asf_ngap_download_queue, job_priority, job_type, job_version)
