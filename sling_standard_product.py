@@ -871,6 +871,7 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisiti
     asf_ngap_download_queue = "factotum-job_worker-scihub_throttled"
     job_type = "job-acquisition_localizer_multi:{}".format(multi_acquisition_localizer_version)
     job_version = multi_acquisition_localizer_version
+    logger.info("submitting acquisition_localizer_multi.sling job")
     return acquisition_localizer_multi.sling(acq_list, spyddder_extract_version, multi_acquisition_localizer_version, esa_download_queue, asf_ngap_download_queue, priority, job_type, job_version)
 
 def check_ES_status(doc_id):
