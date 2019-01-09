@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os, sys, time, json, requests, logging
-import orbit_acquisition_selector
 import standard_product_localizer
 
 def main():
