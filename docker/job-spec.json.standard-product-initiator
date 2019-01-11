@@ -8,7 +8,7 @@
   },
   "soft_time_limit": 14400,
   "time_limit": 15000,
-  "recommended-queues": [ "system-jobs-queue" ],
+  "recommended-queues": [ "standard_product_ifg_initiator" ],
   "params" : [
     {
       "name": "workflow",
