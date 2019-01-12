@@ -240,7 +240,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
             logger.info("COVERS ONLY LAND")
         elif acq.covers_only_water:
             logger.info("COVERS ONLY WATER, SO RETURNING FALSE")
-            return False
+            return False, result
         else:
             logger.info("COVERS BOTH LAND & WATER")
 
@@ -337,7 +337,7 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
     #logger.info("RESULT : AOI : %s Track : %s Date : %s : Area of AOI land = %s" %(aoi_id, track, orbit_or_track_dt, track_land))
     if union_land == 0 or track_land == 0:
         logger.info("\nERROR : isTrackSelected : Returning as lands are Not correct")
-        return False
+        return False, result
     delta_A = abs(float(union_land - track_land))
     pctDelta = float(delta_A/track_land)
     delta_x = float(delta_A/250)
