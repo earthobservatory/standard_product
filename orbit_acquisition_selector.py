@@ -493,7 +493,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
     aois = query_aois_new(starttime, endtime)
     logger.info("No of AOIs : %s " %len(aois))
     if len(aois) <=0:
-        raise("Exiting as number of aois : %s" %len(aois))
+        raise RuntimeError("Exiting as number of aois : %s" %len(aois))
     for aoi in aois:
         logger.info("aoi: {}".format(aoi['id']))
         query = {
@@ -666,7 +666,7 @@ def resolve_aoi_acqs(ctx_file):
             orbit_file = os.path.join(orbit_file_dir, file)
 
     if not orbit_file:
-        raise("Orbit File NOT Found")
+        raise RuntimeError("Orbit File NOT Found")
     else:
         logger.info("Orbit File : %s " %orbit_file)
 
@@ -782,7 +782,7 @@ def main():
     # read in _context.json
     context_file = os.path.abspath("_context.json")
     if not os.path.exists(context_file):
-        raise(RuntimeError("Context file doesn't exist."))
+        raise RuntimeError("Context file doesn't exist."))
     
     resolve_aoi_acqs(context_file)
 

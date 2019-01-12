@@ -119,7 +119,7 @@ def get_group_platform(acq_ids, acq_info):
             logger.info("get_group_platform : platform : %s" %platform)
         else:
             if platform != acq.platform:
-                raise("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
+                raise RuntimeError("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
     return platform
       
 
