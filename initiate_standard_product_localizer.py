@@ -9,8 +9,10 @@ def main():
     context_file = os.path.abspath("_context.json")
     if not os.path.exists(context_file):
         raise(RuntimeError("Context file doesn't exist."))
-    
-    standard_product_localizer.resolve_source(context_file)
+    try:   
+        standard_product_localizer.resolve_source(context_file)
+    except Exception as e:
+        raise
 
 if __name__ == "__main__":
     sys.exit(main())
