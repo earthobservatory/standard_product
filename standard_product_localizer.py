@@ -39,7 +39,7 @@ sling_completion_max_sec = 11000
 
 class ACQ:
     def __init__(self, acq_id, acq_type):
-	self.acq_id=acq_id
+        self.acq_id=acq_id
 	self.acq_type = acq_type
 
 def get_acq_object(acq_id, acq_type):
@@ -874,7 +874,7 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisiti
     try:
         return acquisition_localizer_multi.sling(acq_list, spyddder_extract_version, multi_acquisition_localizer_version, esa_download_queue, asf_ngap_download_queue, priority, job_type, job_version)
     except Exception as e:
-        logger.info("Error processing standard product localizer : %s" %str(error))
+        logger.info("Error processing standard product localizer : %s" %str(e))
         traceback.format_exc()
     raise
 
