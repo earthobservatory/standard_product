@@ -782,7 +782,7 @@ def main():
     # read in _context.json
     context_file = os.path.abspath("_context.json")
     if not os.path.exists(context_file):
-        raise RuntimeError("Context file doesn't exist."))
+        raise RuntimeError("Context file doesn't exist.")
     
     resolve_aoi_acqs(context_file)
 
