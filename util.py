@@ -584,10 +584,19 @@ def get_complete_grq_data(id):
     r = requests.post(search_url, data=json.dumps(query))
 
     if r.status_code != 200:
+        err_str = "Failed to query %s:\n%s" % (es_url, r.text)
+        err_str += "\nreturned: %s" % r.text
+        print(err_str)
+        print("query: %s" % json.dumps(query, indent=2))
+        #r.raise_for_status()
+        raise RuntimeError(err_str)
+    '''
+    if r.status_code != 200:
         print("Failed to query %s:\n%s" % (es_url, r.text))
         print("query: %s" % json.dumps(query, indent=2))
         print("returned: %s" % r.text)
         r.raise_for_status()
+    '''
 
     result = r.json()
     print(result['hits']['total'])
@@ -620,10 +629,20 @@ def get_partial_grq_data(id):
     r = requests.post(search_url, data=json.dumps(query))
 
     if r.status_code != 200:
+        err_str = "Failed to query %s:\n%s" % (es_url, r.text)
+        err_str += "\nreturned: %s" % r.text
+        print(err_str)
+        print("query: %s" % json.dumps(query, indent=2))
+        #r.raise_for_status()
+        raise RuntimeError(err_str)
+
+    '''
+    if r.status_code != 200:
         print("Failed to query %s:\n%s" % (es_url, r.text))
         print("query: %s" % json.dumps(query, indent=2))
         print("returned: %s" % r.text)
         r.raise_for_status()
+    '''
 
     result = r.json()
     print(result['hits']['total'])
@@ -668,12 +687,21 @@ def get_acquisition_data(id):
         search_url = '%s/%s/_search' % (es_url, es_index)
     r = requests.post(search_url, data=json.dumps(query))
 
+
+    if r.status_code != 200:
+        err_str = "Failed to query %s:\n%s" % (es_url, r.text)
+        err_str += "\nreturned: %s" % r.text
+        print(err_str)
+        print("query: %s" % json.dumps(query, indent=2))
+        #r.raise_for_status()
+        raise RuntimeError(err_str)
+    '''
     if r.status_code != 200:
         print("Failed to query %s:\n%s" % (es_url, r.text))
         print("query: %s" % json.dumps(query, indent=2))
         print("returned: %s" % r.text)
         r.raise_for_status()
-
+    '''
     result = r.json()
     print(result['hits']['total'])
     return result['hits']['hits']
