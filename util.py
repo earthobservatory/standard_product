@@ -1079,7 +1079,7 @@ def get_overlapping_slaves_query(master):
     return get_overlapping_slaves_query(master.starttime, master.endtime, master.location, master.tracknumber, master.direction, master.orbitnumber)
 '''
     
-def get_overlapping_slaves_query(starttime, location, track, direction, platform, master_orbitnumber):
+def get_overlapping_slaves_query(starttime, location, track, direction, platform, master_orbitnumber, acquisition_version):
     query = {
       "partial_fields": {
         "partial": {
@@ -1111,6 +1111,11 @@ def get_overlapping_slaves_query(starttime, location, track, direction, platform
                 {
                   "term": {
                     "trackNumber": track
+                  }
+                },
+                {
+                  "term": {
+                    "version.raw": acquisition_version
                   }
                 },
                 {

@@ -31,6 +31,10 @@
       "destination": "context"
     },
     {
+      "name": "acquisition_version",
+       "destination": "context"
+    },
+    {
         "name": "starttime",
         "destination": "context"
     },

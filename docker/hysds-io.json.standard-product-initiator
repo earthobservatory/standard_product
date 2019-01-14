@@ -35,6 +35,12 @@
       "lambda": "lambda x: int(x)",
       "value": "5"
     },
+    { 
+      "name": "acquisition_version",
+      "from": "submitter",
+      "type": "text",
+      "default": "v2.0" 
+    },      
     {
       "name": "starttime",
       "from": "dataset_jpath:_source.starttime",

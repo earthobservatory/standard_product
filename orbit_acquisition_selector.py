@@ -484,7 +484,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
 
     return selected_track_acqs
 
-def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, threshold_pixel):
+def query_aoi_acquisitions(starttime, endtimm, platform, orbit_file, orbit_dir, threshold_pixel, acquisition_version):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
     #aoi_acq = {}
@@ -505,6 +505,11 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
                                 {
                                     "term": {
                                         "dataset_type.raw": "acquisition"
+                                    }
+                                },
+                                 {
+                                    "term": {
+                                        "version.raw": acquisition_version
                                     }
                                 },
                                 {
@@ -654,6 +659,8 @@ def resolve_aoi_acqs(ctx_file):
     logger.info("PROJECT : %s" %project)
     priority = ctx["job_priority"]
     minMatch = ctx["minMatch"]
+    dataset_version = ctx["dataset_version"] 
+    acquisition_version = ctx["acquisition_version"]  
     threshold_pixel = ctx["threshold_pixel"]
     job_type, job_version = ctx['job_specification']['id'].split(':')
 
@@ -671,7 +678,7 @@ def resolve_aoi_acqs(ctx_file):
         logger.info("Orbit File : %s " %orbit_file)
 
 
-    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file, orbit_file_dir, threshold_pixel)
+    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file, orbit_file_dir, threshold_pixel, acquisition_version)
     #osaka.main.get("http://aux.sentinel1.eo.esa.int/POEORB/2018/09/15/S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF")
     #logger.info(orbit_aoi_data)
     #exit(0)
@@ -697,6 +704,7 @@ def resolve_aoi_acqs(ctx_file):
     job_data['orbit_file'] = orbit_file 
     job_data['minMatch'] = minMatch
     job_data['threshold_pixel'] = threshold_pixel
+    job_data["acquisition_version"] = acquisition_version
 
 
     

@@ -369,6 +369,7 @@ def enumerate_acquisations(orbit_acq_selections):
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
     orbit_file = job_data['orbit_file']
+    acquisition_version = job_data["acquisition_version"]
 
     #candidate_pair_list = []
 
@@ -390,7 +391,7 @@ def enumerate_acquisations(orbit_acq_selections):
                 if len(selected_track_acqs[track].keys()) <=0:
                     logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                     continue
-                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel)
+                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version)
                 logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
                 if min_max_count>0:
                     print_candidate_pair_list_per_track(track_candidate_pair_list)
@@ -438,7 +439,7 @@ def print_candidate_pair(candidate_pair):
 
 
 
-def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel):
+def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -463,7 +464,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         orbitNumber.append(master_orbitnumber)
 
         #util.print_acquisitions(aoi_data['aoi_id'], master_acqs)
-        query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumber)
+        query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumberi, acquisition_version)
         logger.info("Slave Finding Query : %s" %query)
         
         acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
