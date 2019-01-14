@@ -484,7 +484,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
 
     return selected_track_acqs
 
-def query_aoi_acquisitions(starttime, endtimm, platform, orbit_file, orbit_dir, threshold_pixel, acquisition_version):
+def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, threshold_pixel, acquisition_version):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
     #aoi_acq = {}
