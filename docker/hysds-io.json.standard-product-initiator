@@ -1,6 +1,6 @@
 {     
   "submission_type": "iteration",
-  "label": "Standard Product S1-IFG - Enumerator",
+  "label": "Standard Product S1-IFG - Acquisition Enumerator",
   "allowed_accounts": [ "ops" ],
   "enable_dedup": false,
   "params" : [ 

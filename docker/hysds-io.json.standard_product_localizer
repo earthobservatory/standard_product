@@ -1,5 +1,5 @@
 {
-  "label" : "Standard Product S1-IFG - Localizer",
+  "label" : "Standard Product S1-IFG - IW_SLC Localizer",
   "recommended-queues" : [ "grfn-job_worker-large" ],
   "allowed_accounts": [ "ops" ],
   "enable_dedup": false,
