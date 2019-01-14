@@ -426,6 +426,12 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
     else:
         logger.info("successfully completed localizing slave slcs")
 
+
+    logger.info("Sling Jobs Submission Done. Exiting")
+    sys.exit()
+
+    '''
+
     # At this point, we have all the slc downloaded and we are ready to submit a create standard product job
     acq_infoes =[]
     projects = []
@@ -464,7 +470,7 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
         bboxes.append(bbox)
 
     return publish_localized_info(acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, platforms, union_geojsons, bboxes)
-
+    '''
 
 def sling2(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox):
     '''
