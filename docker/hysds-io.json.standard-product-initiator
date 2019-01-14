@@ -1,6 +1,6 @@
 {     
   "submission_type": "iteration",
-  "label": "S1 - POEORB Standard Product Enumerator",
+  "label": "S1 - POEORB Standard Product IFG Initiator",
   "allowed_accounts": [ "ops" ],
   "enable_dedup": false,
   "params" : [ 

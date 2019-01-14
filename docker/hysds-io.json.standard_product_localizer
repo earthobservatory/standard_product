@@ -1,5 +1,5 @@
 {
-  "label" : "S1 - POEORB Standard Product Localizer",
+  "label" : "S1 - POEORB Standard Product IFG Localizer",
   "recommended-queues" : [ "grfn-job_worker-large" ],
   "allowed_accounts": [ "ops" ],
   "enable_dedup": false,
