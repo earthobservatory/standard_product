@@ -490,6 +490,9 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
     #aoi_acq = {}
     orbit_aoi_data = {}
     es_index = "grq_*_*acquisition*"
+    es_index = "grq_%s_acquisition-s1-iw_slc/acquisition-S1-IW_SLC/" %(acquisition_version)
+    logger.info("query_aoi_acquisitions : es_index : %s" %es_index)
+
     aois = query_aois_new(starttime, endtime)
     logger.info("No of AOIs : %s " %len(aois))
     if len(aois) <=0:
