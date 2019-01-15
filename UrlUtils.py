@@ -8,6 +8,11 @@
 
 import sys
 import os
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+
+
 class UrlUtils(object):
 
     def __init__(self,conf=''):
@@ -19,9 +24,9 @@ class UrlUtils(object):
         
             
         if conf:
-            self._filename = os.path.join(os.environ['ARIAMH_HOME'],'conf',conf)
+            self._filename = os.path.join(dir_path, conf)
         else:  
-            self._filename = os.path.join(os.environ['ARIAMH_HOME'],'conf/settings.conf'+ sfx)
+            self._filename = os.path.join(dir_path, 'settings.conf'+ sfx)
         self._rest_url = None
         self._dav_url = None
         self._dav_u = None
