@@ -4,10 +4,11 @@
     "/home/ops/.netrc": ["/home/ops/.netrc"],
     "/home/ops/.aws": ["/home/ops/.aws", "ro"],
     "/home/ops/verdi/etc/settings.json": "/home/ops/verdi/ops/standard_product/settings.json",
-    "/home/ops/verdi/etc/settings.conf": "/home/ops/ariamh/conf/settings.conf"
+    "/home/ops/verdi/etc/settings.conf": "/home/ops/ariamh/conf/settings.conf",
+    "/home/ops/verdi/etc/settings.conf": "/home/ops/verdi/ops/standard_product/settings.conf"
   },
   "recommended-queues" : [
-    "standard_product_ifg_localizer"
+    "standard_product_s1ifg-slc_localizer"
   ],
   "soft_time_limit": 86400,
   "time_limit": 87000, 
