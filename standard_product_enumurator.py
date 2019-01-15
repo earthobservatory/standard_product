@@ -464,7 +464,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         orbitNumber.append(master_orbitnumber)
 
         #util.print_acquisitions(aoi_data['aoi_id'], master_acqs)
-        query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumberi, acquisition_version)
+        query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumber, acquisition_version)
         logger.info("Slave Finding Query : %s" %query)
         
         acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
