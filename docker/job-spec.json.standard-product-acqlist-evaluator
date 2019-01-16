@@ -24,7 +24,7 @@
       "destination": "context"
     },
     {
-      "name":"dataset_doc",
+      "name":"slc_id",
       "destination":"context"
     }
   ]

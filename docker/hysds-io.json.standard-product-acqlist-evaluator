@@ -22,8 +22,8 @@
       "default": "v2.0" 
     },      
     {
-      "name":"dataset_doc",
-      "from": "dataset_jpath:_source"
+      "name":"slc_id",
+      "from": "dataset_jpath:_id"
     }
   ]
 }
