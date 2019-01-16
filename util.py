@@ -1417,7 +1417,7 @@ def get_acq_dates_from_metadata(starttime, endtime):
 
 
 
-def get_acq_dates(master_md, slave_md):
+def get_acq_dates(master_mds, slave_mds):
 
     master_day_dts = {}
     for id in master_mds:
