@@ -126,6 +126,7 @@ def group_acqs_by_orbit_number(acqs):
     acqs_info = {}
     for acq in acqs:
         acqs_info[acq.acq_id] = acq
+        logger.info("acq_id : %s track_number : %s orbit_number : %s acq_pv : %s" %(acq.acq_id, acq.tracknumber, acq.orbitnumber, acq.pv))
         bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(acq.orbitnumber, {}).setdefault(acq.pv, []), acq.acq_id)
         '''
         if track in grouped.keys():
