@@ -62,10 +62,12 @@ def create_acq_obj_from_metadata(acq):
     missing_pcv_list = list()
     acq_id = acq['id']
     logger.info("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
+    '''
     match = SLC_RE.search(acq_id)
     if not match:
         logger.info("Error : No Match : %s" %acq_id)
         return None
+    '''
     download_url = acq_data['metadata']['download_url']
     track = acq_data['metadata']['trackNumber']
     location = acq_data['metadata']['location']
