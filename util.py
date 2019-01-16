@@ -1422,7 +1422,7 @@ def get_acq_dates(master_mds, slave_mds):
     master_day_dts = {}
     for id in master_mds:
         logger.info(id)
-        h = info[id]
+        h = master_mds[id]
         fields = h["_source"]
         day_dt, slc_start_dt, slc_end_dt = get_acq_dates_from_metadata(fields['starttime'], fields['endtime'])
         master_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
@@ -1435,7 +1435,7 @@ def get_acq_dates(master_mds, slave_mds):
     slave_day_dts = {}
     for id in slave_mds:
         logger.info(id)
-        h = info[id]
+        h = slave_mds[id]
         fields = h["_source"]
         day_dt, slc_start_dt, slc_end_dt = get_acq_dates_from_metadata(fields['starttime'], fields['endtime'])
         slave_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
