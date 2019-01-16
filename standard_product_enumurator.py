@@ -875,7 +875,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
         else:
             slave_ids_str += " "+acq
 
-    list_master_dt, list_slave_dt = util.get_acq_dates(master_acquisitions, slave_acquisitions)
+    list_master_dt, list_slave_dt = util.get_acq_dates(master_md, slave_md)
     
     #ACQ_LIST_ID_TMPL = "acq_list-R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
     

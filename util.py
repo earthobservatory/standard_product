@@ -14,7 +14,8 @@ from datetime import datetime, timedelta
 from osgeo import ogr, osr
 import elasticsearch
 import lightweight_water_mask
-
+import dateutil.parser
+import pytz
 
 
 #logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
@@ -32,7 +33,6 @@ logger = logging.getLogger('util')
 logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
-
 SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
                     r'_(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
                     r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +
@@ -44,12 +44,19 @@ ACQ_RE = re.compile(r'(?P<mission>acquisition-S1\w)_IW_SLC__.*?' +
                     r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +
                     r'_(?P<end_year>\d{4})(?P<end_month>\d{2})(?P<end_day>\d{2})' +
                     r'T(?P<end_hour>\d{2})(?P<end_min>\d{2})(?P<end_sec>\d{2})_.*$')
+#acquisition-Sentinel-1B_20161003T020729.245_35_IW-esa_scihub
+
+
+ACQ_RE_v2_0= re.compile(r'(?P<mission>acquisition-Sentinel-1\w)_' +
+                    r'(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
+                    r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2}).*$')
 
 IFG_ID_TMPL = "S1-IFG_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}_s123-{}-{}-standard_product"
 RSP_ID_TMPL = "S1-SLCP_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}_s{}-{}-{}"
 
 BASE_PATH = os.path.dirname(__file__)
 MISSION = 'S1A'
+
 
 
 class ACQ:
@@ -289,75 +296,6 @@ def create_acqs_from_metadata(frames):
         if acq_obj:
             acqs.append(acq_obj)
     return acqs
-
-
-def group_frames_by_track_date(frames):
-    """Classify frames by track and date."""
-
-    hits = {}
-    grouped = {}
-    dates = {}
-    footprints = {}
-    metadata = {}
-    for h in frames: 
-        if h['_id'] in hits: continue
-        fields = h['fields']['partial'][0]
-        #print("h['_id'] : %s" %h['_id'])
-
-        # get product url; prefer S3
-        prod_url = fields['urls'][0]
-        if len(fields['urls']) > 1:
-            for u in fields['urls']:
-                if u.startswith('s3://'):
-                    prod_url = u
-                    break
-        #print("prod_url : %s" %prod_url)
-        hits[h['_id']] = "%s/%s" % (prod_url, fields['metadata']['archive_filename'])
-        match = SLC_RE.search(h['_id'])
-        #print("match : %s" %match)
-        '''
-        if not match:
-            raise RuntimeError("Failed to recognize SLC ID %s." % h['_id'])
-        '''
-
-        day_dt = datetime(int(match.group('start_year')),
-                          int(match.group('start_month')),
-                          int(match.group('start_day')),
-                          0, 0, 0)
-        #print("day_dt : %s " %day_dt)
-
-        bisect.insort(grouped.setdefault(fields['metadata']['trackNumber'], {}) \
-                             .setdefault(day_dt, []), h['_id'])
-        slc_start_dt = datetime(int(match.group('start_year')),
-                                int(match.group('start_month')),
-                                int(match.group('start_day')),
-                                int(match.group('start_hour')),
-                                int(match.group('start_min')),
-                                int(match.group('start_sec')))
-        #print("slc_start_dt : %s" %slc_start_dt)
-
-        slc_end_dt = datetime(int(match.group('end_year')),
-                              int(match.group('end_month')),
-                              int(match.group('end_day')),
-                              int(match.group('end_hour')),
-                              int(match.group('end_min')),
-                              int(match.group('end_sec')))
-
-	#print("slc_end_dt : %s" %slc_end_dt)
-        dates[h['_id']] = [ slc_start_dt, slc_end_dt ]
-        footprints[h['_id']] = fields['location']
-        metadata[h['_id']] = fields['metadata']
-	#break
-    #print("grouped : %s" %grouped)
-    logger.info("grouped keys : %s" %grouped.keys())
-    return {
-        "hits": hits,
-        "grouped": grouped,
-        "dates": dates,
-        "footprints": footprints,
-        "metadata": metadata,
-    }
-
 
 def get_result_dict():
     result = {}
@@ -1449,8 +1387,70 @@ def get_dates_mission(id):
     mission = match.group('mission')
     return day_dt, slc_start_dt, slc_end_dt, mission
 
+def get_acq_dates_from_metadata(starttime, endtime):
+    DATE_RE=re.compile(r'(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<min>\d{2}):(?P<sec>\d{2}).*$')
 
-def get_acq_dates(master_ids, slave_ids):
+    match_s = DATE_RE.search(starttime)
+    if not match_s:
+        raise RuntimeError("Failed to recognize starttime %s." % starttime)
+
+
+    day_dt = datetime(int(match_s.group('year')), int(match_s.group('month')), int(match_s.group('day')),0, 0, 0)
+    slc_start_dt = datetime(int(match_s.group('year')),
+                            int(match_s.group('month')),
+                            int(match_s.group('day')),
+                            int(match_s.group('hour')),
+                            int(match_s.group('min')),
+                            int(match_s.group('sec')))
+    match_e = DATE_RE.search(endtime)
+    if not match_s:
+        raise RuntimeError("Failed to recognize starttime %s." % starttime)
+    slc_end_dt = datetime(int(match_e.group('year')),
+                            int(match_e.group('month')),
+                            int(match_e.group('day')),
+                            int(match_e.group('hour')),
+                            int(match_e.group('min')),
+                            int(match_e.group('sec')))
+
+    return day_dt, slc_start_dt, slc_end_dt
+
+
+
+
+def get_acq_dates(master_md, slave_md):
+
+    master_day_dts = {}
+    for id in master_mds:
+        logger.info(id)
+        h = info[id]
+        fields = h["_source"]
+        day_dt, slc_start_dt, slc_end_dt = get_acq_dates_from_metadata(fields['starttime'], fields['endtime'])
+        master_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
+    if len(master_day_dts) > 1:
+        raise RuntimeError("Found master SLCs for more than 1 day.")
+    master_day_dt = day_dt
+    master_all_dts = master_day_dts[day_dt]
+    master_all_dts.sort()
+
+    slave_day_dts = {}
+    for id in slave_mds:
+        logger.info(id)
+        h = info[id]
+        fields = h["_source"]
+        day_dt, slc_start_dt, slc_end_dt = get_acq_dates_from_metadata(fields['starttime'], fields['endtime'])
+        slave_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
+    if len(slave_day_dts) > 1:
+        raise RuntimeError("Found slave SLCs for more than 1 day.")
+    slave_day_dt = day_dt
+    slave_all_dts = slave_day_dts[day_dt]
+    slave_all_dts.sort()
+
+    if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
+    else: return master_all_dts[-1], slave_all_dts[0]
+
+
+
+def get_acq_dates2(master_ids, slave_ids):
     """Return ifg start and end dates."""
 
     master_day_dts = {}
