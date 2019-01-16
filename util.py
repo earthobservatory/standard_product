@@ -249,10 +249,15 @@ def create_acq_obj_from_metadata(acq):
     acq_id = acq['id']
     print("logger level : %s" %logger.level)
     print("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
+    '''
     match = SLC_RE.search(acq_id)
     if not match:
-        logger.info("Error : No Match : %s" %acq_id)
+        print("SLC_RE : %s" %SLC_RE)
+        print("Error : No Match : %s" %acq_id)
         return None
+    print("SLC_MATCHED")
+    '''
+
     download_url = acq_data['metadata']['download_url']
     track = acq_data['metadata']['trackNumber']
     location = acq_data['metadata']['location']
@@ -269,7 +274,7 @@ def create_acq_obj_from_metadata(acq):
     else:
         missing_pcv_list.append(acq_id)
         logger.info("pv NOT in metadata,so calling ASF")
-        #pv = get_processing_version(identifier)
+        pv = get_processing_version(identifier)
         #logger.info("ASF returned pv : %s" %pv)
         #update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
@@ -310,8 +315,11 @@ def group_frames_by_track_date(frames):
         hits[h['_id']] = "%s/%s" % (prod_url, fields['metadata']['archive_filename'])
         match = SLC_RE.search(h['_id'])
         #print("match : %s" %match)
+        '''
         if not match:
             raise RuntimeError("Failed to recognize SLC ID %s." % h['_id'])
+        '''
+
         day_dt = datetime(int(match.group('start_year')),
                           int(match.group('start_month')),
                           int(match.group('start_day')),
@@ -717,10 +725,12 @@ def group_acqs_by_track(frames):
         acq_data = acq # acq['fields']['partial'][0]
         acq_id = acq['id']
         #print("acq_id : %s : %s" %(type(acq_id), acq_id))
+        '''
         match = SLC_RE.search(acq_id)
         if not match:
             logger.info("No Match : %s" %acq_id)
             continue
+        '''
         download_url = acq_data['metadata']['download_url']
         track = acq_data['metadata']['trackNumber']
         location = acq_data['metadata']['location']
