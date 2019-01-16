@@ -12,44 +12,20 @@
   "recommended-queues": [ "standard_product_s1ifg-acqlist_evaluator_ifgcfg" ],
   "params" : [
     {
-      "name": "workflow",
-      "destination": "positional"
-    },
-    {
-        "name": "project",
-        "destination": "context"
-    },
-    {
         "name": "dataset_version",
         "destination": "context"
     },
     {
-      "name": "minMatch",
-      "destination": "context"
-    },
-    {
-      "name": "threshold_pixel",
+      "name": "acqlist_version",
       "destination": "context"
     },
     {
       "name": "acquisition_version",
-       "destination": "context"
+      "destination": "context"
     },
     {
-        "name": "starttime",
-        "destination": "context"
-    },
-    {
-        "name": "endtime",
-        "destination": "context"
-    },
-    {
-        "name": "platform",
-        "destination": "context"
-    },
-    {
-      "name":"localize_products",
-      "destination":"localize"
+      "name":"dataset_doc",
+      "destination":"context"
     }
   ]
 }
