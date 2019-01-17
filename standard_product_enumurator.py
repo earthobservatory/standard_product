@@ -935,6 +935,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
     md['orbitNumber'] = orbitNumber
     md['direction'] = direction
     md['platform'] = platform
+    md['list_master_dt'] = list_master_dt
+    md['list_slave_dt'] = list_slave_dt 
 
  
     try:
