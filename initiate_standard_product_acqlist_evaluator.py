@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, time, json, requests, logging
+import os, sys, time, json, requests, logging, traceback
 
 from hysds.celery import app
 
@@ -149,8 +149,16 @@ def main():
                      acqlist['metadata']['master_scenes'], acqlist['metadata']['slave_scenes'],
                      acqlist['metadata']['orbitNumber'], acqlist['metadata']['direction'],
                      acqlist['metadata']['platform'], acqlist['metadata']['union_geojson'],
-                     acqlist['metadata']['bbox'])
+                     acqlist['metadata']['bbox'], acqlist['metadata']['list_master_dt'],
+                     acqlist['metadata']['list_slave_dt'])
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try: status = main()
+    except Exception as e:
+        with open('_alt_error.txt', 'w') as f:
+            f.write("%s\n" % str(e))
+        with open('_alt_traceback.txt', 'w') as f:
+            f.write("%s\n" % traceback.format_exc())
+        raise
+    sys.exit(status)
