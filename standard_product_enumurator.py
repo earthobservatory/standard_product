@@ -566,14 +566,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 for candidate_pair in orbit_candidate_pair:
                     try:
                         publish_initiator_pair(candidate_pair, job_data, orbit_data)   
+                        min_max_count = min_max_count + 1
+                        candidate_pair_list.append(orbit_candidate_pair)
                     except Exception as err:
                         logger.info("Error Publishing Candidate Pair : %s : %s" %(candidate_pair, str(err)))
                         traceback.print_exc()
                         #logger.warn("Traceback: {}".format(traceback.format_exc()))
 
-                    candidate_pair_list.append(orbit_candidate_pair)
                 
-                min_max_count = min_max_count + 1
                 if min_max_count>=MIN_MATCH:
                     return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
@@ -876,7 +876,9 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
             slave_ids_str += " "+acq
 
     list_master_dt, list_slave_dt = util.get_acq_dates(master_md, slave_md)
-    
+
+    list_master_dt_str = list_master_dt.strftime('%Y%m%dT%H%M%S')
+    list_slave_dt_str = list_slave_dt.strftime('%Y%m%dT%H%M%S')
     #ACQ_LIST_ID_TMPL = "acq_list-R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
     
     id_hash = hashlib.md5(json.dumps([
@@ -909,7 +911,10 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
 
     met_file = os.path.join(prod_dir, "{}.met.json".format(id))
     ds_file = os.path.join(prod_dir, "{}.dataset.json".format(id))
-  
+    
+
+
+    logger.info("\n\nPUBLISHING %s : " %id)  
     #with open(met_file) as f: md = json.load(f)
     md = {}
     md['id'] = id
@@ -935,8 +940,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
     md['orbitNumber'] = orbitNumber
     md['direction'] = direction
     md['platform'] = platform
-    md['list_master_dt'] = list_master_dt
-    md['list_slave_dt'] = list_slave_dt 
+    md['list_master_dt'] = list_master_dt_str
+    md['list_slave_dt'] = list_slave_dt_str
 
  
     try:
