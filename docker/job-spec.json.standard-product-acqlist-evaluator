@@ -7,8 +7,8 @@
     "/home/ops/verdi/etc/settings.conf": "/home/ops/ariamh/conf/settings.conf",
     "/home/ops/verdi/etc/settings.conf": "/home/ops/verdi/ops/standard_product/settings.conf"
   },
-  "soft_time_limit": 120,
-  "time_limit": 240,
+  "soft_time_limit": 600,
+  "time_limit": 900,
   "recommended-queues": [ "standard_product_s1ifg-acqlist_evaluator_ifgcfg" ],
   "params" : [
     {
