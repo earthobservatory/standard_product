@@ -876,7 +876,9 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
             slave_ids_str += " "+acq
 
     list_master_dt, list_slave_dt = util.get_acq_dates(master_md, slave_md)
-    
+
+    list_master_dt_str = list_master_dt.strftime('%Y%m%dT%H%M%S')
+    list_slave_dt_str = list_slave_dt.strftime('%Y%m%dT%H%M%S')
     #ACQ_LIST_ID_TMPL = "acq_list-R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
     
     id_hash = hashlib.md5(json.dumps([
@@ -938,8 +940,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
     md['orbitNumber'] = orbitNumber
     md['direction'] = direction
     md['platform'] = platform
-    md['list_master_dt'] = "%s"%list_master_dt
-    md['list_slave_dt'] = "%s"%list_slave_dt 
+    md['list_master_dt'] = list_master_dt_str
+    md['list_slave_dt'] = list_slave_dt_str
 
  
     try:
