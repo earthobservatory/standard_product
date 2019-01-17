@@ -634,7 +634,7 @@ def publish_localized_info( acq_info, project, job_priority, dem_type, track, st
     for i in range(len(project)):
         publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], direction[i], platform[i], union_geojson[i], bbox[i])
 
-def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
+def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, list_master_dt, list_slave_dt, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
@@ -656,14 +656,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     disk_usage = "100GB"
 
     # set job queue based on project
-    job_queue = "%s-job_worker-large" % project
-    list_master_dt = ""
-    list_slave_dt = ""
+    job_queue = "standard_product_s1ifg-slc_localizer"
     #job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
-    try:
-        list_master_dt, list_slave_dt = util.get_acq_dates(master_scene, slave_scene)
-    except Exception as err:
-         logger.info(str(err))
        
 
     id_hash = get_id_hash(acq_info, job_priority, dem_type)
