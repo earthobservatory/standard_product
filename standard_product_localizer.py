@@ -10,7 +10,8 @@ import uuid  # only need this import to simulate returned mozart job id
 from hysds.celery import app
 from hysds_commons.job_utils import submit_mozart_job
 import traceback
-import acquisition_localizer_multi
+try: import acquisition_localizer_multi
+except: pass
 
 
 # set logger
