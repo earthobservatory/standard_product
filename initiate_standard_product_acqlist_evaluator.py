@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 
-import os, sys, time, json, requests, logging, traceback, shutil
+import os
+import sys
+import time
+import json
+import requests
+import logging
+import traceback
+import shutil
 
 from hysds.celery import app
 from hysds.dataset_ingest import ingest
@@ -12,10 +19,13 @@ from standard_product_localizer import publish_data, get_acq_object
 log_format = "[%(asctime)s: %(levelname)s/%(name)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
 
+
 class LogFilter(logging.Filter):
     def filter(self, record):
-        if not hasattr(record, 'id'): record.id = '--'
+        if not hasattr(record, 'id'):
+            record.id = '--'
         return True
+
 
 logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 logger.setLevel(logging.INFO)
@@ -74,7 +84,7 @@ def all_slcs_exist(acq_ids, acq_version, slc_version):
             }
         },
         "fields": [
-          "metadata.identifier"
+            "metadata.identifier"
         ]
     }
     acq_index = "grq_{}_acquisition-s1-iw_slc".format(acq_version)
@@ -86,7 +96,8 @@ def all_slcs_exist(acq_ids, acq_version, slc_version):
         for hit in result['hits']['hits']:
             slc_ids.append(hit['fields']['metadata.identifier'][0])
     if len(slc_ids) != len(acq_ids):
-        raise RuntimeError("Failed to resolve SLC IDs for all acquisition IDs: {} vs. {}".format(acq_ids, slc_ids))
+        raise RuntimeError(
+            "Failed to resolve SLC IDs for all acquisition IDs: {} vs. {}".format(acq_ids, slc_ids))
 
     # check all slc ids exist
     slc_query = {
@@ -99,7 +110,7 @@ def all_slcs_exist(acq_ids, acq_version, slc_version):
     }
     slc_index = "grq_{}_s1-iw_slc".format(slc_version)
     result = query_es(slc_query, slc_index)
-        
+
     # extract slc ids that exist
     existing_slc_ids = []
     if result['hits']['total'] > 0:
@@ -108,7 +119,8 @@ def all_slcs_exist(acq_ids, acq_version, slc_version):
     logger.info("slc_ids: {}".format(slc_ids))
     logger.info("existing_slc_ids: {}".format(existing_slc_ids))
     if len(slc_ids) != len(existing_slc_ids):
-        logger.info("Missing SLC IDs: {}".format(list(set(slc_ids) - set(existing_slc_ids))))
+        logger.info("Missing SLC IDs: {}".format(
+            list(set(slc_ids) - set(existing_slc_ids))))
         return False
     return True
 
@@ -120,7 +132,7 @@ def get_acqlists_by_acqid(acq_id, acqlist_version):
         "query": {
             "bool": {
                 "must": [
-                    { "term": {"system_version.raw": acqlist_version}},
+                    {"term": {"system_version.raw": acqlist_version}},
                     {
                         "bool": {
                             "should": [
@@ -140,9 +152,9 @@ def get_acqlists_by_acqid(acq_id, acqlist_version):
                 ]
             }
         },
-        "partial_fields" : {
-            "partial" : {
-                "exclude" : ["city", "context", "continent"],
+        "partial_fields": {
+            "partial": {
+                "exclude": ["city", "context", "continent"],
             }
         }
     }
@@ -161,7 +173,7 @@ def ifgcfg_exists(ifgcfg_id, version):
     query = {
         "query": {
             "ids": {
-                "values": [ ifgcfg_id ],
+                "values": [ifgcfg_id],
             }
         },
         "fields": []
@@ -169,7 +181,7 @@ def ifgcfg_exists(ifgcfg_id, version):
     index = "grq_{}_ifg-cfg".format(version)
     result = query_es(query, index)
     return False if result['hits']['total'] == 0 else True
-        
+
 
 def main():
     """Main."""
@@ -180,7 +192,7 @@ def main():
         raise(RuntimeError("Context file doesn't exist."))
     with open(context_file) as f:
         ctx = json.load(f)
-    
+
     # resolve acquisition id from slc id
     slc_id = ctx['slc_id']
     slc_version = ctx['slc_version']
@@ -197,31 +209,36 @@ def main():
         logger.info(json.dumps(acqlist, indent=2))
         acq_info = {}
         for acq in acqlist['metadata']['master_scenes']:
-            acq_info[acq]=get_acq_object(acq, "master")
+            acq_info[acq] = get_acq_object(acq, "master")
         for acq in acqlist['metadata']['slave_scenes']:
-    	    acq_info[acq]=get_acq_object(acq, "slave")
+            acq_info[acq] = get_acq_object(acq, "slave")
         if all_slcs_exist(acq_info.keys(), acq_version, slc_version):
             prod_dir = publish_data(acq_info, acqlist['metadata']['project'], acqlist['metadata']['job_priority'],
-                                    acqlist['metadata']['dem_type'], acqlist['metadata']['track'], 
+                                    acqlist['metadata']['dem_type'], acqlist['metadata']['track'],
                                     acqlist['metadata']['starttime'], acqlist['metadata']['endtime'],
                                     acqlist['metadata']['master_scenes'], acqlist['metadata']['slave_scenes'],
                                     acqlist['metadata']['orbitNumber'], acqlist['metadata']['direction'],
                                     acqlist['metadata']['platform'], acqlist['metadata']['union_geojson'],
                                     acqlist['metadata']['bbox'], acqlist['metadata']['list_master_dt'],
                                     acqlist['metadata']['list_slave_dt'])
-            logger.info("Created ifg-cfg {} for acq-list {}.".format(prod_dir, acqlist['id']))
+            logger.info(
+                "Created ifg-cfg {} for acq-list {}.".format(prod_dir, acqlist['id']))
             if ifgcfg_exists(prod_dir, ifgcfg_version):
-                logger.info("Not ingesting ifg-cfg {}. Already exists.".format(prod_dir))
+                logger.info(
+                    "Not ingesting ifg-cfg {}. Already exists.".format(prod_dir))
             else:
-                ingest(prod_dir, 'datasets.json', app.conf.GRQ_UPDATE_URL, app.conf.DATASET_PROCESSED_QUEUE, prod_dir, None)
+                ingest(prod_dir, 'datasets.json', app.conf.GRQ_UPDATE_URL,
+                       app.conf.DATASET_PROCESSED_QUEUE, os.path.abspath(prod_dir), None)
                 logger.info("Ingesting ifg-cfg {}.".format(prod_dir))
             shutil.rmtree(prod_dir)
         else:
-            logger.info("Not creating ifg-cfg for acq-list {}.".format(acqlist['id']))
+            logger.info(
+                "Not creating ifg-cfg for acq-list {}.".format(acqlist['id']))
 
 
 if __name__ == "__main__":
-    try: status = main()
+    try:
+        status = main()
     except Exception as e:
         with open('_alt_error.txt', 'w') as f:
             f.write("%s\n" % str(e))
