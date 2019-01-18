@@ -76,7 +76,8 @@ def resolve_acq(slc_id, version):
     result = query_es(query, es_index)
 
     if len(result) == 0:
-        raise ValueError("Couldn't find record with ID: {}".format(slc_id))
+        raise RuntimeError(
+            "Failed to resolve acquisition ID for SLC ID: {}".format(slc_id))
 
     return result[0]['_id']
 
