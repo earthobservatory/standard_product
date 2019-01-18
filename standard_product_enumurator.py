@@ -97,7 +97,7 @@ def get_group_platform(acq_ids, acq_info):
             logger.info("get_group_platform : platform : %s" %platform)
         else:
             if platform != acq.platform:
-                raise RuntimeError("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
+                raise Exception("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
     return platform
       
 
@@ -536,14 +536,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 for candidate_pair in orbit_candidate_pair:
                     try:
                         publish_initiator_pair(candidate_pair, job_data, orbit_data)   
-                        min_max_count = min_max_count + 1
+                        #min_max_count = min_max_count + 1
                         candidate_pair_list.append(orbit_candidate_pair)
                     except Exception as err:
                         logger.info("Error Publishing Candidate Pair : %s : %s" %(candidate_pair, str(err)))
                         traceback.print_exc()
                         #logger.warn("Traceback: {}".format(traceback.format_exc()))
 
-                
+                min_max_count = min_max_count + 1
                 if min_max_count>=MIN_MATCH:
                     return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
@@ -901,7 +901,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
     md['soft_time_limit'] =  86400
     md['time_limit'] = 86700
     md['dem_type'] = dem_type
-    md['track_number'] = track
+    md['track'] = track
     md['starttime'] = "%sZ" %starttime
     md['endtime'] = "%sZ" %endtime
     md['union_geojson'] = union_geojson
