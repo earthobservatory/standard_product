@@ -541,6 +541,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                     except Exception as err:
                         logger.info("Error Publishing Candidate Pair : %s : %s" %(candidate_pair, str(err)))
                         traceback.print_exc()
+                        raise RuntimeError("Error Publishing Candidate Pair : %s : %s" %(candidate_pair, str(err)))
                         #logger.warn("Traceback: {}".format(traceback.format_exc()))
 
                 min_max_count = min_max_count + 1
