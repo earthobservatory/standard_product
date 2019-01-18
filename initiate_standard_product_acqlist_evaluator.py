@@ -59,7 +59,7 @@ def resolve_acq(slc_id, version):
     result = query_es(query, es_index)
 
     if len(result['hits']['hits']) == 0:
-        raise ValueError("Couldn't find record with ID: %s, at ES: %s"%(slc_id, es_url))
+        raise ValueError("Couldn't find record with ID: {}".format(slc_id))
 
     return result['hits']['hits'][0]['_id']
 
@@ -150,7 +150,7 @@ def get_acqlists_by_acqid(acq_id, acqlist_version):
     result = query_es(query, es_index)
 
     if len(result['hits']['hits']) == 0:
-        raise ValueError("Couldn't find record with ID: %s, at ES: %s"%(acq_id, es_url))
+        raise ValueError("Couldn't find record with ID: {}".format(acq_id))
 
     return [i['fields']['partial'][0] for i in result['hits']['hits']]
 
