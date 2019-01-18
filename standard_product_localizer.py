@@ -716,6 +716,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     print("creating dataset file : %s" %ds_file)
     create_dataset_json(id, version, met_file, ds_file)
 
+    return prod_dir
+
 def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
