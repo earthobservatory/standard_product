@@ -162,7 +162,7 @@ def get_acqlists_by_acqid(acq_id, acqlist_version):
     result = query_es(query, es_index)
 
     if len(result['hits']['hits']) == 0:
-        raise ValueError("Couldn't find record with ID: {}".format(acq_id))
+        return []
 
     return [i['fields']['partial'][0] for i in result['hits']['hits']]
 
