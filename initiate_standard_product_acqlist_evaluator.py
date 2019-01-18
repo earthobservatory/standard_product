@@ -211,10 +211,10 @@ def main():
                                     acqlist['metadata']['list_slave_dt'])
             logger.info("Created ifg-cfg {} for acq-list {}.".format(prod_dir, acqlist['id']))
             if ifgcfg_exists(prod_dir, ifgcfg_version):
+                logger.info("Not ingesting ifg-cfg {}. Already exists.".format(prod_dir))
+            else:
                 ingest(prod_dir, 'datasets.json', app.conf.GRQ_UPDATE_URL, app.conf.DATASET_PROCESSED_QUEUE, prod_dir, None)
                 logger.info("Ingesting ifg-cfg {}.".format(prod_dir))
-            else:
-                logger.info("Not ingesting ifg-cfg {}. Already exists.".format(prod_dir))
             shutil.rmtree(prod_dir)
         else:
             logger.info("Not creating ifg-cfg for acq-list {}.".format(acqlist['id']))
