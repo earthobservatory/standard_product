@@ -35,16 +35,7 @@ logger = logging.getLogger('enumerate_acquisations')
 logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
-RESORB_RE = re.compile(r'_RESORB_')
 
-SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
-                    r'_(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
-                    r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +
-                    r'_(?P<end_year>\d{4})(?P<end_month>\d{2})(?P<end_day>\d{2})' +
-                    r'T(?P<end_hour>\d{2})(?P<end_min>\d{2})(?P<end_sec>\d{2})_.*$')
-
-IFG_ID_TMPL = "S1-IFG_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}_s{}-{}-{}"
-RSP_ID_TMPL = "S1-SLCP_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}_s{}-{}-{}"
 ACQ_LIST_ID_TMPL = "acq-list_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
 
 
@@ -56,18 +47,14 @@ job_data = None
 
 
 def create_acq_obj_from_metadata(acq):
-    #create ACQ(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv)
+    ''' Creates ACQ Object from acquisition metadata'''
+
+
     #logger.info("ACQ = %s\n" %acq)
     acq_data = acq #acq['fields']['partial'][0]
     missing_pcv_list = list()
     acq_id = acq['id']
     logger.info("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
-    '''
-    match = SLC_RE.search(acq_id)
-    if not match:
-        logger.info("Error : No Match : %s" %acq_id)
-        return None
-    '''
     download_url = acq_data['metadata']['download_url']
     track = acq_data['metadata']['trackNumber']
     location = acq_data['metadata']['location']
@@ -88,17 +75,6 @@ def create_acq_obj_from_metadata(acq):
         #logger.info("ASF returned pv : %s" %pv)
         #util.update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
-
-'''
-def download_orbit_file(orbit_url):
-    downloaded = False
-    try:
-        osaka.main.get(orbit_url)
-        downloaded = True
-    except Exception as err:
-        logger.info("Error downloading orbit file : %s: " %str(err))
-        traceback.print_exc()
-'''     
 
 def create_acqs_from_metadata(frames):
     acqs = []
@@ -423,12 +399,6 @@ def print_candidate_pair_list_per_track(track_candidate_pair_list):
             #logger.info("Masters Acqs:")
             #logger.info(candidate_pair["master_acqs"])
 
-            '''
-            for j in range(len(candidate_pair["master_acqs"])):
-                logger.info(candidate_pair["master_acqs"][j])
-            for j in range(len(candidate_pair["slave_acqs"])):
-                logger.info(candidate_pair["slave_acqs"][j])
-            '''
 
 
 def print_candidate_pair(candidate_pair):
