@@ -5,7 +5,7 @@
   "enable_dedup": false,
   "params" : [ 
     { 
-      "name": "dataset_version",
+      "name": "ifgcfg_version",
       "from": "value",
       "value": "v2.0.0"
     },
@@ -20,6 +20,12 @@
       "from": "submitter",
       "type": "text",
       "default": "v2.0" 
+    },      
+    { 
+      "name": "slc_version",
+      "from": "submitter",
+      "type": "text",
+      "default": "v1.1" 
     },      
     {
       "name":"slc_id",
