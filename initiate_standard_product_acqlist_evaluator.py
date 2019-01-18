@@ -171,7 +171,7 @@ def get_acqlists_by_acqid(acq_id, acqlist_version):
     if len(result) == 0:
         raise ValueError("Couldn't find acq-list containing acquisition ID: {}".format(acq_id))
 
-    return [i['fields']['partial'][0] for i in result['hits']['hits']]
+    return [i['fields']['partial'][0] for i in result]
 
 
 def ifgcfg_exists(ifgcfg_id, version):
