@@ -695,7 +695,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['soft_time_limit'] =  86400
     md['time_limit'] = 86700
     md['dem_type'] = dem_type
-    md['track'] = track
+    md['track_number'] = track
     md['starttime'] = starttime
     md['endtime'] = endtime
     md['union_geojson'] = union_geojson
