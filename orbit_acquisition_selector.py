@@ -496,7 +496,8 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
     aois = query_aois_new(starttime, endtime)
     logger.info("No of AOIs : %s " %len(aois))
     if len(aois) <=0:
-        raise RuntimeError("Exiting as number of aois : %s" %len(aois))
+        logger.info("Existing as NO AOI Found")
+        sys.exit(0)
     for aoi in aois:
         logger.info("aoi: {}".format(aoi['id']))
         query = {

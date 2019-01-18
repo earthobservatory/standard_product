@@ -97,7 +97,7 @@ def get_group_platform(acq_ids, acq_info):
             logger.info("get_group_platform : platform : %s" %platform)
         else:
             if platform != acq.platform:
-                raise Exception("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
+                raise RuntimeError("Platform Mismatch in same group : %s and %s" %(platform, acq.platform))
     return platform
       
 
@@ -796,7 +796,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
     slave_track = util.get_track(slave_md)
     logger.info("slave_track: {}".format(slave_track))
     if track != slave_track:
-        raise Exception("Slave track {} doesn't match master track {}.".format(slave_track, track))
+        raise RuntimeError("Slave track {} doesn't match master track {}.".format(slave_track, track))
 
     ref_scence = master_md
     if len(master_acquisitions)==1:
@@ -804,7 +804,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
     elif len(slave_acquisitions)==1:
         ref_scence = slave_md
     elif len(master_acquisitions) > 1 and  len(slave_acquisitions)>1:
-        raise Exception("Single Scene Reference Required.")
+        raise RuntimeError("Single Scene Reference Required.")
  
 
     dem_type = util.get_dem_type(master_md)
