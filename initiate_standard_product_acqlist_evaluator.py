@@ -8,6 +8,7 @@ import requests
 import logging
 import traceback
 import shutil
+import backoff
 
 from hysds.celery import app
 from hysds.dataset_ingest import ingest
@@ -32,23 +33,29 @@ logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
 
-def query_es(query, es_index, es_url=app.conf['GRQ_ES_URL']):
-    """Query ES."""
+@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=8, max_value=32)
+def query_es(query, idx, url=app.conf['GRQ_ES_URL']):
+    """Query ES index."""
 
+    hits = []
+    url = url[:-1] if url.endswith('/') else url
+    query_url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(url, idx)
+    logger.info("url: {}".format(url))
+    logger.info("idx: {}".format(idx))
     logger.info("query: {}".format(json.dumps(query, indent=2)))
-    if es_url.endswith('/'):
-        search_url = '%s%s/_search' % (es_url, es_index)
-    else:
-        search_url = '%s/%s/_search' % (es_url, es_index)
-    r = requests.post(search_url, data=json.dumps(query))
-    if r.status_code != 200:
-        logger.error("Failed to query %s:\n%s" % (es_url, r.text))
-        logger.error("query: %s" % json.dumps(query, indent=2))
-        logger.error("returned: %s" % r.text)
-        r.raise_for_status()
-    result = r.json()
-    logger.info("result: {}".format(json.dumps(result, indent=2)))
-    return result
+    r = requests.post(query_url, data=json.dumps(query))
+    r.raise_for_status()
+    scan_result = r.json()
+    count = scan_result['hits']['total']
+    if count == 0: return hits
+    scroll_id = scan_result['_scroll_id']
+    while True:
+        r = requests.post('%s/_search/scroll?scroll=60m' % url, data=scroll_id)
+        res = r.json()
+        scroll_id = res['_scroll_id']
+        if len(res['hits']['hits']) == 0: break
+        hits.extend(res['hits']['hits'])
+    return hits
 
 
 def resolve_acq(slc_id, version):
@@ -68,10 +75,11 @@ def resolve_acq(slc_id, version):
     es_index = "grq_{}_acquisition-s1-iw_slc".format(version)
     result = query_es(query, es_index)
 
-    if len(result['hits']['hits']) == 0:
-        raise ValueError("Couldn't find record with ID: {}".format(slc_id))
+    if len(result) == 0:
+        raise RuntimeError(
+            "Failed to resolve acquisition ID for SLC ID: {}".format(slc_id))
 
-    return result['hits']['hits'][0]['_id']
+    return result[0]['_id']
 
 
 def all_slcs_exist(acq_ids, acq_version, slc_version):
@@ -92,8 +100,8 @@ def all_slcs_exist(acq_ids, acq_version, slc_version):
 
     # extract slc ids
     slc_ids = []
-    if result['hits']['total'] > 0:
-        for hit in result['hits']['hits']:
+    if len(result) > 0:
+        for hit in result:
             slc_ids.append(hit['fields']['metadata.identifier'][0])
     if len(slc_ids) != len(acq_ids):
         raise RuntimeError(
@@ -113,8 +121,8 @@ def all_slcs_exist(acq_ids, acq_version, slc_version):
 
     # extract slc ids that exist
     existing_slc_ids = []
-    if result['hits']['total'] > 0:
-        for hit in result['hits']['hits']:
+    if len(result) > 0:
+        for hit in result:
             existing_slc_ids.append(hit['_id'])
     logger.info("slc_ids: {}".format(slc_ids))
     logger.info("existing_slc_ids: {}".format(existing_slc_ids))
@@ -161,10 +169,10 @@ def get_acqlists_by_acqid(acq_id, acqlist_version):
     es_index = "grq_{}_acq-list".format(acqlist_version)
     result = query_es(query, es_index)
 
-    if len(result['hits']['hits']) == 0:
+    if len(result) == 0:
         raise ValueError("Couldn't find acq-list containing acquisition ID: {}".format(acq_id))
 
-    return [i['fields']['partial'][0] for i in result['hits']['hits']]
+    return [i['fields']['partial'][0] for i in result]
 
 
 def ifgcfg_exists(ifgcfg_id, version):
@@ -180,7 +188,7 @@ def ifgcfg_exists(ifgcfg_id, version):
     }
     index = "grq_{}_ifg-cfg".format(version)
     result = query_es(query, index)
-    return False if result['hits']['total'] == 0 else True
+    return False if len(result) == 0 else True
 
 
 def main():
