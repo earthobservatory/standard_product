@@ -85,9 +85,10 @@ def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
 
 
 def get_time(t):
-    try:
+   
+    if '.' not in t:
         return datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
-    except ValueError as e:
+    else:
         t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S.%f').strftime("%Y-%m-%d %H:%M:%S")
         return datetime.strptime(t1, '%Y-%m-%d %H:%M:%S')
 
