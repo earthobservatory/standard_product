@@ -877,14 +877,13 @@ def get_intersection(js1, js2):
 def get_combined_polygon():
     pass
 
-
 def get_time(t):
 
     if '.' not in t:
-        return datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
+        t1 = t.split('.')[0].strip()
+        return datetime.strptime(t1, '%Y-%m-%dT%H:%M:%S')
     else:
-        t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S.%f').strftime("%Y-%m-%d %H:%M:%S")
-        return datetime.strptime(t1, '%Y-%m-%d %H:%M:%S')
+        return datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
 
 
 def get_processing_version(slc):
