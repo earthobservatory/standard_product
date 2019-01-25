@@ -648,8 +648,25 @@ def get_master_slave_intersect_data(ref_acq, matched_acqs, acq_dict):
 
     union_geojson = get_union_geometry(acq_dict)
     intersect_geojson, int_env = util.get_intersection(ref_acq.location, union_geojson)
+    
+    starttimes = [ref_acq.starttime]
+    endtime = ref_acq.endtime
 
     return intersect_geojson, starttime.strftime("%Y-%m-%dT%H:%M:%S"), endtime.strftime("%Y-%m-%dT%H:%M:%S")
+
+def get_time_data(ref_acq, overlapped_matches):
+    starttimes = [ref_acq.starttime]
+    endtimes = [ref_acq.endtime]
+    ids = sorted(overlapped_matches.keys())
+    
+    for id in ids:
+        starttimes.append(overlapped_matches[id].starttime)
+        endtimes.append(overlapped_matches[id].endtime)
+
+    starttime = sorted(starttimes)[0]
+    endtime = sorted(endtimes, reverse=True)[0]
+
+    return starttime, endtime
 
 def get_union_geometry(acq_dict):
     """Return polygon of union of acquisition footprints."""
@@ -717,8 +734,9 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
             logger.info("MATCHED")
             matched = True
             orbitNumber = get_orbit_number_list(ref_acq,  overlapped_matches)
-            starttime = ref_acq.starttime
-            endtime = ref_acq.endtime
+            #starttime = ref_acq.starttime
+            #endtime = ref_acq.endtime
+            starttime, endtime = get_time_data(ref_acq, overlapped_matches)
             pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
             if ref_type == "master":
                 candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
