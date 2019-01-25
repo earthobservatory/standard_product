@@ -123,7 +123,7 @@ def group_acqs_by_track_date(acqs):
                           int(match.group('start_day')),
                           0, 0, 0)
         logger.info("day_dt : %s " %day_dt)
-        #bisect.insort(grouped.setdefault(fields['metadata']['trackNumber'], {}).setdefault(day_dt, []), h['_id'])
+        #bisect.insort(grouped.setdefault(fields['metadata']['track_number'], {}).setdefault(day_dt, []), h['_id'])
         bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(day_dt, []), acq.acq_id)
     return {"grouped": grouped, "acq_info" : acqs_info}
 
@@ -266,7 +266,7 @@ def create_acq_obj_from_metadata(acq):
     '''
 
     download_url = acq_data['metadata']['download_url']
-    track = acq_data['metadata']['trackNumber']
+    track = acq_data['metadata']['track_number']
     location = acq_data['metadata']['location']
     starttime = acq_data['starttime']
     endtime = acq_data['endtime']
@@ -670,7 +670,7 @@ def group_acqs_by_track(frames):
             continue
         '''
         download_url = acq_data['metadata']['download_url']
-        track = acq_data['metadata']['trackNumber']
+        track = acq_data['metadata']['track_number']
         location = acq_data['metadata']['location']
         starttime = acq_data['starttime']
         endtime = acq_data['endtime']
@@ -950,7 +950,7 @@ def get_track(info):
         logger.info(id)
         h = info[id]
         fields = h["_source"]
-        track = fields['metadata']['trackNumber']
+        track = fields['metadata']['track_number']
         logger.info(track)
         tracks.setdefault(track, []).append(id)
     if len(tracks) != 1:
@@ -1059,7 +1059,7 @@ def get_overlapping_slaves_query(starttime, location, track, direction, platform
                 },
                 {
                   "term": {
-                    "trackNumber": track
+                    "track_number": track
                   }
                 },
                 {
@@ -1122,7 +1122,7 @@ def get_overlapping_masters_query(master, slave):
                                 }},
 				{ "term": { "direction": master.direction }},
 	                        { "term": { "orbitNumber": master.orbitnumber }},
-			        { "term": { "trackNumber": master.tracknumber }}
+			        { "term": { "track_number": master.tracknumber }}
 			    ]
 			}
                     }
@@ -1169,7 +1169,7 @@ def get_overlapping_slaves_query_orbit(master, orbitnumber):
                 
                                     }
                                 }},
-				{ "term": { "trackNumber": master.tracknumber }},
+				{ "term": { "track_number": master.tracknumber }},
                                 { "term": { "orbitNumber": orbitnumber }},
 				{ "term": { "direction": master.direction }}
 			    ],

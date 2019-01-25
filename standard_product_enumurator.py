@@ -56,7 +56,7 @@ def create_acq_obj_from_metadata(acq):
     acq_id = acq['id']
     logger.info("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
     download_url = acq_data['metadata']['download_url']
-    track = acq_data['metadata']['trackNumber']
+    track = acq_data['metadata']['track_number']
     location = acq_data['metadata']['location']
     starttime = acq_data['starttime']
     endtime = acq_data['endtime']
