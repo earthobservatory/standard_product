@@ -903,7 +903,6 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
     md['time_limit'] = 86700
     md['dem_type'] = dem_type
     md['track_number'] = track
-    md['track'] = track
     md['starttime'] = "%sZ" %starttime
     md['endtime'] = "%sZ" %endtime
     md['union_geojson'] = union_geojson
