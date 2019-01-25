@@ -880,7 +880,7 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisiti
     except Exception as e:
         logger.info("Error processing standard product localizer : %s" %str(e))
         traceback.format_exc()
-    raise RuntimeError("Error processing standard product localizer : %s" %str(e))
+        raise RuntimeError("Error processing standard product localizer : %s" %str(e))
 
 
 
