@@ -354,7 +354,7 @@ def resolve_source(ctx_file):
         project = project[0]
 
     dem_type= ctx["input_metadata"]["dem_type"]
-    track = ctx["input_metadata"]["track"]
+    track = ctx["input_metadata"]["track_number"]
 
     master_scene = ctx["input_metadata"]["master_scenes"]   
     slave_scene = ctx["input_metadata"]["slave_scenes"]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, time, json, requests, logging
+import os, sys, time, json, requests, logging, traceback
 import standard_product_localizer
 
 def main():

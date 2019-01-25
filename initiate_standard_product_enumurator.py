@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, time, json, requests, logging
+import os, sys, time, json, requests, logging, traceback
 import orbit_acquisition_selector
 import standard_product_enumurator
 
