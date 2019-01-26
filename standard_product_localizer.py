@@ -570,10 +570,10 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
 
     # get urls (prefer s3)
-    master_zip_urls = util.get_urls(master_md) 
-    logger.info("master_zip_urls: {}".format(master_zip_urls))
-    slave_zip_urls = util.get_urls(slave_md) 
-    logger.info("slave_ids: {}".format(slave_zip_urls))
+    master_zip_url = util.get_urls(master_md) 
+    logger.info("master_zip_url: {}".format(master_zip_url))
+    slave_zip_url = util.get_urls(slave_md) 
+    logger.info("slave_ids: {}".format(slave_zip_url))
 
     # get orbits
     master_orbit_url = get_orbit_from_metadata(master_md)
@@ -591,8 +591,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
         { 'url': master_orbit_url },
         { 'url': slave_orbit_url },
     ]
-    for m in master_zip_urls: localize_urls.append({'url': m})
-    for s in slave_zip_urls: localize_urls.append({'url': s})
+    for m in master_zip_url: localize_urls.append({'url': m})
+    for s in slave_zip_url: localize_urls.append({'url': s})
 
 
 
@@ -636,8 +636,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['platform'] = platform
     md['master_orbit_url'] = master_orbit_url
     md['slave_orbit_url'] = slave_orbit_url
-    md['master_zip_urls'] = master_zip_urls
-    md['slave_zip_urls'] = slave_zip_urls
+    md['master_zip_url'] = master_zip_url
+    md['slave_zip_url'] = slave_zip_url
     md['localize_urls'] = localize_urls
     md['dem_type'] = dem_type
     md['slc_master_dt'] = slc_master_dt
