@@ -45,7 +45,7 @@
       "name": "track_numbers",
       "from": "submitter",
       "type": "text",
-      "default": ""
+      "optional": true
     },      
     {
       "name": "starttime",
