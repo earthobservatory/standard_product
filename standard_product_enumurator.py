@@ -36,7 +36,7 @@ logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
 
-ACQ_LIST_ID_TMPL = "acq-list_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
+ACQ_LIST_ID_TMPL = "acq-list_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
 
 
 BASE_PATH = os.path.dirname(__file__)
@@ -425,6 +425,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
     aoi_location = aoi_data['aoi_location']
     logger.info("aoi_location : %s " %aoi_location)
     result_file = "RESULT_SUMMARY_%s.csv" %aoi
+    aoi_id = aoi_data['aoi_id']
 
     orbitNumber = []
    
@@ -541,7 +542,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             if matched:
                 for candidate_pair in orbit_candidate_pair:
                     try:
-                        publish_initiator_pair(candidate_pair, job_data, orbit_data)   
+                        publish_initiator_pair(candidate_pair, job_data, orbit_data, aoi_id)   
                         #min_max_count = min_max_count + 1
                         candidate_pair_list.append(orbit_candidate_pair)
                     except Exception as err:
@@ -761,7 +762,7 @@ def publish_initiator(candidate_pair_list, job_data):
         #publish_initiator_pair(candidate_pair, job_data)
 
 
-def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=None, job_num=None):
+def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id, wuid=None, job_num=None):
   
 
     logger.info("\nPUBLISH CANDIDATE PAIR : %s" %candidate_pair)
@@ -898,8 +899,9 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
     '''
 
     orbit_type = 'poeorb'
+    aoi_id = aoi_id.strip().replace(' ', '_')
 
-    id = ACQ_LIST_ID_TMPL.format('M', len(master_acquisitions), len(slave_acquisitions), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4])
+    id = ACQ_LIST_ID_TMPL.format('M', len(master_acquisitions), len(slave_acquisitions), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4], aoi_id)
     #id = "acq-list-%s" %id_hash[0:4]
     prod_dir =  id
     os.makedirs(prod_dir, 0o755)
@@ -937,6 +939,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, wuid=No
     md['platform'] = platform
     md['list_master_dt'] = list_master_dt_str
     md['list_slave_dt'] = list_slave_dt_str
+    md['aoi_id'] = aoi_id
+    md['tags'] = 'standard_product'
 
  
     try:
