@@ -390,7 +390,7 @@ def print_groups(grouped_matched):
 
 
 
-def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file):
+def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file, selected_track_list):
     #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
 
 
@@ -417,6 +417,11 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
 
 
     for track in grouped_matched["grouped"]:
+        logger.info("get_covered_acquisitions_by_track_date : Processing track : %s" %track)
+        if len(selected_track_list)>0:
+            if track not in selected_track_list:
+                logger.info("%s not in selected_track_list %s. So skipping this track" %(track, selected_track_list))
+                continue
         selected_track_dt_acqs = {}
         for track_dt in grouped_matched["grouped"][track]:
             #water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id,  orbit_file = None)
@@ -484,7 +489,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
 
     return selected_track_acqs
 
-def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, threshold_pixel, acquisition_version):
+def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, threshold_pixel, acquisition_version, selected_track_list):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
     #aoi_acq = {}
@@ -568,7 +573,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
             cw.writerow(["Date","Track","Track_PEORB_Land","ACQ_Union_POEORB_Land", "ACQ_Union_Land", "RES", "WATER_MASK_PASSED", "Master_Ipf_Count", "Slave_Ipf_Count", "MATCHED", "BL_PASSED", "Candidate_Pairs", "Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection", "ACQ_AOI_Ingtersection"])
         try:
             #selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
-            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file)
+            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file, selected_track_list)
         except Exception as  err:
             logger.info("Error from get_covered_acquisitions: %s " %str(err))
             traceback.print_exc()
@@ -668,6 +673,23 @@ def resolve_aoi_acqs(ctx_file):
     threshold_pixel = ctx["threshold_pixel"]
     job_type, job_version = ctx['job_specification']['id'].split(':')
 
+    selected_track_list = []
+
+    try:
+        if "selected_tracks" in ctx and ctx["selected_tracks"] is not None:
+            selected_tracks = ctx["selected_tracks"].strip()
+            if selected_tracks:
+                if ',' in selected_tracks:
+                    selected_track_list = selected_tracks.split(',')
+                elif ' ' in selected_tracks:
+                    selected_track_list = selected_tracks.split(' ')
+                else:
+                    selected_track_list=[selected_tracks]
+        
+    except:
+        pass
+
+    logger.info("selected_track_list : %s" %selected_track_list)
 
     #Find Orbit File Info
     orbit_file = None
@@ -682,7 +704,7 @@ def resolve_aoi_acqs(ctx_file):
         logger.info("Orbit File : %s " %orbit_file)
 
 
-    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file, orbit_file_dir, threshold_pixel, acquisition_version)
+    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file, orbit_file_dir, threshold_pixel, acquisition_version, selected_track_list)
     #osaka.main.get("http://aux.sentinel1.eo.esa.int/POEORB/2018/09/15/S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF")
     #logger.info(orbit_aoi_data)
     #exit(0)
@@ -709,7 +731,7 @@ def resolve_aoi_acqs(ctx_file):
     job_data['minMatch'] = minMatch
     job_data['threshold_pixel'] = threshold_pixel
     job_data["acquisition_version"] = acquisition_version
-
+    job_data["selected_track_list"] = selected_track_list
 
     
     orbit_data = {}

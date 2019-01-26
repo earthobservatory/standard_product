@@ -40,6 +40,12 @@
       "from": "submitter",
       "type": "text",
       "default": "v2.0" 
+    },
+    {
+      "name": "track_numbers",
+      "from": "submitter",
+      "type": "text",
+      "default": ""
     },      
     {
       "name": "starttime",

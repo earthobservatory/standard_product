@@ -348,6 +348,7 @@ def enumerate_acquisations(orbit_acq_selections):
     orbit_data = orbit_acq_selections["orbit_data"]
     orbit_file = job_data['orbit_file']
     acquisition_version = job_data["acquisition_version"]
+    selected_track_list = job_data["selected_track_list"]
 
     #candidate_pair_list = []
 
@@ -365,6 +366,11 @@ def enumerate_acquisations(orbit_acq_selections):
 
 
             for track in selected_track_acqs.keys():
+                if len(selected_track_list)>0:
+                    if track not in selected_track_list:
+                        logger.info("enumerate_acquisations : %s not in selected_track_list %s. So skipping this track" %(track, selected_track_list))
+                        continue
+
                 logger.info("\nenumerate_acquisations : Processing track : %s " %track)
                 if len(selected_track_acqs[track].keys()) <=0:
                     logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
