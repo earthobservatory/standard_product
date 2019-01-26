@@ -871,7 +871,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
         else:
             slave_ids_str += " "+acq
 
-    list_master_dt, list_slave_dt = util.get_acq_dates(master_md, slave_md)
+    list_master_dt, list_slave_dt = util.get_scene_dates_from_metadata(master_md, slave_md)
 
     list_master_dt_str = list_master_dt.strftime('%Y%m%dT%H%M%S')
     list_slave_dt_str = list_slave_dt.strftime('%Y%m%dT%H%M%S')

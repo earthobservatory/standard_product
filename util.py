@@ -16,7 +16,7 @@ import elasticsearch
 import lightweight_water_mask
 import dateutil.parser
 import pytz
-
+from fetchOrbitES import fetch
 
 #logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 #logger.setLevel(logging.INFO)
@@ -33,20 +33,24 @@ logger = logging.getLogger('util')
 logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
+DATE_RE = re.compile(r'(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<min>\d{2}):(?P<sec>\d{2}).*$')
+
 SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
                     r'_(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
                     r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +
                     r'_(?P<end_year>\d{4})(?P<end_month>\d{2})(?P<end_day>\d{2})' +
                     r'T(?P<end_hour>\d{2})(?P<end_min>\d{2})(?P<end_sec>\d{2})_.*$')
+
 # acquisition-S1A_IW_SLC__1SSV_20160203T004751_20160203T004818_009775_00E4B2_A0B8
 ACQ_RE = re.compile(r'(?P<mission>acquisition-S1\w)_IW_SLC__.*?' +
                     r'_(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
                     r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +
                     r'_(?P<end_year>\d{4})(?P<end_month>\d{2})(?P<end_day>\d{2})' +
                     r'T(?P<end_hour>\d{2})(?P<end_min>\d{2})(?P<end_sec>\d{2})_.*$')
+
+
+
 #acquisition-Sentinel-1B_20161003T020729.245_35_IW-esa_scihub
-
-
 ACQ_RE_v2_0= re.compile(r'(?P<mission>acquisition-Sentinel-1\w)_' +
                     r'(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
                     r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2}).*$')
@@ -1362,41 +1366,52 @@ def query_orbit_file(starttime, endtime, platform):
     return hits
 
 
-def get_dates_mission(id):
+def get_dates_mission_from_id(id, scene_type):
     """Return day date, slc start date and slc end date."""
+    match = None
+    if scene_type.upper().startswith("ACQ"):
+        match = ACQ_RE.search(id)
+    elif scene_type.upper().startswith("SLC"):
+        match = SLC_RE.search(id)
 
-    match = ACQ_RE.search(id)
     if not match:
         raise RuntimeError("Failed to recognize SLC ID %s." % id)
+
     day_dt = datetime(int(match.group('start_year')),
                       int(match.group('start_month')),
                       int(match.group('start_day')),
                       0, 0, 0)
-    slc_start_dt = datetime(int(match.group('start_year')),
+    start_dt = datetime(int(match.group('start_year')),
                             int(match.group('start_month')),
                             int(match.group('start_day')),
                             int(match.group('start_hour')),
                             int(match.group('start_min')),
                             int(match.group('start_sec')))
-    slc_end_dt = datetime(int(match.group('end_year')),
+    end_dt = datetime(int(match.group('end_year')),
                           int(match.group('end_month')),
                           int(match.group('end_day')),
                           int(match.group('end_hour')),
                           int(match.group('end_min')),
                           int(match.group('end_sec')))
     mission = match.group('mission')
-    return day_dt, slc_start_dt, slc_end_dt, mission
+    return day_dt, start_dt, end_dt, mission
 
-def get_acq_dates_from_metadata(starttime, endtime):
-    DATE_RE=re.compile(r'(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<min>\d{2}):(?P<sec>\d{2}).*$')
-
+def get_dates_mission_from_metadata(starttime, endtime, platform):
     match_s = DATE_RE.search(starttime)
     if not match_s:
         raise RuntimeError("Failed to recognize starttime %s." % starttime)
 
+    mission = None
+    if platform.strip()=='Sentinel-1B':
+        mission = 'S1B'
+    elif platform.strip()=='Sentinel-1A':
+        mission = 'S1A'
+    else:
+        raise RuntimeError("Unrecognisable Platform : %s" %platform)
+
 
     day_dt = datetime(int(match_s.group('year')), int(match_s.group('month')), int(match_s.group('day')),0, 0, 0)
-    slc_start_dt = datetime(int(match_s.group('year')),
+    start_dt = datetime(int(match_s.group('year')),
                             int(match_s.group('month')),
                             int(match_s.group('day')),
                             int(match_s.group('hour')),
@@ -1405,92 +1420,82 @@ def get_acq_dates_from_metadata(starttime, endtime):
     match_e = DATE_RE.search(endtime)
     if not match_s:
         raise RuntimeError("Failed to recognize starttime %s." % starttime)
-    slc_end_dt = datetime(int(match_e.group('year')),
+    end_dt = datetime(int(match_e.group('year')),
                             int(match_e.group('month')),
                             int(match_e.group('day')),
                             int(match_e.group('hour')),
                             int(match_e.group('min')),
                             int(match_e.group('sec')))
 
-    return day_dt, slc_start_dt, slc_end_dt
+    return day_dt, start_dt, end_dt, mission
 
 
-
-
-def get_acq_dates(master_mds, slave_mds):
-
-    master_day_dts = {}
-    for id in master_mds:
-        logger.info(id)
-        h = master_mds[id]
-        fields = h["_source"]
-        day_dt, slc_start_dt, slc_end_dt = get_acq_dates_from_metadata(fields['starttime'], fields['endtime'])
-        master_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
-    if len(master_day_dts) > 1:
-        raise RuntimeError("Found master SLCs for more than 1 day.")
-    master_day_dt = day_dt
-    master_all_dts = master_day_dts[day_dt]
-    master_all_dts.sort()
-
-    slave_day_dts = {}
-    for id in slave_mds:
-        logger.info(id)
-        h = slave_mds[id]
-        fields = h["_source"]
-        day_dt, slc_start_dt, slc_end_dt = get_acq_dates_from_metadata(fields['starttime'], fields['endtime'])
-        slave_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
-    if len(slave_day_dts) > 1:
-        raise RuntimeError("Found slave SLCs for more than 1 day.")
-    slave_day_dt = day_dt
-    slave_all_dts = slave_day_dts[day_dt]
-    slave_all_dts.sort()
-
-    if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
-    else: return master_all_dts[-1], slave_all_dts[0]
-
-
-
-def get_acq_dates2(master_ids, slave_ids):
-    """Return ifg start and end dates."""
-
-    master_day_dts = {}
-    for id in master_ids:
-        day_dt, slc_start_dt, slc_end_dt, mission = get_dates_mission(id)
-        master_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
-    if len(master_day_dts) > 1:
-        raise RuntimeError("Found master SLCs for more than 1 day.")
-    master_day_dt = day_dt
-    master_all_dts = master_day_dts[day_dt]
-    master_all_dts.sort()
-
-    slave_day_dts = {}
-    for id in slave_ids:
-        day_dt, slc_start_dt, slc_end_dt, mission = get_dates_mission(id)
-        slave_day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
-    if len(slave_day_dts) > 1:
-        raise RuntimeError("Found slave SLCs for more than 1 day.")
-    slave_day_dt = day_dt
-    slave_all_dts = slave_day_dts[day_dt]
-    slave_all_dts.sort()
-
-    if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
-    else: return master_all_dts[-1], slave_all_dts[0]
-
-
-def get_orbit(ids):
-    """Get orbit for a set of SLC ids. They need to belong to the same day."""
-
+def get_date_from_metadata(mds):
     day_dts = {}
-    if len(ids) == 0: raise RuntimeError("No SLC ids passed.")
-    for id in ids:
-        day_dt, slc_start_dt, slc_end_dt, mission = get_dates_mission(id)
-        day_dts.setdefault(day_dt, []).extend([slc_start_dt, slc_end_dt])
+    mission = None 
+
+    for id in mds:
+        logger.info(id)
+        h = mds[id]
+        fields = h["_source"]
+        day_dt, start_dt, end_dt, mission = get_dates_mission_from_metadata(fields['starttime'], fields['endtime'], fields['metadata']['platform'])
+        day_dts.setdefault(day_dt, []).extend([start_dt, end_dt])
     if len(day_dts) > 1:
-        raise RuntimeError("Found SLCs for more than 1 day.")
+        raise RuntimeError("Found data for more than 1 day.")
     all_dts = day_dts[day_dt]
-    all_dts.sort()
+    return day_dt, all_dts.sort(), mission
+
+def get_scene_dates_from_metadata(master_mds, slave_mds):
+    master_day_dt, master_all_dts, m_mission = get_date_from_metadata(master_mds)
+    slave_day_dt, slave_all_dts, s_mission = get_date_from_metadata(slave_mds)
+
+    if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
+    else: return master_all_dts[-1], slave_all_dts[0]
+
+def get_date_from_ids(ids, scene_type):
+    '''
+    ids : list of acquistion or slc ids
+    scene_type : acq or slc
+    '''
+    mission = None
+    
+    day_dts = {}
+    for id in ids:
+        day_dt, start_dt, end_dt, mission = get_dates_mission_from_id(id, scene_type)
+        day_dts.setdefault(day_dt, []).extend([start_dt, end_dt])
+    if len(day_dts) > 1:
+        raise RuntimeError("Found ACQ/SLCs for more than 1 day : %s" %ids)
+    all_dts = day_dts[day_dt]
+    return day_dt, all_dts.sort(), mission
+
+
+def get_scene_dates_from_ids(master_ids, slave_ids, scene_type):
+    '''
+    ids : list of acquistion or slc ids
+    scene_type : acq or slc
+    '''
+
+    master_day_dt, master_all_dts, m_mission = get_date_from_ids(master_ids, scene_type)
+    slave_day_dt, slave_all_dts, s_mission = get_date_from_ids(slave_ids, scene_type)
+
+    if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
+    else: return master_all_dts[-1], slave_all_dts[0]
+
+
+def get_orbit_from_ids(ids, scene_type="slc"):
+    """Get orbit for a set of SLC ids. They need to belong to the same day."""
+    
+    day_dt, all_dts, mission = get_date_from_ids(ids, scene_type)
     return fetch("%s.0" % all_dts[0].isoformat(), "%s.0" % all_dts[-1].isoformat(),
                  mission=mission, dry_run=True)
+
+def get_orbit_from_metadata(mds):
+    """Get orbit for a set of SLC ids. They need to belong to the same day."""
+
+    day_dt, all_dts, mission = get_date_from_metadata(mds)
+    return fetch("%s.0" % all_dts[0].isoformat(), "%s.0" % all_dts[-1].isoformat(),
+                 mission=mission, dry_run=True)
+
 
 def get_urls(info):
     """Return list of SLC URLs with preference for S3 URLs."""

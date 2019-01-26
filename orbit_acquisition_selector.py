@@ -416,6 +416,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
     selected_track_acqs = {}
 
 
+    logger.info("Tracks to process : %s" %grouped_matched["grouped"])
     for track in grouped_matched["grouped"]:
         logger.info("get_covered_acquisitions_by_track_date : Processing track : %s" %track)
         if len(selected_track_list)>0:

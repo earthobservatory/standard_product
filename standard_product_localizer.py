@@ -1,5 +1,5 @@
 #!/usr/bin/env python 
-import os, sys, time, json, requests, logging
+import os, sys, time, json, requests, logging, re
 import hashlib
 from datetime import datetime
 from dateutil import parser
@@ -10,7 +10,6 @@ import uuid  # only need this import to simulate returned mozart job id
 from hysds.celery import app
 from hysds_commons.job_utils import submit_mozart_job
 import traceback
-from fetchOrbitES import fetch
 
 try: import acquisition_localizer_multi
 except: pass
@@ -31,6 +30,11 @@ logger.addFilter(LogFilter())
 
 
 IFG_CFG_ID_TMPL = "ifg-cfg_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
+SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
+                    r'_(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
+                    r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +
+                    r'_(?P<end_year>\d{4})(?P<end_month>\d{2})(?P<end_day>\d{2})' +
+                    r'T(?P<end_hour>\d{2})(?P<end_min>\d{2})(?P<end_sec>\d{2})_.*$')
 
 BASE_PATH = os.path.dirname(__file__)
 MOZART_URL = app.conf['MOZART_URL']
@@ -332,6 +336,7 @@ def get_acq_data_from_list(acq_list):
     return slcs
 
 
+
 def get_value(ctx, param, default_value):
     value = default_value
     if param in ctx:
@@ -522,6 +527,8 @@ def get_dem_type(info):
 
 
 
+
+
 def publish_localized_info( acq_info, project, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
     for i in range(len(project)):
         publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], direction[i], platform[i], union_geojson[i], bbox[i])
@@ -563,19 +570,20 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
 
     # get urls (prefer s3)
-    master_urls = get_urls(master_md) 
-    logger.info("master_urls: {}".format(master_urls))
-    slave_urls = get_urls(slave_md) 
-    logger.info("slave_ids: {}".format(slave_urls))
+    master_zip_urls = util.get_urls(master_md) 
+    logger.info("master_zip_urls: {}".format(master_zip_urls))
+    slave_zip_urls = util.get_urls(slave_md) 
+    logger.info("slave_ids: {}".format(slave_zip_urls))
 
     # get orbits
-    master_orbit_url = get_orbit(master_slcs)
+    master_orbit_url = get_orbit_from_metadata(master_md)
     logger.info("master_orbit_url: {}".format(master_orbit_url))
-    slave_orbit_url = get_orbit(slave_slcs)
+    slave_orbit_url = get_orbit_from_metadata(slave_md)
     logger.info("slave_orbit_url: {}".format(slave_orbit_url))
 
     dem_type = get_dem_type(master_md)
-    
+   
+    slc_master_dt, slc_slave_dt = util.get_scene_dates_from_metadata(master_md, slave_md) 
     
 
     # set localize urls
@@ -583,8 +591,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
         { 'url': master_orbit_url },
         { 'url': slave_orbit_url },
     ]
-    for m in master_urls: localize_urls.append({'url': m})
-    for s in slave_urls: localize_urls.append({'url': s})
+    for m in master_zip_urls: localize_urls.append({'url': m})
+    for s in slave_zip_urls: localize_urls.append({'url': s})
 
 
 
@@ -605,9 +613,6 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md = {}
     md['id'] = id
     md['project'] =  project,
-    #md['master_ids'] = master_ids_str
-    #md['slave_ids'] = slave_ids_str
-    #md['standard_product_ifg_version'] = standard_product_ifg_version
     md['priority'] = job_priority
     md['azimuth_looks'] = 19
     md['range_looks'] = 7
@@ -631,10 +636,12 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['platform'] = platform
     md['master_orbit_url'] = master_orbit_url
     md['slave_orbit_url'] = slave_orbit_url
-    md['master_urls'] = master_urls
-    md['slave_urls'] = slave_urls
+    md['master_zip_urls'] = master_zip_urls
+    md['slave_zip_urls'] = slave_zip_urls
     md['localize_urls'] = localize_urls
     md['dem_type'] = dem_type
+    md['slc_master_dt'] = slc_master_dt
+    md['slc_slave_dt'] = slc_slave_dt
 
     if bbox:
         md['bbox'] = bbox
@@ -646,100 +653,6 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     create_dataset_json(id, version, met_file, ds_file)
 
     return prod_dir
-
-def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priority, wuid=None, job_num=None):
-    """Map function for create interferogram job json creation."""
-
-    if wuid is None or job_num is None:
-        raise RuntimeError("Need to specify workunit id and job num.")
-    logger.info("\n\n\n SUBMIT IFG JOB!!!")
-    
-    logger.info("project : %s" %project)
-
-    master_ids_str=""
-    master_ids_list=[]
-
-    slave_ids_str=""
-    slave_ids_list=[]
-
-
-    logger.info("project : %s" %project)
-
-    for acq in acq_info.keys():
-	acq_data = acq_info[acq]['acq_data']
-	acq_type = acq_info[acq]['acq_type']
-	identifier =  acq_data["metadata"]["identifier"]
-        logger.info("identifier : %s" %identifier)
-	if acq_type == "master":
-	    master_ids_list.append(identifier)
-	    if master_ids_str=="":
-		master_ids_str=identifier
-	    else:
-		master_ids_str += " "+identifier
-
-	elif acq_type == "slave":
-            slave_ids_list.append(identifier)
-            if slave_ids_str=="":
-                slave_ids_str=identifier
-            else:
-                slave_ids_str += " "+identifier
-
-
-    logger.info("master_ids_str : %s" %master_ids_str)
-    logger.info("slave_ids_str : %s" %slave_ids_str)
-    # set job type and disk space reqs
-    disk_usage = "300GB"
-
-    # set job queue based on project
-    job_queue = "%s-job_worker-large" % project
-   
-    job_type = "job-standard-product-ifg"
-
-    job_hash = hashlib.md5(json.dumps([
-	job_priority,
-	master_ids_str,
-	slave_ids_str
-    ])).hexdigest()
-
-
-
-
-    return {
-        "job_name": "%s-%s" % (job_type, job_hash[0:4]),
-        "job_type": "job:%s" % job_type,
-        "job_queue": job_queue,
-        "container_mappings": {
-            "/home/ops/.netrc": "/home/ops/.netrc",
-            "/home/ops/.aws": "/home/ops/.aws",
-            "/home/ops/verdi/etc/settings.conf": "/home/ops/ariamh/conf/settings.conf"
-        },    
-        "soft_time_limit": 86400,
-        "time_limit": 86700,
-        "payload": {
-            # sciflo tracking info
-            "_sciflo_wuid": wuid,
-            "_sciflo_job_num": job_num,
-
-            # job params
-            "project": project,
-            "master_ids": master_ids_str,
-	    "slave_ids": slave_ids_str,
-	    "job_priority" : job_priority,
-	    "azimuth_looks" : 19,
-	    "range_looks" : 7,
-	    "filter_strength" : 0.5,
-	    "precise_orbit_only" : "true",
-	    "auto_bbox" : "true",
-	    "priority" : job_priority,
-
-            # v2 cmd
-            "_command": "/home/ops/ariamh/interferogram/sentinel/sciflo_create_standard_product.sh",
-
-            # disk usage
-            "_disk_usage": disk_usage,
-
-        }
-    }
 
 
 def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, acq_list, priority):
