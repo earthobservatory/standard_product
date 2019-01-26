@@ -939,8 +939,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     md['platform'] = platform
     md['list_master_dt'] = list_master_dt_str
     md['list_slave_dt'] = list_slave_dt_str
-    md['aoi_id'] = aoi_id
-    md['tags'] = 'standard_product'
+    md['tags'] = aoi_id
 
  
     try:
