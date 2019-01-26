@@ -419,7 +419,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
     for track in grouped_matched["grouped"]:
         logger.info("get_covered_acquisitions_by_track_date : Processing track : %s" %track)
         if len(selected_track_list)>0:
-            if track not in selected_track_list:
+            if int(track) not in selected_track_list:
                 logger.info("%s not in selected_track_list %s. So skipping this track" %(track, selected_track_list))
                 continue
         selected_track_dt_acqs = {}
@@ -676,15 +676,21 @@ def resolve_aoi_acqs(ctx_file):
     selected_track_list = []
 
     try:
-        if "selected_tracks" in ctx and ctx["selected_tracks"] is not None:
-            selected_tracks = ctx["selected_tracks"].strip()
-            if selected_tracks:
-                if ',' in selected_tracks:
-                    selected_track_list = selected_tracks.split(',')
+        if "track_numbers" in ctx and ctx["track_numbers"] is not None:
+            track_numbers = ctx["track_numbers"].strip()
+            if track_numbers:
+                track_numbers_list = track_numbers.split(',')
+                '''
+                if ',' in track_numbers:
+                    track_numbers_list = track_numbers.split(',')
                 elif ' ' in selected_tracks:
-                    selected_track_list = selected_tracks.split(' ')
+                    track_numbers_list = track_numbers.split(' ')
                 else:
-                    selected_track_list=[selected_tracks]
+                    sel]
+                '''
+                for tn in track_numbers_list:
+                    selected_track_list.append(int(tn))
+
         
     except:
         pass

@@ -367,7 +367,7 @@ def enumerate_acquisations(orbit_acq_selections):
 
             for track in selected_track_acqs.keys():
                 if len(selected_track_list)>0:
-                    if track not in selected_track_list:
+                    if int(track) not in selected_track_list:
                         logger.info("enumerate_acquisations : %s not in selected_track_list %s. So skipping this track" %(track, selected_track_list))
                         continue
 
