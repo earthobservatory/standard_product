@@ -10,6 +10,8 @@ import uuid  # only need this import to simulate returned mozart job id
 from hysds.celery import app
 from hysds_commons.job_utils import submit_mozart_job
 import traceback
+from fetchOrbitES import fetch
+
 try: import acquisition_localizer_multi
 except: pass
 
@@ -432,156 +434,6 @@ def sling(acq_info, spyddder_extract_version, multi_acquisition_localizer_versio
     logger.info("Sling Jobs Submission Done. Exiting")
     sys.exit()
 
-    '''
-
-    # At this point, we have all the slc downloaded and we are ready to submit a create standard product job
-    acq_infoes =[]
-    projects = []
-    job_priorities = []
-    job_types = []
-    job_versions = []
-    #standard_product_ifg_versions = []
-    dem_types = []
-    tracks = []
-    starttimes = []
-    endtimes = []
-    bboxes = []
-    union_geojsons =[]
-    master_scenes = []
-    slave_scenes = []
-    orbitNumbers = []
-    orbitNumbers.append(orbitNumber)
-    directions = []
-    directions.append(direction)
-    platforms = []
-    platforms.append(platform)
-
-    master_scenes.append(master_scene)
-    slave_scenes.append(slave_scene)
-
-    acq_infoes.append(acq_info)
-    projects.append(project)
-    job_priorities.append(job_priority)
-    #standard_product_ifg_versions.append(standard_product_ifg_version)
-    dem_types.append(dem_type)
-    tracks.append(track)
-    starttimes.append(starttime)
-    endtimes.append(endtime)
-    union_geojsons.append(union_geojson)
-    if bbox:
-        bboxes.append(bbox)
-
-    return publish_localized_info(acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, platforms, union_geojsons, bboxes)
-    '''
-
-def sling2(acq_info, spyddder_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox):
-    '''
-	This function submits acquisition localizer jobs for mastrer and slaves.
-    '''
-    logger.info("%s : %s" %(type(spyddder_extract_version), spyddder_extract_version))
-    job_info = {}
-    
-    id_hash = get_id_hash(acq_info, job_priority, dem_type)
-    acq_list = acq_info.keys()
-
-    logger.info("\nSubmitting acquisition localizer job for Masters : %s" %master_scene)
-    master_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, master_scene, job_priority)
-    time.sleep(2)
-    completed = False
-    master_job_status, master_job_id  = get_job_status(master_job_id)
-    if master_job_status == "job-completed":
-        completed = True
-    job_info[master_job_id] = get_job_object("master", master_job_id, completed)
-    logger.info("SUBMITTED Acquisition Localizer Job for Master with id : %s. Status : %s" %(master_job_id, master_job_status))
-
-    logger.info("\nSubmitting acquisition localizer job for Slaves : %s" %slave_scene)
-    slave_job_id = submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, slave_scene, job_priority)
-    time.sleep(2)
-    slave_job_status, slave_job_id  = get_job_status(slave_job_id)
-    completed = False
-    if slave_job_status == "job-completed":
-        completed = True
-    job_info[slave_job_id] = get_job_object("slave", slave_job_id, completed)
-    logger.info("SUBMITTED Acquisition Localizer Job for slave with id : %s. Status : %s" %(slave_job_id, slave_job_status))
-
-
-    # Now loop in until all the jobs are completed 
-    job_done = False
-    job_check_start_time = datetime.utcnow()
-
-
-    all_done = False
-    while not all_done:
-
-        for job_id in job_info.keys():
-	   
-            if not job_info[job_id]["completed"]: 
-		job_status, new_job_id  = get_job_status(job_id)  
-  		if job_status == "job-completed":
-		    logger.info("Success! sling job for job_type : %s  with job id : %s COMPLETED!!" %(job_info[job_id]["job_type"], job_id))
-		    job_info[job_id]['completed'] = True
-
-		elif job_status == "job-failed":
-		    err_msg = "Error : Sling job %s FAILED. So existing out of the sciflo!!....." %job_id
-	            logger.info(err_msg)
-		    raise RuntimeError(err_msg)
-
-		elif job_id != new_job_id:
-                    logger.info("!!Job Id has CHANGED!! Removing old job : %s and adding new job : %s for %s" %(job_id, new_job_id, job_info[job_id]["job_type"]))
-                    job_info[new_job_id] = get_job_object(job_info[job_id]["job_type"], new_job_id, job_info[job_id]["completed"])
-                    del(job_info[job_id])
-
-        logger.info("Checking if all job completed")
-	all_done = check_all_job_completed(job_info)
-	if not all_done:
-	    now = datetime.utcnow()
-	    delta = (now - job_check_start_time).total_seconds()
-            if delta >= sling_completion_max_sec:
-            	raise RuntimeError("Error : Sling jobs NOT completed after %.2f hours!!" %(delta/3600))
-	    logger.info("All job not completed. So sleeping for %s seconds" %sleep_seconds)
-	    time.sleep(sleep_seconds)
-
-
-    # At this point, we have all the slc downloaded and we are ready to submit a create standard product job
-    acq_infoes =[]
-    projects = []
-    job_priorities = []
-    job_types = []
-    job_versions = []
-    #standard_product_ifg_versions = []
-    dem_types = []
-    tracks = []
-    starttimes = []
-    endtimes = []
-    bboxes = []
-    union_geojsons =[]
-    master_scenes = []
-    slave_scenes = []
-    orbitNumbers = []
-    orbitNumbers.append(orbitNumber)
-    directions = []
-    directions.append(direction)
-    platforms = []
-    platforms.append(platform)
-
-    master_scenes.append(master_scene)
-    slave_scenes.append(slave_scene)
-
-    acq_infoes.append(acq_info)
-    projects.append(project)
-    job_priorities.append(job_priority)
-    #standard_product_ifg_versions.append(standard_product_ifg_version)
-    dem_types.append(dem_type)
-    tracks.append(track)
-    starttimes.append(starttime)
-    endtimes.append(endtime)
-    union_geojsons.append(union_geojson)
-    if bbox:
-        bboxes.append(bbox)
-
-    return acq_infoes, projects, job_priorities, dem_types, tracks, starttimes, endtimes, master_scenes, slave_scenes, orbitNumbers, directions, platforms, union_geojsons, bboxes
-       
-
 def get_id_hash(acq_info, job_priority, dem_type):
     id_hash = ""
     master_ids_str=""
@@ -618,6 +470,22 @@ def get_id_hash(acq_info, job_priority, dem_type):
 
     return id_hash
 
+def get_urls(info):
+    """Return list of SLC URLs with preference for S3 URLs."""
+
+    urls = []
+    for id in info:
+        h = info[id]
+        fields = h['_source']
+        prod_url = fields['urls'][0]
+        if len(fields['urls']) > 1:
+            for u in fields['urls']:
+                if u.startswith('s3://'):
+                    prod_url = u
+                    break
+        urls.append("%s/%s" % (prod_url, fields['metadata']['archive_filename']))
+    return urls
+
         
 
 def check_all_job_completed(job_info):
@@ -629,6 +497,28 @@ def check_all_job_completed(job_info):
 	    break
     return all_done
 
+def get_dem_type(info):
+    """Get dem type."""
+
+    dem_type = "SRTM+v3"
+
+    dems = {}
+    for id in info:
+	dem_type = "SRTM+v3"
+        h = info[id]
+        fields = h["_source"]
+	try:
+	    if 'city' in fields:
+	        if fields['city'][0]['country_name'] is not None and fields['city'][0]['country_name'].lower() == "united states":
+                    dem_type="Ned1"
+                dems.setdefault(dem_type, []).append(id)
+	except:
+	    dem_type = "SRTM+v3"
+
+    if len(dems) != 1:
+	logger.info("There are more than one type of dem, so selecting SRTM+v3")
+	dem_type = "SRTM+v3"
+    return dem_type
 
 
 
@@ -665,6 +555,39 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     id_hash = get_id_hash(acq_info, job_priority, dem_type)
     master_slcs = get_acq_data_from_list(master_scene)
     slave_slcs = get_acq_data_from_list(slave_scene)
+
+    # get metadata
+    master_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in master_slcs }
+    #logger.info("master_md: {}".format(json.dumps(master_md, indent=2)))
+    slave_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in slave_slcs }
+    #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
+
+    # get urls (prefer s3)
+    master_urls = get_urls(master_md) 
+    logger.info("master_urls: {}".format(master_urls))
+    slave_urls = get_urls(slave_md) 
+    logger.info("slave_ids: {}".format(slave_urls))
+
+    # get orbits
+    master_orbit_url = get_orbit(master_slcs)
+    logger.info("master_orbit_url: {}".format(master_orbit_url))
+    slave_orbit_url = get_orbit(slave_slcs)
+    logger.info("slave_orbit_url: {}".format(slave_orbit_url))
+
+    dem_type = get_dem_type(master_md)
+    
+    
+
+    # set localize urls
+    localize_urls = [
+        { 'url': master_orbit_url },
+        { 'url': slave_orbit_url },
+    ]
+    for m in master_urls: localize_urls.append({'url': m})
+    for s in slave_urls: localize_urls.append({'url': s})
+
+
+
     logger.info(" master_scene : %s slave_slcs : %s" %(master_slcs, slave_slcs))
     orbit_type = 'poeorb'
     logger.info("Publish IFG job: direction : %s, platform : %s" %(direction, platform))
@@ -706,6 +629,12 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['orbitNumber'] = orbitNumber
     md['direction'] = direction
     md['platform'] = platform
+    md['master_orbit_url'] = master_orbit_url
+    md['slave_orbit_url'] = slave_orbit_url
+    md['master_urls'] = master_urls
+    md['slave_urls'] = slave_urls
+    md['localize_urls'] = localize_urls
+    md['dem_type'] = dem_type
 
     if bbox:
         md['bbox'] = bbox
@@ -811,63 +740,6 @@ def submit_ifg_job( acq_info, project, standard_product_ifg_version, job_priorit
 
         }
     }
-
-def submit_sling_job2(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, acq_list, priority):
-
-    """Map function for spyddder-man extract job."""
-
-    job_submit_url = '%s/mozart/api/v0.1/job/submit' % MOZART_URL
-    logger.info("\njob_submit_url : %s" %job_submit_url)
-    
-    # set job type and disk space reqs
-    job_type = "job-acquisition_localizer_multi:{}".format(multi_acquisition_localizer_version)
-    disk_usage = "100GB"
-
-    # set job queue based on project
-    job_queue = "%s-job_worker-large" % project
-    rule = {
-        "rule_name": "standard-product-sling",
-        "queue": job_queue,
-        "priority": priority,
-        "kwargs":'{}'
-    }
-
-    sling_job_name = "standard_product-%s-%s" %(job_type, id_hash )
-
-
-    params = [
-        {
-            "name": "asf_ngap_download_queue",
-            "from": "value",
-            "value": "factotum-job_worker-asf_throttled"
-        },
-        {
-            "name": "esa_download_queue",
-            "from": "value",
-            "value": "factotum-job_worker-scihub_throttled"
-        },
-        {
-            "name": "spyddder_extract_version",
-            "from": "value",
-            "value": spyddder_extract_version
-        },
-        {
-            "name": "products",
-            "from": "value",
-            "value": acq_list
-        }
-    ]
-    
-
-    logger.info("PARAMS : %s" %params)
-    logger.info("RULE : %s"%rule)
-    logger.info(job_type)
-    logger.info(sling_job_name)
-
-    mozart_job_id = submit_mozart_job({}, rule,hysdsio={"id": "internal-temporary-wiring", "params": params, "job-specification": job_type}, job_name=sling_job_name)
-    logger.info("\nSubmitted sling job with id %s" %mozart_job_id)
-
-    return mozart_job_id
 
 
 def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, acq_list, priority):
