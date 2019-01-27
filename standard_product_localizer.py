@@ -642,6 +642,10 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['dem_type'] = dem_type
     md['slc_master_dt'] = slc_master_dt
     md['slc_slave_dt'] = slc_slave_dt
+    md["master_zip_file"] = [os.path.basename(i) for i in master_zip_url]
+    md["master_orbit_file"] = os.path.basename(master_orbit_url)
+    md["slave_zip_file"] = [os.path.basename(i) for i in slave_zip_url]
+    md["slave_orbit_file"] = os.path.basename(slave_orbit_url)
 
     if bbox:
         md['bbox'] = bbox
