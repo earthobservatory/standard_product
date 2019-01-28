@@ -222,7 +222,7 @@ def main():
             acq_info[acq] = get_acq_object(acq, "slave")
         if all_slcs_exist(acq_info.keys(), acq_version, slc_version):
             prod_dir = publish_data(acq_info, acqlist['metadata']['project'], acqlist['metadata']['job_priority'],
-                                    acqlist['metadata']['dem_type'], acqlist['metadata']['track'],
+                                    acqlist['metadata']['dem_type'], acqlist['metadata']['track_number'],
                                     acqlist['metadata']['starttime'], acqlist['metadata']['endtime'],
                                     acqlist['metadata']['master_scenes'], acqlist['metadata']['slave_scenes'],
                                     acqlist['metadata']['orbitNumber'], acqlist['metadata']['direction'],
