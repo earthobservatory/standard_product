@@ -10,6 +10,7 @@ import uuid  # only need this import to simulate returned mozart job id
 from hysds.celery import app
 from hysds_commons.job_utils import submit_mozart_job
 import traceback
+from fetchOrbitES import fetch
 
 try: import acquisition_localizer_multi
 except: pass
@@ -526,6 +527,19 @@ def get_dem_type(info):
     return dem_type
 
 
+def get_orbit_from_ids(ids, scene_type="slc"):
+    """Get orbit for a set of SLC ids. They need to belong to the same day."""
+
+    day_dt, all_dts, mission = util.get_date_from_ids(ids, scene_type)
+    return fetch("%s.0" % all_dts[0].isoformat(), "%s.0" % all_dts[-1].isoformat(),
+                 mission=mission, dry_run=True)
+
+def get_orbit_from_metadata(mds):
+    """Get orbit for a set of SLC ids. They need to belong to the same day."""
+
+    day_dt, all_dts, mission = util.get_date_from_metadata(mds)
+    return fetch("%s.0" % all_dts[0].isoformat(), "%s.0" % all_dts[-1].isoformat(),
+                 mission=mission, dry_run=True)
 
 
 

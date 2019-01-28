@@ -16,7 +16,6 @@ import elasticsearch
 import lightweight_water_mask
 import dateutil.parser
 import pytz
-from fetchOrbitES import fetch
 
 #logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 #logger.setLevel(logging.INFO)
@@ -1481,20 +1480,6 @@ def get_scene_dates_from_ids(master_ids, slave_ids, scene_type):
     if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
     else: return master_all_dts[-1], slave_all_dts[0]
 
-
-def get_orbit_from_ids(ids, scene_type="slc"):
-    """Get orbit for a set of SLC ids. They need to belong to the same day."""
-    
-    day_dt, all_dts, mission = get_date_from_ids(ids, scene_type)
-    return fetch("%s.0" % all_dts[0].isoformat(), "%s.0" % all_dts[-1].isoformat(),
-                 mission=mission, dry_run=True)
-
-def get_orbit_from_metadata(mds):
-    """Get orbit for a set of SLC ids. They need to belong to the same day."""
-
-    day_dt, all_dts, mission = get_date_from_metadata(mds)
-    return fetch("%s.0" % all_dts[0].isoformat(), "%s.0" % all_dts[-1].isoformat(),
-                 mission=mission, dry_run=True)
 
 
 def get_urls(info):
