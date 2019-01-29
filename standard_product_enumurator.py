@@ -353,7 +353,6 @@ def enumerate_acquisations(orbit_acq_selections):
     #candidate_pair_list = []
 
     for aoi_id in orbit_aoi_data.keys():
-        try:
         candidate_pair_list = []
         logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
         aoi_data = orbit_aoi_data[aoi_id]
