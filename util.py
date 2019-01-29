@@ -1438,16 +1438,20 @@ def get_date_from_metadata(mds):
         h = mds[id]
         fields = h["_source"]
         day_dt, start_dt, end_dt, mission = get_dates_mission_from_metadata(fields['starttime'], fields['endtime'], fields['metadata']['platform'])
+        logger.info("day_dt : %s, start_dt : %s, end_dt : %s, mission : %s" %(day_dt, start_dt, end_dt, mission))
         day_dts.setdefault(day_dt, []).extend([start_dt, end_dt])
     if len(day_dts) > 1:
         raise RuntimeError("Found data for more than 1 day.")
     all_dts = day_dts[day_dt]
+    logger.info("all_dts : %s" %all_dts)
+
     return day_dt, all_dts.sort(), mission
 
 def get_scene_dates_from_metadata(master_mds, slave_mds):
     master_day_dt, master_all_dts, m_mission = get_date_from_metadata(master_mds)
     slave_day_dt, slave_all_dts, s_mission = get_date_from_metadata(slave_mds)
-
+    logger.info("master_day_dt : %s, master_all_dts : %s, m_mission %s: " %(master_day_dt, master_all_dts, m_mission))
+    logger.info("slave_day_dt : %s, slave_all_dts : %s, m_mission %s: " %(slave_day_dt, slave_all_dts, m_mission))
     if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
     else: return master_all_dts[-1], slave_all_dts[0]
 
@@ -1461,10 +1465,12 @@ def get_date_from_ids(ids, scene_type):
     day_dts = {}
     for id in ids:
         day_dt, start_dt, end_dt, mission = get_dates_mission_from_id(id, scene_type)
+        logger.info("day_dt : %s, start_dt : %s, end_dt : %s, mission : %s" %(day_dt, start_dt, end_dt, mission))
         day_dts.setdefault(day_dt, []).extend([start_dt, end_dt])
     if len(day_dts) > 1:
         raise RuntimeError("Found ACQ/SLCs for more than 1 day : %s" %ids)
     all_dts = day_dts[day_dt]
+    logger.info("all_dts : %s" %all_dts)
     return day_dt, all_dts.sort(), mission
 
 
@@ -1476,6 +1482,8 @@ def get_scene_dates_from_ids(master_ids, slave_ids, scene_type):
 
     master_day_dt, master_all_dts, m_mission = get_date_from_ids(master_ids, scene_type)
     slave_day_dt, slave_all_dts, s_mission = get_date_from_ids(slave_ids, scene_type)
+    logger.info("master_day_dt : %s, master_all_dts : %s, m_mission %s: " %(master_day_dt, master_all_dts, m_mission))
+    logger.info("slave_day_dt : %s, slave_all_dts : %s, m_mission %s: " %(slave_day_dt, slave_all_dts, m_mission))
 
     if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
     else: return master_all_dts[-1], slave_all_dts[0]
