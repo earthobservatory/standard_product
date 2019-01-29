@@ -101,7 +101,7 @@ MOZART_ES_ENDPOINT = "MOZART"
 GRQ_ES_ENDPOINT = "GRQ"
 
 def print_acq(acq):
-    logger.info("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq.acq_id, acq.download_url, acq.tracknumber, acq.location, acq.starttime, acq.endtime, acq.direction, acq.orbitnumber, acq.identifier, acq.pv))
+    print("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq.acq_id, acq.download_url, acq.tracknumber, acq.location, acq.starttime, acq.endtime, acq.direction, acq.orbitnumber, acq.identifier, acq.pv))
 
 def group_acqs_by_orbit_number_from_metadata(frames):
     return group_acqs_by_orbit_number(create_acqs_from_metadata(frames))
@@ -110,7 +110,7 @@ def group_acqs_by_track_date_from_metadata(frames):
     return group_acqs_by_track_date(create_acqs_from_metadata(frames))
 
 def group_acqs_by_track_date(acqs):
-    logger.info("\ngroup_acqs_by_track_date")
+    print("\ngroup_acqs_by_track_date")
     grouped = {}
     acqs_info = {}
     for acq in acqs:
@@ -119,24 +119,24 @@ def group_acqs_by_track_date(acqs):
         
         if not match:
             raise RuntimeError("Failed to recognize SLC ID %s." % h['_id'])
-        logger.info("group_acqs_by_track_date : Year : %s Month : %s Day : %s" %(int(match.group('start_year')), int(match.group('start_month')), int(match.group('start_day'))))
+        print("group_acqs_by_track_date : Year : %s Month : %s Day : %s" %(int(match.group('start_year')), int(match.group('start_month')), int(match.group('start_day'))))
 
         day_dt = datetime(int(match.group('start_year')),
                           int(match.group('start_month')),
                           int(match.group('start_day')),
                           0, 0, 0)
-        logger.info("day_dt : %s " %day_dt)
+        print("day_dt : %s " %day_dt)
         #bisect.insort(grouped.setdefault(fields['metadata']['track_number'], {}).setdefault(day_dt, []), h['_id'])
         bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(day_dt, []), acq.acq_id)
     return {"grouped": grouped, "acq_info" : acqs_info}
 
 def group_acqs_by_orbit_number(acqs):
-    #logger.info(acqs)
+    #print(acqs)
     grouped = {}
     acqs_info = {}
     for acq in acqs:
         acqs_info[acq.acq_id] = acq
-        logger.info("acq_id : %s track_number : %s orbit_number : %s acq_pv : %s" %(acq.acq_id, acq.tracknumber, acq.orbitnumber, acq.pv))
+        print("acq_id : %s track_number : %s orbit_number : %s acq_pv : %s" %(acq.acq_id, acq.tracknumber, acq.orbitnumber, acq.pv))
         bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(acq.orbitnumber, {}).setdefault(acq.pv, []), acq.acq_id)
         '''
         if track in grouped.keys():
@@ -253,7 +253,7 @@ def get_union_data_from_acqs(acqs):
 
 def create_acq_obj_from_metadata(acq):
     #create ACQ(acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv)
-    #logger.info("ACQ = %s\n" %acq)
+    #print("ACQ = %s\n" %acq)
     acq_data = acq #acq['fields']['partial'][0]
     missing_pcv_list = list()
     acq_id = acq['id']
@@ -280,12 +280,12 @@ def create_acq_obj_from_metadata(acq):
     pv = None
     if "processing_version" in  acq_data['metadata']:
         pv = acq_data['metadata']['processing_version']
-        logger.info("pv found in metadata : %s" %pv)
+        print("pv found in metadata : %s" %pv)
     else:
         missing_pcv_list.append(acq_id)
-        logger.info("pv NOT in metadata,so calling ASF")
+        print("pv NOT in metadata,so calling ASF")
         pv = get_processing_version(identifier)
-        #logger.info("ASF returned pv : %s" %pv)
+        #print("ASF returned pv : %s" %pv)
         #update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
 
@@ -294,7 +294,7 @@ def create_acqs_from_metadata(frames):
     acqs = []
     #print("frame length : %s" %len(frames))
     for acq in frames:
-        logger.info("create_acqs_from_metadata : %s" %acq['id'])
+        print("create_acqs_from_metadata : %s" %acq['id'])
         acq_obj = create_acq_obj_from_metadata(acq)
         if acq_obj:
             acqs.append(acq_obj)
@@ -444,14 +444,14 @@ def query_es(query, es_index=None):
     url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
     if es_index:
         url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
-    #logger.info("url: {}".format(url))
+    #print("url: {}".format(url))
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
-    #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
+    #print("scan_result: {}".format(json.dumps(scan_result, indent=2)))
     count = scan_result['hits']['total']
     if '_scroll_id' not in scan_result:
-        logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
+        print("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []
 
     scroll_id = scan_result['_scroll_id']
@@ -467,24 +467,24 @@ def query_es(query, es_index=None):
 
 def query_es2(query, es_index=None):
     """Query ES."""
-    logger.info(query)
+    print(query)
     uu = UrlUtils()
     es_url = uu.rest_url
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
     if es_index:
         url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
-    #logger.info("url: {}".format(url))
+    #print("url: {}".format(url))
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
-    #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
+    #print("scan_result: {}".format(json.dumps(scan_result, indent=2)))
     count = scan_result['hits']['total']
     if count == 0:
         return []
 
     if '_scroll_id' not in scan_result:
-        logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
+        print("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []
 
     scroll_id = scan_result['_scroll_id']
@@ -499,11 +499,11 @@ def query_es2(query, es_index=None):
 
 def print_groups(grouped_matched):
     for track in grouped_matched["grouped"]:
-        logger.info("\nTrack : %s" %track)
+        print("\nTrack : %s" %track)
         for day_dt in sorted(grouped_matched["grouped"][track], reverse=True):
-            logger.info("\tDate : %s" %day_dt)
+            print("\tDate : %s" %day_dt)
             for acq in grouped_matched["grouped"][track][day_dt][pv]:
-                logger.info("\t\t%s" %(acq[0]))
+                print("\t\t%s" %(acq[0]))
 
 
 def get_complete_grq_data(id):
@@ -662,14 +662,14 @@ def group_acqs_by_track(frames):
     acq_info = {}
     #print("frame length : %s" %len(frames))
     for acq in frames:
-        #logger.info("ACQ : %s" %acq)
+        #print("ACQ : %s" %acq)
         acq_data = acq # acq['fields']['partial'][0]
         acq_id = acq['id']
         #print("acq_id : %s : %s" %(type(acq_id), acq_id))
         '''
         match = SLC_RE.search(acq_id)
         if not match:
-            logger.info("No Match : %s" %acq_id)
+            print("No Match : %s" %acq_id)
             continue
         '''
         download_url = acq_data['metadata']['download_url']
@@ -688,8 +688,8 @@ def group_acqs_by_track(frames):
         this_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
         acq_info[acq_id] = this_acq
 
-        #logger.info("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
-        #logger.info(grouped)
+        #print("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
+        #print(grouped)
         bisect.insort(grouped.setdefault(track, []), acq_id)
         '''
         if track in grouped.keys():
@@ -728,11 +728,11 @@ def is_overlap(geojson1, geojson2):
 def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     '''returns True if there is any overlap between the two geojsons. The geojsons
     are just a list of coordinate tuples'''
-    logger.info("find_overlap_within_aoi : %s\n%s\n%s" %(loc1, loc2, aoi_loc))
+    print("find_overlap_within_aoi : %s\n%s\n%s" %(loc1, loc2, aoi_loc))
     geojson1 = get_intersection(loc1, aoi_loc)
     geojson2 = get_intersection(loc1, aoi_loc)
     p3=0
-    logger.info("find_overlap_within_aoi : geojson1 : %s\n geojson2 : %s" %(geojson1, geojson2))
+    print("find_overlap_within_aoi : geojson1 : %s\n geojson2 : %s" %(geojson1, geojson2))
     if type(geojson1) is tuple:
         geojson1 = geojson1[0]
     if type(geojson2) is tuple:
@@ -755,22 +755,22 @@ def is_within(geojson1, geojson2):
 
 
 def find_overlap_match(master_acq, slave_acqs):
-    #logger.info("\n\nmaster info : %s : %s : %s :%s" %(master_acq.tracknumber, master_acq.orbitnumber, master_acq.pv, master_acq.acq_id))
-    #logger.info("slave info : ")
+    #print("\n\nmaster info : %s : %s : %s :%s" %(master_acq.tracknumber, master_acq.orbitnumber, master_acq.pv, master_acq.acq_id))
+    #print("slave info : ")
     master_loc = master_acq.location["coordinates"]
 
-    #logger.info("\n\nmaster_loc : %s" %master_loc)
+    #print("\n\nmaster_loc : %s" %master_loc)
     overlapped_matches = {}
     for slave in slave_acqs:
         print("SLAVE : %s" %slave.location)
         slave_loc = slave.location["coordinates"]
-        #logger.info("\n\nslave_loc : %s" %slave_loc)
+        #print("\n\nslave_loc : %s" %slave_loc)
         is_over, overlap = is_overlap(master_loc, slave_loc)
         print("is_overlap : %s" %is_over)
-        logger.info("overlap area : %s" %overlap)
+        print("overlap area : %s" %overlap)
         if is_over:
             overlapped_matches[slave.acq_id] = slave
-            logger.info("Overlapped slave : %s" %slave.acq_id)
+            print("Overlapped slave : %s" %slave.acq_id)
 
     return overlapped_matches
 
@@ -794,7 +794,7 @@ def ref_truncated(ref_scene, matched_footprints, covth=.99):
     ref_geom_tr = ogr.CreateGeometryFromJson(json.dumps(ref_scene.location))
     ref_geom_tr.Transform(transform)
     ref_geom_tr_area = ref_geom_tr.GetArea() # in square meters
-    logger.info("Reference GeoJSON: %s" % ref_geom.ExportToJson())
+    print("Reference GeoJSON: %s" % ref_geom.ExportToJson())
 
     # get union geometry of all matched scenes
     matched_geoms = []
@@ -803,7 +803,7 @@ def ref_truncated(ref_scene, matched_footprints, covth=.99):
     matched_union_tr = None
     ids = sorted(matched_footprints.keys())
     #ids.sort()
-    #logger.info("ids: %s" % len(ids))
+    #print("ids: %s" % len(ids))
     for id in ids:
         geom = ogr.CreateGeometryFromJson(json.dumps(matched_footprints[id]))
         geom_tr = ogr.CreateGeometryFromJson(json.dumps(matched_footprints[id]))
@@ -817,23 +817,23 @@ def ref_truncated(ref_scene, matched_footprints, covth=.99):
             matched_union = matched_union.Union(geom)
             matched_union_tr = matched_union_tr.Union(geom_tr)
     matched_union_geojson =  json.loads(matched_union.ExportToJson())
-    logger.info("Matched union GeoJSON: %s" % json.dumps(matched_union_geojson))
+    print("Matched union GeoJSON: %s" % json.dumps(matched_union_geojson))
     
     # check matched_union disjointness
     if len(matched_union_geojson['coordinates']) > 1:
-        logger.info("Matched union is a disjoint geometry.")
+        print("Matched union is a disjoint geometry.")
         return True
             
     # check that intersection of reference and stitched scenes passes coverage threshold
     ref_int = ref_geom.Intersection(matched_union)
     ref_int_tr = ref_geom_tr.Intersection(matched_union_tr)
     ref_int_tr_area = ref_int_tr.GetArea() # in square meters
-    logger.info("Reference intersection GeoJSON: %s" % ref_int.ExportToJson())
-    logger.info("area (m^2) for intersection: %s" % ref_int_tr_area)
+    print("Reference intersection GeoJSON: %s" % ref_int.ExportToJson())
+    print("area (m^2) for intersection: %s" % ref_int_tr_area)
     cov = ref_int_tr_area/ref_geom_tr_area
-    logger.info("coverage: %s" % cov)
+    print("coverage: %s" % cov)
     if cov < covth:
-        logger.info("Matched union doesn't cover at least %s%% of the reference footprint." % (covth*100.))
+        print("Matched union doesn't cover at least %s%% of the reference footprint." % (covth*100.))
         return True
    
     return False
@@ -869,7 +869,7 @@ def get_acq_orbit_polygon(starttime, endtime, orbit_dir):
     pass
     
 def get_intersection(js1, js2):
-    logger.info("intersection between :\n %s\n%s" %(js1, js2))
+    print("intersection between :\n %s\n%s" %(js1, js2))
     poly1 = ogr.CreateGeometryFromJson(json.dumps(js1, indent=2, sort_keys=True))
     poly2 = ogr.CreateGeometryFromJson(json.dumps(js2, indent=2, sort_keys=True))
 
@@ -925,17 +925,17 @@ def get_processing_version_from_asf(slc):
         if ipf_string:
             ipf = ipf_string.split('version')[1].split(')')[0].strip()
     except Exception as err:
-        logger.info("get_processing_version_from_asf : %s" %str(err))
+        print("get_processing_version_from_asf : %s" %str(err))
  
         
     return ipf
 
 def print_acquisitions(aoi_id, acqs):
-    logger.info("PRINT_ACQS")
+    print("PRINT_ACQS")
     for acq in acqs:
         #aoi_id = acq_data['aoi_id']
-        logger.info("aoi : %s track: %s orbitnumber : %s pv: %s acq_id : %s" %(aoi_id, acq.tracknumber, acq.orbitnumber, acq.pv, acq.acq_id))
-    logger.info("\n")
+        print("aoi : %s track: %s orbitnumber : %s pv: %s acq_id : %s" %(aoi_id, acq.tracknumber, acq.orbitnumber, acq.pv, acq.acq_id))
+    print("\n")
 
 def update_doc(body=None, index=None, doc_type=None, doc_id=None):
     uu = UrlUtils()
@@ -950,11 +950,11 @@ def get_track(info):
 
     tracks = {}
     for id in info:
-        logger.info(id)
+        print(id)
         h = info[id]
         fields = h["_source"]
         track = fields['metadata']['track_number']
-        logger.info(track)
+        print(track)
         tracks.setdefault(track, []).append(id)
     if len(tracks) != 1:
         print(tracks)
@@ -979,7 +979,7 @@ def get_metadata(id, rest_url, url):
             }
         }
     }
-    logger.info("query: {}".format(json.dumps(query, indent=2)))
+    print("query: {}".format(json.dumps(query, indent=2)))
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
@@ -989,7 +989,7 @@ def get_metadata(id, rest_url, url):
         return []
 
     if '_scroll_id' not in scan_result:
-        logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
+        print("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []
 
     scroll_id = scan_result['_scroll_id']
@@ -1023,7 +1023,7 @@ def get_dem_type(info):
             dem_type = "SRTM+v3"
 
     if len(dems) != 1:
-        logger.info("There are more than one type of dem, so selecting SRTM+v3")
+        print("There are more than one type of dem, so selecting SRTM+v3")
         dem_type = "SRTM+v3"
     return dem_type
 '''
@@ -1209,7 +1209,7 @@ def create_dataset_json(id, version, met_file, ds_file):
     try:
         '''
         if 'bbox' in md:
-            logger.info("create_dataset_json : met['bbox']: %s" %md['bbox'])
+            print("create_dataset_json : met['bbox']: %s" %md['bbox'])
             coordinates = [
                     [
                       [ md['bbox'][0][1], md['bbox'][0][0] ],
@@ -1226,14 +1226,14 @@ def create_dataset_json(id, version, met_file, ds_file):
         coordinates = md['union_geojson']['coordinates']
         cord_area = get_area(coordinates[0])
         if not cord_area>0:
-            logger.info("creating dataset json. coordinates are not clockwise, reversing it")
+            print("creating dataset json. coordinates are not clockwise, reversing it")
             coordinates = [coordinates[0][::-1]]
-            logger.info(coordinates)
+            print(coordinates)
             cord_area = get_area(coordinates[0])
             if not cord_area>0:
-                logger.info("creating dataset json. coordinates are STILL NOT  clockwise")
+                print("creating dataset json. coordinates are STILL NOT  clockwise")
         else:
-            logger.info("creating dataset json. coordinates are already clockwise")
+            print("creating dataset json. coordinates are already clockwise")
 
         ds['location'] =  {'type': 'Polygon', 'coordinates': coordinates}
 
@@ -1260,10 +1260,10 @@ def get_isoformat_date(s):
 
 
 def get_orbit_file(orbit_dt, platform):
-    logger.info("get_orbit_file : %s : %s" %(orbit_dt, platform))
+    print("get_orbit_file : %s : %s" %(orbit_dt, platform))
     hits = query_orbit_file(orbit_dt, orbit_dt, platform)
-    #logger.info("get_orbit_file : hits : \n%s\n" %hits)
-    logger.info("get_orbit_file returns %s result " %len(hits))
+    #print("get_orbit_file : hits : \n%s\n" %hits)
+    print("get_orbit_file returns %s result " %len(hits))
     #return hits
 
 
@@ -1272,7 +1272,7 @@ def get_orbit_file(orbit_dt, platform):
         
         id = hit['id']
         orbit_platform = metadata["platform"]
-        logger.info(orbit_platform)
+        print(orbit_platform)
         if orbit_platform == platform:
             if "urls" in hit:
                 urls = hit["urls"]
@@ -1295,7 +1295,7 @@ def get_orbit_file(orbit_dt, platform):
 
 def query_orbit_file(starttime, endtime, platform):
     """Query ES for active AOIs that intersect starttime and endtime."""
-    logger.info("query_orbit_file: %s, %s, %s" %(starttime, endtime, platform))
+    print("query_orbit_file: %s, %s, %s" %(starttime, endtime, platform))
     es_index = "grq_*_s1-aux_poeorb"
     query = {
       "query": {
@@ -1354,14 +1354,14 @@ def query_orbit_file(starttime, endtime, platform):
       }
     }
 
-    logger.info(query)
+    print(query)
     #return query_es(query)
 
 
     # filter inactive
     hits = [i['fields']['partial'][0] for i in query_es(query)]
-    #logger.info("hits: {}".format(json.dumps(hits, indent=2)))
-    #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
+    #print("hits: {}".format(json.dumps(hits, indent=2)))
+    #print("aois: {}".format(json.dumps([i['id'] for i in hits])))
     return hits
 
 
@@ -1434,24 +1434,29 @@ def get_date_from_metadata(mds):
     mission = None 
 
     for id in mds:
-        logger.info(id)
+        print(id)
         h = mds[id]
         fields = h["_source"]
         day_dt, start_dt, end_dt, mission = get_dates_mission_from_metadata(fields['starttime'], fields['endtime'], fields['metadata']['platform'])
-        logger.info("day_dt : %s, start_dt : %s, end_dt : %s, mission : %s" %(day_dt, start_dt, end_dt, mission))
+        print("day_dt : %s, start_dt : %s, end_dt : %s, mission : %s" %(day_dt, start_dt, end_dt, mission))
         day_dts.setdefault(day_dt, []).extend([start_dt, end_dt])
     if len(day_dts) > 1:
         raise RuntimeError("Found data for more than 1 day.")
     all_dts = day_dts[day_dt]
-    logger.info("all_dts : %s" %all_dts)
+    print("all_dts : %s" %all_dts)
 
-    return day_dt, all_dts.sort(), mission
+    return day_dt, all_dts, mission
 
 def get_scene_dates_from_metadata(master_mds, slave_mds):
     master_day_dt, master_all_dts, m_mission = get_date_from_metadata(master_mds)
     slave_day_dt, slave_all_dts, s_mission = get_date_from_metadata(slave_mds)
-    logger.info("master_day_dt : %s, master_all_dts : %s, m_mission %s: " %(master_day_dt, master_all_dts, m_mission))
-    logger.info("slave_day_dt : %s, slave_all_dts : %s, m_mission %s: " %(slave_day_dt, slave_all_dts, m_mission))
+    print("master_day_dt : %s, master_all_dts : %s, m_mission %s: " %(master_day_dt, master_all_dts, m_mission))
+    print("slave_day_dt : %s, slave_all_dts : %s, m_mission %s: " %(slave_day_dt, slave_all_dts, m_mission))
+    master_all_dts.sort()
+    slave_all_dts.sort()
+    print("master_day_dt : %s, master_all_dts : %s, m_mission %s: " %(master_day_dt, master_all_dts, m_mission))
+    print("slave_day_dt : %s, slave_all_dts : %s, m_mission %s: " %(slave_day_dt, slave_all_dts, m_mission))
+
     if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
     else: return master_all_dts[-1], slave_all_dts[0]
 
@@ -1465,13 +1470,13 @@ def get_date_from_ids(ids, scene_type):
     day_dts = {}
     for id in ids:
         day_dt, start_dt, end_dt, mission = get_dates_mission_from_id(id, scene_type)
-        logger.info("day_dt : %s, start_dt : %s, end_dt : %s, mission : %s" %(day_dt, start_dt, end_dt, mission))
+        print("day_dt : %s, start_dt : %s, end_dt : %s, mission : %s" %(day_dt, start_dt, end_dt, mission))
         day_dts.setdefault(day_dt, []).extend([start_dt, end_dt])
     if len(day_dts) > 1:
         raise RuntimeError("Found ACQ/SLCs for more than 1 day : %s" %ids)
     all_dts = day_dts[day_dt]
-    logger.info("all_dts : %s" %all_dts)
-    return day_dt, all_dts.sort(), mission
+    print("all_dts : %s" %all_dts)
+    return day_dt, all_dts, mission
 
 
 def get_scene_dates_from_ids(master_ids, slave_ids, scene_type):
@@ -1482,8 +1487,10 @@ def get_scene_dates_from_ids(master_ids, slave_ids, scene_type):
 
     master_day_dt, master_all_dts, m_mission = get_date_from_ids(master_ids, scene_type)
     slave_day_dt, slave_all_dts, s_mission = get_date_from_ids(slave_ids, scene_type)
-    logger.info("master_day_dt : %s, master_all_dts : %s, m_mission %s: " %(master_day_dt, master_all_dts, m_mission))
-    logger.info("slave_day_dt : %s, slave_all_dts : %s, m_mission %s: " %(slave_day_dt, slave_all_dts, m_mission))
+    print("master_day_dt : %s, master_all_dts : %s, m_mission %s: " %(master_day_dt, master_all_dts, m_mission))
+    print("slave_day_dt : %s, slave_all_dts : %s, m_mission %s: " %(slave_day_dt, slave_all_dts, m_mission))
+    master_all_dts.sort()
+    slave_all_dts.sort()
 
     if master_day_dt < slave_day_dt: return master_all_dts[0], slave_all_dts[-1]
     else: return master_all_dts[-1], slave_all_dts[0]
@@ -1655,17 +1662,17 @@ def query_es(query, es_index):
     es_url = uu.rest_url
     rest_url = es_url[:-1] if es_url.endswith('/') else es_url
     url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
-    #logger.info("url: {}".format(url))
+    #print("url: {}".format(url))
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
-    #logger.info("scan_result: {}".format(json.dumps(scan_result, indent=2)))
+    #print("scan_result: {}".format(json.dumps(scan_result, indent=2)))
     count = scan_result['hits']['total']
     if count == 0:
         return []
 
     if '_scroll_id' not in scan_result:
-        logger.info("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
+        print("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []
 
     scroll_id = scan_result['_scroll_id']
