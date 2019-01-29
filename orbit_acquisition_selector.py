@@ -393,12 +393,13 @@ def getUpdatedTime(s, m):
 
 
 def get_time(t):
-    try:
-        return datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
-    except ValueError as e:
-        t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S.%f').strftime("%Y-%m-%d %H:%M:%S")
-        return datetime.strptime(t1, '%Y-%m-%d %H:%M:%S')
 
+    if '.' in t:
+        t1 = t.split('.')[0].strip()
+        logger.info("%s changed to %s" %(t, t1))
+        return datetime.strptime(t1, '%Y-%m-%dT%H:%M:%S')
+    else:
+        return datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
 
 def isTrackSelected(land, water, land_area, water_area):
     selected = False
@@ -614,13 +615,8 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
         with open(result_file, 'w') as fo:
             cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             cw.writerow(["Date","Track","Track_PEORB_Land","ACQ_Union_POEORB_Land", "ACQ_Union_Land", "RES", "WATER_MASK_PASSED", "Master_Ipf_Count", "Slave_Ipf_Count", "MATCHED", "BL_PASSED", "Candidate_Pairs", "Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection", "ACQ_AOI_Ingtersection"])
-        try:
-            #selected_track_acqs = get_covered_acquisitions(aoi, acqs, orbit_file)
-            selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file, selected_track_list)
-        except Exception as  err:
-            logger.info("Error from get_covered_acquisitions: %s " %str(err))
-            traceback.print_exc()
-            raise RuntimeError("Error from get_covered_acquisitions: %s " %str(err))
+
+        selected_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file, selected_track_list)
 
         if len(selected_track_acqs.keys())==0:
             logger.info("Nothing selected from AOI %s " %aoi['id'])
