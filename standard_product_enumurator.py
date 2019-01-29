@@ -354,46 +354,34 @@ def enumerate_acquisations(orbit_acq_selections):
 
     for aoi_id in orbit_aoi_data.keys():
         try:
-            candidate_pair_list = []
-            logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
-            aoi_data = orbit_aoi_data[aoi_id]
-            selected_track_acqs = aoi_data['selected_track_acqs']
+        candidate_pair_list = []
+        logger.info("\nenumerate_acquisations : Processing AOI : %s " %aoi_id)
+        aoi_data = orbit_aoi_data[aoi_id]
+        selected_track_acqs = aoi_data['selected_track_acqs']
             #logger.info("%s : %s\n" %(aoi_id, selected_track_acqs))
-            aoi_blacklist = []
-            logger.info("\nenumerate_acquisations : Processing BlackList with location %s" %aoi_data['aoi_location'])
-            aoi_blacklist = get_aoi_blacklist(aoi_data)
-            logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_blacklist))
+        aoi_blacklist = []
+        logger.info("\nenumerate_acquisations : Processing BlackList with location %s" %aoi_data['aoi_location'])
+        aoi_blacklist = get_aoi_blacklist(aoi_data)
+        logger.info("BlackList for AOI %s:\n\t%s" %(aoi_id, aoi_blacklist))
 
 
-            for track in selected_track_acqs.keys():
-                if len(selected_track_list)>0:
-                    if int(track) not in selected_track_list:
-                        logger.info("enumerate_acquisations : %s not in selected_track_list %s. So skipping this track" %(track, selected_track_list))
-                        continue
-
-                logger.info("\nenumerate_acquisations : Processing track : %s " %track)
-                if len(selected_track_acqs[track].keys()) <=0:
-                    logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
+        for track in selected_track_acqs.keys():
+            if len(selected_track_list)>0:
+                if int(track) not in selected_track_list:
+                    logger.info("enumerate_acquisations : %s not in selected_track_list %s. So skipping this track" %(track, selected_track_list))
                     continue
-                min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version)
-                logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
-                if min_max_count>0:
-                    print_candidate_pair_list_per_track(track_candidate_pair_list)
-                if len(track_candidate_pair_list) > 0:
-                    for track_dt_list in track_candidate_pair_list:
-                        candidate_pair_list.extend(track_dt_list)
-            '''
-            if len(candidate_pair_list)>0:
-                logger.info("\nPublishing ACQ List for AOI : %s" %aoi_id)
-                publish_initiator(candidate_pair_list, job_data)
-            else:
-                logger.info("\nNOTHING to publish for AOI : %s" %aoi_id)
-            '''
-        except Exception as err:
-            logger.warn("Error with Enumeration for aoi : %s : %s" %(aoi_id, str(err)))
-            traceback.print_exc()
-            raise RuntimeError("Error with Enumeration for aoi : %s : %s" %(aoi_id, str(err)))
-            #logger.warn("Traceback: {}".format(traceback.format_exc()))
+
+            logger.info("\nenumerate_acquisations : Processing track : %s " %track)
+            if len(selected_track_acqs[track].keys()) <=0:
+                logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
+                continue
+            min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version)
+            logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
+            if min_max_count>0:
+                print_candidate_pair_list_per_track(track_candidate_pair_list)
+            if len(track_candidate_pair_list) > 0:
+                for track_dt_list in track_candidate_pair_list:
+                    candidate_pair_list.extend(track_dt_list)
                   
     #return candidate_pair_list
 
@@ -482,16 +470,11 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 logger.info("orbit id : %s : orbit_url : %s" %(orbit_id, orbit_url))
                 slave_orbit_file_path = os.path.basename(orbit_url)
                 downloaded = gtUtil.download_orbit_file(orbit_url, orbit_file)
-                #downloaded = download_orbit_file(orbit_ur)
                 if downloaded:
                     logger.info("Slave Orbiut File Downloaded")
                     #orbit_file = slave_orbit_file_path
                     orbit_dir = os.getcwd()
                     logger.info("orbit_file : %s\norbit_dir : %s" %(orbit_file, orbit_dir))
-                    #isValidOrbit = gtUtil.isValidOrbit(orbit_file, orbit_dir)
-                    #logger.info("isValidOrbit : %s" %isValidOrbit)
-                    #if not isValidOrbit:
-                        #exit(0)
             orbit_dir = os.getcwd()
             mission = "S1A"
             if slave_platform == "Sentinel-1B":
@@ -526,13 +509,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             track_dt_pv[slave_track_dt] = slave_ipf_count
             selected_slave_acqs_by_track_dt[slave_track_dt] =  selected_slave_acqs
 
-        #for slave_track_dt in sorted( selected_slave_acqs_by_track_dt.keys(), reverse=True):
-            #slave_ipf_count = track_dt_pv[slave_track_dt]
             logger.info("Processing Slaves with date : %s" %slave_track_dt)
-            #if not slave_track_dt == "2016-02-03 00:00:00":
-                #logger.info("REJECTING foir Test")
-                #continue
-            #slave_acqs = selected_slave_acqs_by_track_dt[slave_track_dt]
             
             result['master_ipf_count'] = master_ipf_count
             result['slave_ipf_count'] = slave_ipf_count
@@ -542,15 +519,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             write_result_file(result_file, result)
             if matched:
                 for candidate_pair in orbit_candidate_pair:
-                    try:
-                        publish_initiator_pair(candidate_pair, job_data, orbit_data, aoi_id)   
-                        #min_max_count = min_max_count + 1
-                        candidate_pair_list.append(orbit_candidate_pair)
-                    except Exception as err:
-                        logger.info("Error Publishing Candidate Pair : %s : %s" %(candidate_pair, str(err)))
-                        traceback.print_exc()
-                        raise RuntimeError("Error Publishing Candidate Pair : %s : %s" %(candidate_pair, str(err)))
-                        #logger.warn("Traceback: {}".format(traceback.format_exc()))
+                    publish_initiator_pair(candidate_pair, job_data, orbit_data, aoi_id)   
+                    candidate_pair_list.append(orbit_candidate_pair)
 
                 min_max_count = min_max_count + 1
                 if min_max_count>=MIN_MATCH:
@@ -637,14 +607,8 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             write_result_file(result_file, result)
             if matched:
                 for candidate_pair in orbit_candidate_pair:
-                    try:
-                        publish_initiator_pair(candidate_pair, job_data, orbit_data)
-                        logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
-                    except Exception as err:
-                        logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err)))
-                        traceback.print_exc()
-                        raise RuntimeError("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err)))
-                        #logger.warn("Traceback: {}".format(traceback.format_exc()))
+                    publish_initiator_pair(candidate_pair, job_data, orbit_data)
+                    logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
 
                 candidate_pair_list.append(orbit_candidate_pair)
                 min_max_count = min_max_count + 1
@@ -755,13 +719,8 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
             
 def publish_initiator(candidate_pair_list, job_data):
     for candidate_pair in candidate_pair_list:
-        try:
-            publish_initiator_pair(candidate_pair, job_data, orbit_data)
-            logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
-        except Exception as err:
-            logger.info("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err)))
-            logger.warn("Traceback: {}".format(traceback.format_exc()))
-            raise RuntimeError("\n\nERROR PUBLISHING : %s\n%s" %(candidate_pair, str(err)))
+        publish_initiator_pair(candidate_pair, job_data, orbit_data)
+        logger.info("\n\nSUCCESSFULLY PUBLISHED : %s" %candidate_pair)
         #publish_initiator_pair(candidate_pair, job_data)
 
 
