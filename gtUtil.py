@@ -88,6 +88,7 @@ def get_time(t):
    
     if '.' in t:
         t1 = t.split('.')[0].strip()
+        logger.info("%s changed to %s" %(t, t1))
         return datetime.strptime(t1, '%Y-%m-%dT%H:%M:%S')
     else:
         return datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
@@ -240,7 +241,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
         if acq.covers_only_land:
             logger.info("COVERS ONLY LAND")
         elif acq.covers_only_water:
-            logger.info("COVERS ONLY WATER, SO RETURNING FALSE")
+            logger.info("COVERS ONLY WATER, SO RETURNING FALSE : %s" %acq_id)
             return False, result
         else:
             logger.info("COVERS BOTH LAND & WATER")
