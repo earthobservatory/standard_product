@@ -125,7 +125,7 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
         union_water = 0
         union_intersection = []
         for i in range(len(coordinates)):
-            cord =change_coordinate_direction(coordinates[i])
+            cord =change_coordinate_direction(coordinates[0][i])
             geojson_new = {"type":"Polygon", "coordinates": [cord]}
             land, water, intersection = get_aoi_area_polygon(geojson_new, aoi_location)
             logger.info("land = %s, water = %s" %(land, water))
@@ -143,6 +143,10 @@ def get_aoi_area_polygon(geojson, aoi_location):
 
     intersection, int_env = util.get_intersection(aoi_location, geojson)
     logger.info("intersection : %s" %intersection)
+    coordinates = intersection["coordinates"]
+    cord =change_coordinate_direction(coordinates[0])
+    intersection = {"type":"Polygon", "coordinates": [cord]}
+    logger.info("get_aoi_area_polygon : cord : %s" %cord)
     try:
         land_area = lightweight_water_mask.get_land_area(intersection)
         logger.info("get_land_area(geojson) : %s " %land_area)
@@ -153,25 +157,8 @@ def get_aoi_area_polygon(geojson, aoi_location):
         rotated_intersection = {"type":"Polygon", "coordinates": rotated_cord}
         logger.info("rorated_intersection : %s" %rotated_intersection)
         
-        try:
-            land_area = lightweight_water_mask.get_land_area(rotated_intersection)
-            logger.info("get_land_area(geojson) : %s " %land_area)
-        except Exception as err:
-            logger.info("Getting Land Area Failed AGAIN for rotated geojson : %s" %rotated_intersection)
-            logger.info(sys.exc_info())
-    '''
-    try:
-        water_area = lightweight_water_mask.get_water_area(intersection)
-    except Exception as err:
-        logger.info("Getting Water Area Failed for geojson : %s" %intersection)
-        logger.info(sys.exc_info())
-    try:
-        logger.info("covers_land : %s " %lightweight_water_mask.covers_land(intersection))
-        logger.info("covers_water : %s "%lightweight_water_mask.covers_water(intersection))
-    except Exception as err:
-        logger.info("Getting covers land/water Failed for geojson : %s" %intersection)
-        logger.info(sys.exc_info()
-    '''
+        land_area = lightweight_water_mask.get_land_area(rotated_intersection)
+        logger.info("get_land_area(geojson) : %s " %land_area)
     logger.info("get_land_area(geojson) : %s " %land_area)
     logger.info("get_water_area(geojson) : %s " %water_area)
 
@@ -181,6 +168,7 @@ def get_aoi_area_polygon(geojson, aoi_location):
 
 
 def change_coordinate_direction(cord):
+    logger.info("cord: %s\n" %cord)
     cord_area = util.get_area(cord)
     if not cord_area>0:
         logger.info("change_coordinate_direction : coordinates are not clockwise, reversing it")

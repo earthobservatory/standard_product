@@ -518,6 +518,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             write_result_file(result_file, result)
             if matched:
                 for candidate_pair in orbit_candidate_pair:
+                    candidate_pair["master_track_dt"] = track_dt
+                    candidate_pair["slave_trck_dt"] = slave_track_dt
                     publish_initiator_pair(candidate_pair, job_data, orbit_data, aoi_id)   
                     candidate_pair_list.append(orbit_candidate_pair)
 
