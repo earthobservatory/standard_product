@@ -46,7 +46,13 @@
       "from": "submitter",
       "type": "text",
       "optional": true
-    },      
+    }, 
+    {
+      "name": "aoi",
+      "from": "submitter",
+      "type": "text",
+      "optional": true
+    },     
     {
       "name": "starttime",
       "from": "dataset_jpath:_source.starttime",

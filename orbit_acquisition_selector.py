@@ -38,6 +38,7 @@ MISSION = 'S1A'
 
 
 def query_es(query, es_index=None):
+    logger.info("query: %s" %query)
     """Query ES."""
     uu = UrlUtils()
     es_url = uu.rest_url
@@ -45,7 +46,7 @@ def query_es(query, es_index=None):
     url = "{}/_search?search_type=scan&scroll=60&size=100".format(rest_url)
     if es_index:
         url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
-    #logger.info("url: {}".format(url))
+    logger.info("url: {}".format(url))
     r = requests.post(url, data=json.dumps(query))
     r.raise_for_status()
     scan_result = r.json()
@@ -339,6 +340,41 @@ def query_aois_new(starttime, endtime):
     #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
     return hits
 
+def get_aois_by_id(aoi_list):
+    aois = []
+    for aoi in aoi_list:
+        aoi_data = get_aoi_data_by_id(aoi)
+        logger.info("aoi_data : %s" %aoi_data)
+        if aoi_data and len(aoi_data)>0:
+            logger.info("Adding data for aoi: %s" %aoi)
+            aois.extend(aoi_data)
+        else:
+            logger.info("No data found for aoi: %s" %aoi)
+    return aois
+
+
+def get_aoi_data_by_id(aoi_id):
+    es_index = "grq_*_area_of_interest"
+    # query
+    query = {
+        "query":{
+            "bool":{
+                "must":[
+                    { "term":{ "_id": aoi_id } },
+                ]
+            }
+        },
+         "partial_fields" : {
+            "partial" : {
+                "include" : [ "id", "starttime", "endtime", "location" ]
+            }
+        }
+    }
+     # filter inactive
+    hits = [i['fields']['partial'][0] for i in query_es(query)]
+    logger.info("hits: {}".format(json.dumps(hits, indent=2)))
+    #logger.info("aois: {}".format(json.dumps([i['id'] for i in hits])))
+    return hits
 
 
 def get_dem_type(acq):
@@ -490,7 +526,7 @@ def get_covered_acquisitions(aoi, acqs, orbit_file):
 
     return selected_track_acqs
 
-def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, threshold_pixel, acquisition_version, selected_track_list):
+def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, threshold_pixel, acquisition_version, selected_track_list, selected_aoi_list):
     """Query ES for active AOIs that intersect starttime and endtime and 
        find acquisitions that intersect the AOI polygon for the platform."""
     #aoi_acq = {}
@@ -498,10 +534,16 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
     es_index = "grq_*_*acquisition*"
     es_index = "grq_%s_acquisition-s1-iw_slc/acquisition-S1-IW_SLC/" %(acquisition_version)
     logger.info("query_aoi_acquisitions : es_index : %s" %es_index)
+    aois = None
+    if len(selected_aoi_list)>0:
+        aois = get_aois_by_id(selected_aoi_list)
+    else:
+        aois = query_aois_new(starttime, endtime)
 
-    aois = query_aois_new(starttime, endtime)
     logger.info("No of AOIs : %s " %len(aois))
-    if len(aois) <=0:
+    logger.info("aois : %s" %aois)
+
+    if not aois or len(aois) <=0:
         logger.info("Existing as NO AOI Found")
         sys.exit(0)
     for aoi in aois:
@@ -681,22 +723,25 @@ def resolve_aoi_acqs(ctx_file):
             track_numbers = ctx["track_numbers"].strip()
             if track_numbers:
                 track_numbers_list = track_numbers.split(',')
-                '''
-                if ',' in track_numbers:
-                    track_numbers_list = track_numbers.split(',')
-                elif ' ' in selected_tracks:
-                    track_numbers_list = track_numbers.split(' ')
-                else:
-                    sel]
-                '''
                 for tn in track_numbers_list:
                     selected_track_list.append(int(tn))
-
-        
     except:
         pass
+    selected_aoi_list = []
 
-    logger.info("selected_track_list : %s" %selected_track_list)
+    try:
+        if "aoi" in ctx and ctx["aoi"] is not None:
+            aois = ctx["aoi"].strip()
+            logger.info("passed aoi: %s" %aois)
+            if aois:
+                aoi_list = aois.split(',')
+                logger.info(aoi_list)
+                for aoi in aoi_list:
+                    selected_aoi_list.append(aoi.strip())
+    except:
+        pass
+    selected_aoi_list = list(set(selected_aoi_list))
+    logger.info("selected_aoi_list : %s" %selected_aoi_list)
 
     #Find Orbit File Info
     orbit_file = None
@@ -711,7 +756,7 @@ def resolve_aoi_acqs(ctx_file):
         logger.info("Orbit File : %s " %orbit_file)
 
 
-    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file, orbit_file_dir, threshold_pixel, acquisition_version, selected_track_list)
+    orbit_aoi_data = query_aoi_acquisitions(ctx['starttime'], ctx['endtime'], ctx['platform'], orbit_file, orbit_file_dir, threshold_pixel, acquisition_version, selected_track_list, selected_aoi_list)
     #osaka.main.get("http://aux.sentinel1.eo.esa.int/POEORB/2018/09/15/S1A_OPER_AUX_POEORB_OPOD_20180915T120754_V20180825T225942_20180827T005942.EOF")
     #logger.info(orbit_aoi_data)
     #exit(0)
