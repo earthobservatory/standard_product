@@ -238,7 +238,8 @@ def get_ground_track(tstart, tend, mission, orbit_file, orbitDir):
     #latlon_geoms = []
     delta = (tend - tstart).seconds
     print("delta : %s" %delta)
-    deltat = np.linspace(0,1, num=int(delta/2))
+    #deltat = np.linspace(0,1, num=int(delta/2))
+    deltat = np.linspace(0,1, num=delta)
     elp = Planet(pname='Earth').ellipsoid
     for tt in deltat:
         tinp = tstart + tt * (tend-tstart)
