@@ -40,7 +40,7 @@
       "destination": "context"
     },
     {
-      "name": "aoi",
+      "name": "aoi_name",
       "destination": "context"
     },
     {

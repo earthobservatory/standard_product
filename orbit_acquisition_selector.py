@@ -730,8 +730,8 @@ def resolve_aoi_acqs(ctx_file):
     selected_aoi_list = []
 
     try:
-        if "aoi" in ctx and ctx["aoi"] is not None:
-            aois = ctx["aoi"].strip()
+        if "aoi_name" in ctx and ctx["aoi_name"] is not None:
+            aois = ctx["aoi_name"].strip()
             logger.info("passed aoi: %s" %aois)
             if aois:
                 aoi_list = aois.split(',')
