@@ -620,6 +620,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
         except Exception as  err:
             logger.info("Error from get_covered_acquisitions: %s " %str(err))
             traceback.print_exc()
+            raise RuntimeError("Error from get_covered_acquisitions: %s " %str(err))
 
         if len(selected_track_acqs.keys())==0:
             logger.info("Nothing selected from AOI %s " %aoi['id'])
@@ -709,11 +710,11 @@ def resolve_aoi_acqs(ctx_file):
 
     project = ctx['project']
     logger.info("PROJECT : %s" %project)
-    priority = ctx["job_priority"]
-    minMatch = ctx["minMatch"]
+    priority = int(ctx["job_priority"])
+    minMatch = int(ctx["minMatch"])
     dataset_version = ctx["dataset_version"] 
     acquisition_version = ctx["acquisition_version"]  
-    threshold_pixel = ctx["threshold_pixel"]
+    threshold_pixel = int(ctx["threshold_pixel"])
     job_type, job_version = ctx['job_specification']['id'].split(':')
 
     selected_track_list = []
@@ -742,6 +743,7 @@ def resolve_aoi_acqs(ctx_file):
         pass
     selected_aoi_list = list(set(selected_aoi_list))
     logger.info("selected_aoi_list : %s" %selected_aoi_list)
+    logger.info("selected_track_list : %s" %selected_track_list)
 
     #Find Orbit File Info
     orbit_file = None
