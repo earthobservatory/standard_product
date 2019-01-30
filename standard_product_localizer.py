@@ -578,9 +578,9 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     slave_slcs = get_acq_data_from_list(slave_scene)
 
     # get metadata
-    master_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in master_slcs }
+    master_md = { i:util.query_es(GRQ_ES_ENDPOINT, i) for i in master_slcs }
     #logger.info("master_md: {}".format(json.dumps(master_md, indent=2)))
-    slave_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in slave_slcs }
+    slave_md = { i:util.query_es(GRQ_ES_ENDPOINT, i) for i in slave_slcs }
     #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
 
     # get urls (prefer s3)
