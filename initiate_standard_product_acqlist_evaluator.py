@@ -227,8 +227,7 @@ def main():
                                     acqlist['metadata']['master_scenes'], acqlist['metadata']['slave_scenes'],
                                     acqlist['metadata']['orbitNumber'], acqlist['metadata']['direction'],
                                     acqlist['metadata']['platform'], acqlist['metadata']['union_geojson'],
-                                    acqlist['metadata']['bbox'], acqlist['metadata']['list_master_dt'],
-                                    acqlist['metadata']['list_slave_dt'])
+                                    acqlist['metadata']['bbox'])
             logger.info(
                 "Created ifg-cfg {} for acq-list {}.".format(prod_dir, acqlist['id']))
             if ifgcfg_exists(prod_dir, ifgcfg_version):
