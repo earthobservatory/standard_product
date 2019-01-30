@@ -576,9 +576,9 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     slave_slcs = get_acq_data_from_list(slave_scene)
 
     # get metadata
-    master_md = { i:util.query_es(GRQ_ES_ENDPOINT, i) for i in master_slcs }
+    master_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in master_slcs }
     #logger.info("master_md: {}".format(json.dumps(master_md, indent=2)))
-    slave_md = { i:util.query_es(GRQ_ES_ENDPOINT, i) for i in slave_slcs }
+    slave_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in slave_slcs }
     #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
 
     # get urls (prefer s3)
@@ -614,7 +614,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     orbit_type = 'poeorb'
     logger.info("Publish IFG job: direction : %s, platform : %s" %(direction, platform))
 
-    id = IFG_CFG_ID_TMPL.format('M', len(master_scene), len(slave_scene), track, parser.parse(slc_master_dt), parser.parse(slc_slave_dt), orbit_type, id_hash[0:4])
+    id = IFG_CFG_ID_TMPL.format('M', len(master_scene), len(slave_scene), track, parser.parse(slc_master_dt.strftime('%Y%m%dT%H%M%S')), parser.parse(slc_slave_dt.strftime('%Y%m%dT%H%M%S')), orbit_type, id_hash[0:4])
 
     #id = "standard-product-ifg-cfg-%s" %id_hash[0:4]
     prod_dir =  id
@@ -654,8 +654,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['slave_zip_url'] = slave_zip_url
     md['localize_urls'] = localize_urls
     md['dem_type'] = dem_type
-    md['slc_master_dt'] = slc_master_dt
-    md['slc_slave_dt'] = slc_slave_dt
+    md['slc_master_dt'] = slc_master_dt.strftime('%Y%m%dT%H%M%S')
+    md['slc_slave_dt'] = slc_slave_dt.strftime('%Y%m%dT%H%M%S')
     md["master_zip_file"] = [os.path.basename(i) for i in master_zip_url]
     md["master_orbit_file"] = os.path.basename(master_orbit_url)
     md["slave_zip_file"] = [os.path.basename(i) for i in slave_zip_url]
