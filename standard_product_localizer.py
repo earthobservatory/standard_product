@@ -584,6 +584,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
 
     # get urls (prefer s3)
+    logger.info("master_md : %s" %master_md)
+    logger.info("slave_md : %s" %slave_md)
     master_zip_url = util.get_urls(master_md) 
     logger.info("master_zip_url: {}".format(master_zip_url))
     slave_zip_url = util.get_urls(slave_md) 
