@@ -16,6 +16,8 @@ def main():
 
 
 if __name__ == '__main__':
+    status = main()
+    '''
     try: status = main()
     except Exception as e:
         with open('_alt_error.txt', 'w') as f:
@@ -24,3 +26,4 @@ if __name__ == '__main__':
             f.write("%s\n" % traceback.format_exc())
         raise
     sys.exit(status)
+    '''
