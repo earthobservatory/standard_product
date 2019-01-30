@@ -74,7 +74,6 @@ def get_area(coords):
     #area = abs(area) / 2.0
     return area / 2
 
-
 def query_es(endpoint, doc_id):
     """
     This function queries ES
@@ -123,8 +122,7 @@ def query_es(endpoint, doc_id):
         return
 
     #LOGGER.debug("Got: {0}".format(json.dumps(result)))
-    return result
-
+    return result["hits"]["hits"][0]
 
 def create_dataset_json(id, version, met_file, ds_file):
     """Write dataset json."""
@@ -547,7 +545,7 @@ def publish_localized_info( acq_info, project, job_priority, dem_type, track, st
     for i in range(len(project)):
         publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], direction[i], platform[i], union_geojson[i], bbox[i])
 
-def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, list_master_dt, list_slave_dt, wuid=None, job_num=None):
+def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
@@ -616,7 +614,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     orbit_type = 'poeorb'
     logger.info("Publish IFG job: direction : %s, platform : %s" %(direction, platform))
 
-    id = IFG_CFG_ID_TMPL.format('M', len(master_scene), len(slave_scene), track, parser.parse(list_master_dt), parser.parse(list_slave_dt), orbit_type, id_hash[0:4])
+    id = IFG_CFG_ID_TMPL.format('M', len(master_scene), len(slave_scene), track, parser.parse(slc_master_dt), parser.parse(slc_slave_dt), orbit_type, id_hash[0:4])
 
     #id = "standard-product-ifg-cfg-%s" %id_hash[0:4]
     prod_dir =  id
