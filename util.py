@@ -169,7 +169,7 @@ def get_area(coords):
     area = 0.0
     for i in range(n):
         j = (i + 1) % n
-        print("i : %s j: %s, coords[i][1] : %s coords[j][0] : %s coords[j][1] : %s coords[i][0] : %s"  %(i, j, coords[i][1], coords[j][0], coords[j][1], coords[i][0]))
+        #print("i : %s j: %s, coords[i][1] : %s coords[j][0] : %s coords[j][1] : %s coords[i][0] : %s"  %(i, j, coords[i][1], coords[j][0], coords[j][1], coords[i][0]))
         area += coords[i][1] * coords[j][0]
         area -= coords[j][1] * coords[i][0]
     #area = abs(area) / 2.0
@@ -1447,7 +1447,7 @@ def get_date_from_metadata(mds):
     all_dts = day_dts[day_dt]
     print("all_dts : %s" %all_dts)
 
-    return day_dt, all_dts.sort(), mission
+    return day_dt, all_dts, mission
 
 def get_scene_dates_from_metadata(master_mds, slave_mds):
     master_day_dt, master_all_dts, m_mission = get_date_from_metadata(master_mds)

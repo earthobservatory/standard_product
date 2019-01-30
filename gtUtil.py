@@ -121,11 +121,17 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
     if polygon_type == "MultiPolygon":
         logger.info("MultiPolygon")
         coordinates = geojson["coordinates"]
+        logger.info("get_aoi_area_multipolygon : coordinate : %s" %coordinates)
         union_land = 0
         union_water = 0
         union_intersection = []
         for i in range(len(coordinates)):
-            cord =change_coordinate_direction(coordinates[0][i])
+            cord = coordinates[i]
+            #logger.info("initial cord : %s " %cord)
+            #logger.info("sending cord : %s" %cord[0])
+            cord =change_coordinate_direction(cord[0])
+            #logger.info("returning cord : %s " %cord)
+         
             geojson_new = {"type":"Polygon", "coordinates": [cord]}
             land, water, intersection = get_aoi_area_polygon(geojson_new, aoi_location)
             logger.info("land = %s, water = %s" %(land, water))
