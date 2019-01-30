@@ -152,7 +152,7 @@ def get_aoi_area_polygon(geojson, aoi_location):
     #coordinates = intersection["coordinates"]
     #cord =change_coordinate_direction(coordinates[0])
     #intersection = {"type":"Polygon", "coordinates": [cord]}
-    logger.info("get_aoi_area_polygon : cord : %s" %cord)
+    #logger.info("get_aoi_area_polygon : cord : %s" %cord)
     try:
         land_area = lightweight_water_mask.get_land_area(intersection)
         logger.info("get_land_area(geojson) : %s " %land_area)
