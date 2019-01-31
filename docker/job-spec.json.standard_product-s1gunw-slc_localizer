@@ -8,7 +8,7 @@
     "/home/ops/verdi/etc/settings.conf": "/home/ops/verdi/ops/standard_product/settings.conf"
   },
   "recommended-queues" : [
-    "standard_product_s1ifg-slc_localizer"
+    "standard_product-s1gunw-slc_localizer"
   ],
   "soft_time_limit": 86400,
   "time_limit": 87000, 
