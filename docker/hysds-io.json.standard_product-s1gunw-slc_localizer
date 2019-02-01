@@ -1,6 +1,5 @@
 {
   "label" : "Standard Product S1-GUNW - slc_localizer",
-  "recommended-queues" : [ "grfn-job_worker-large" ],
   "allowed_accounts": [ "ops" ],
   "enable_dedup": false,
   "params" : [
@@ -9,7 +8,7 @@
       "from": "submitter",
       "type": "enum",
       "default": "grfn",
-      "enumerables": ["aria", "grfn", "mem", "urgent-response", "dwr"]
+      "enumerables": ["grfn"]
     },
     {
       "name": "spyddder_extract_version",

@@ -14,7 +14,7 @@
       "from": "submitter",
       "type": "enum",
       "default": "grfn",
-      "enumerables": ["aria", "grfn", "mem", "urgent-response", "dwr"]
+      "enumerables": ["grfn"]
     },
     { 
       "name": "dataset_version",
@@ -45,12 +45,14 @@
       "name": "track_numbers",
       "from": "submitter",
       "type": "text",
+      "placeholder": "comma-separated track numbers. Example : '37, 123'",
       "optional": true
     }, 
     {
       "name": "aoi_name",
       "from": "submitter",
       "type": "text",
+      "placeholder": "comma-separated aoi dataset id. Example : 'aoi_id_1, aoi_id_2'",
       "optional": true
     },     
     {
