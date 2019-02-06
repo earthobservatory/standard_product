@@ -247,7 +247,8 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
         logger.info("ACQ start time : %s " %acq.starttime)
         logger.info("ACQ end time : %s" %acq.endtime)
         if parser.parse(acq.starttime)>= parser.parse(acq.endtime):
-            raise ValueError("%s start time %s is greater or equal to its endtime %s" %(acq_id, acq.starttime, acq.endtime))
+            logger.info("\nERROR : %s start time %s is greater or equal to its endtime %s" %(acq_id, acq.starttime, acq.endtime))
+            return False, result
         else:
             logger.info("Time check Passed")
         
