@@ -16,7 +16,6 @@ def main():
 
 
 if __name__ == '__main__':
-    status = main()
     
     try: status = main()
     except Exception as e:
