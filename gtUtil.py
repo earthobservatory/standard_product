@@ -7,7 +7,7 @@ from xml.etree import ElementTree
 from shapely.geometry import Polygon
 from shapely.ops import cascaded_union
 import datetime
-import dateutil.parser
+from dateutil import parser
 from datetime import datetime, timedelta
 import groundTrack
 from osgeo import ogr, osr
@@ -246,6 +246,11 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
 
         logger.info("ACQ start time : %s " %acq.starttime)
         logger.info("ACQ end time : %s" %acq.endtime)
+        if parser.parse(acq.starttime)>= parser.parse(acq.endtime):
+            raise ValueError("%s start time %s is greater or equal to its endtime %s" %(acq_id, acq.starttime, acq.endtime))
+        else:
+            logger.info("Time check Passed")
+        
         logger.info("ACQ location : %s" %acq.location)
         land, water, acq_intersection = get_aoi_area_multipolygon(acq.location, aoi_location)
         acq_area_array.append(land)
@@ -257,6 +262,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
             logger.info("gtUtil : isValidOrbit : %s" %isValidOrbit)
             if not isValidOrbit:
                 return False, result
+            logger.info("ACQ_IDDDDD : %s" %acq_id)
             gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
             gt_polygons.append(gt_geojson)
             land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
