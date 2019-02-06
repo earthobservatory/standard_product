@@ -1,9 +1,0 @@
-{
-    "starttime" : "2018-06-15",
-    "endtime" : "2018-06-16",
-    "platform" : "Sentinel-1A",
-    "spyddder_extract_version" : "release-20180530",
-    "standard_product_version" : "release-20180621",
-    "project" : "standard_product"
-
-}

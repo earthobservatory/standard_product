@@ -17,8 +17,6 @@ from util import ACQ
 import urllib.request
 
 
-GRQ_URL="http://100.64.134.208:9200/"
-
 #logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 #logger.setLevel(logging.INFO)
 
