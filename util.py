@@ -878,8 +878,13 @@ def get_intersection(js1, js2):
 
     poly2 = ogr.CreateGeometryFromJson(json.dumps(js2, indent=2, sort_keys=True))
     print("\n\npoly2 : %s\n\n" %poly2)
-    intersection = poly1.Intersection(poly2)
-    
+    try:
+        intersection = poly1.Intersection(poly2)
+    except Exception as err:
+        err_value = "Error intersecting two polygon : %s" %str(err)
+        print(err_value)
+        raise RuntimeError(err_value)
+
     if intersection:
         logger.info("\nIntersection value : %s\n" %intersection)
         return True, json.loads(intersection.ExportToJson()), intersection.GetEnvelope()
