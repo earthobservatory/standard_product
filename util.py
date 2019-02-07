@@ -885,10 +885,11 @@ def get_combined_polygon():
 def get_time(t):
 
     logger.info("get_time(t) : %s" %t)
-    t = t.upper().strip().split('.')[0].strip().split('Z')[0].strip()
+    t = parser.parse(t).strftime('%Y-%m-%dT%H:%M:%S')
     t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
     logger.info("returning : %s" %t1)
     return t1
+
 
 def get_processing_version(slc):
     pv = get_processing_version_from_scihub(slc)

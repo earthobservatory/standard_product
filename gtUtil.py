@@ -82,16 +82,17 @@ def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
     return passed, result
 
 
-def get_time2(t):
+def get_time(t):
      
     logger.info("get_time(t) : %s" %t)
+    t = parser.parse(t).strftime('%Y-%m-%dT%H:%M:%S')
+    t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
+    logger.info("returning : %s" %t1)
+    return t1
 
-    return datetime.strptime(parser.parse(t), '%Y-%m-%dT%H:%M:%S')
 
-def get_time(t):
-   
+def get_time2(t):
     logger.info("get_time(t) : %s" %t)
-
     t = t.upper().strip().split('.')[0].strip().split('Z')[0].strip()
     t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
     logger.info("returning : %s" %t1)

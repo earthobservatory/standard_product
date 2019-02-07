@@ -390,11 +390,10 @@ def getUpdatedTime(s, m):
     new_date = s + timedelta(minutes = m)
     return new_date
 
-
 def get_time(t):
 
     logger.info("get_time(t) : %s" %t)
-    t = t.upper().strip().split('.')[0].strip().split('Z')[0].strip()
+    t = parser.parse(t).strftime('%Y-%m-%dT%H:%M:%S')
     t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
     logger.info("returning : %s" %t1)
     return t1
