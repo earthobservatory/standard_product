@@ -238,14 +238,14 @@ def get_acq_time_data(acq_info, acq_ids):
         logger.info("ACQ start time : %s " %acq.starttime)
         logger.info("ACQ end time : %s" %acq.endtime)
 
-     logger.info("MIN start time : %s" %sorted(starttimes)[0])
-     logger.info("MAX end time : %s" %sorted(endtimes, reverse=True)[0])
+    logger.info("MIN start time : %s" %sorted(starttimes)[0])
+    logger.info("MAX end time : %s" %sorted(endtimes, reverse=True)[0])
 
-     tstart = getUpdatedTime(sorted(starttimes)[0], -5)
-     logger.info("tstart : %s" %tstart)
-     tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 5)
-     logger.info("tend : %s" %tend)
-     logger.info("\n\n\n\n")
+    tstart = getUpdatedTime(sorted(starttimes)[0], -5)
+    logger.info("tstart : %s" %tstart)
+    tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 5)
+    logger.info("tend : %s" %tend)
+    logger.info("\n\n\n\n")
 
 def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location, aoi_id,  threshold_pixel, mission, orbit_file = None, orbit_dir = None):
 
