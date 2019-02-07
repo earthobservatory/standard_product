@@ -223,6 +223,30 @@ def change_union_coordinate_direction(union_geom):
 
     return union_geom
 
+
+
+def get_acq_time_data(acq_info, acq_ids):
+    starttimes = []
+    endtimes = []
+    for acq_id in acq_ids:
+        logger.info("\nACQ_ID%s : " %acq_id)
+        acq = acq_info[acq_id]
+        
+        starttimes.append(get_time(acq.starttime))
+        endtimes.append(get_time(acq.endtime))
+
+        logger.info("ACQ start time : %s " %acq.starttime)
+        logger.info("ACQ end time : %s" %acq.endtime)
+
+     logger.info("MIN start time : %s" %sorted(starttimes)[0])
+     logger.info("MAX end time : %s" %sorted(endtimes, reverse=True)[0])
+
+     tstart = getUpdatedTime(sorted(starttimes)[0], -5)
+     logger.info("tstart : %s" %tstart)
+     tend = getUpdatedTime(sorted(endtimes, reverse=True)[0], 5)
+     logger.info("tend : %s" %tend)
+     logger.info("\n\n\n\n")
+
 def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location, aoi_id,  threshold_pixel, mission, orbit_file = None, orbit_dir = None):
 
     logger.info("\n\n\nWATER MASK TEST\n")
@@ -243,6 +267,10 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
     logger.info("water_mask_test1 : aoi_location : %s" %aoi_location)
     acq_area_array = []
     gt_area_array = []
+
+    get_acq_time_data(acq_info, acq_ids)
+
+
     for acq_id in acq_ids:
         logger.info("\n%s : " %acq_id)
         acq = acq_info[acq_id]
@@ -250,7 +278,8 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
             logger.info("COVERS ONLY LAND")
         elif acq.covers_only_water:
             logger.info("COVERS ONLY WATER, SO RETURNING FALSE : %s" %acq_id)
-            return False, result
+            continue
+            #return False, result
         else:
             logger.info("COVERS BOTH LAND & WATER")
 
