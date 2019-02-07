@@ -871,13 +871,20 @@ def get_acq_orbit_polygon(starttime, endtime, orbit_dir):
     pass
     
 def get_intersection(js1, js2):
-    print("intersection between :\n %s\n%s" %(js1, js2))
+    print("intersection between :\n %s\nAND\n%s\n\n" %(js1, js2))
     poly1 = ogr.CreateGeometryFromJson(json.dumps(js1, indent=2, sort_keys=True))
+    print("\n\npoly1 : %s\n\n" %poly1)
+
+
     poly2 = ogr.CreateGeometryFromJson(json.dumps(js2, indent=2, sort_keys=True))
-
+    print("\n\npoly2 : %s\n\n" %poly2)
     intersection = poly1.Intersection(poly2)
-    return json.loads(intersection.ExportToJson()), intersection.GetEnvelope()
-
+    
+    if intersection:
+        logger.info("\nIntersection value : %s\n" %intersection)
+        return True, json.loads(intersection.ExportToJson()), intersection.GetEnvelope()
+    else:
+        return False, None, None
 
 def get_combined_polygon():
     pass

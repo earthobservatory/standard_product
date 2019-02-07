@@ -104,11 +104,14 @@ def get_area_from_orbit_file(tstart, tend, mision, orbit_file, orbit_dir, aoi_lo
     land_area = 0
     logger.info("tstart : %s  tend : %s" %(tstart, tend))
     geojson = get_groundTrack_footprint(tstart, tend, mission, orbit_file, orbit_dir)
-    intersection, int_env = util.get_intersection(aoi_location, geojson)
-    logger.info("intersection : %s" %intersection)
-    land_area = lightweight_water_mask.get_land_area(intersection)
-    logger.info("get_land_area(geojson) : %s " %land_area)
-    water_area = lightweight_water_mask.get_water_area(intersection)
+    land_area = 0
+    water_area = 0
+    intersect, intersection, int_env = util.get_intersection(aoi_location, geojson)
+    if intersect:
+        logger.info("intersection : %s" %intersection)
+        land_area = lightweight_water_mask.get_land_area(intersection)
+        logger.info("get_land_area(geojson) : %s " %land_area)
+        water_area = lightweight_water_mask.get_water_area(intersection)
 
     logger.info("covers_land : %s " %lightweight_water_mask.covers_land(geojson))
     logger.info("covers_water : %s "%lightweight_water_mask.covers_water(geojson))
@@ -123,6 +126,7 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
     land_area = 0
 
     polygon_type = geojson["type"]
+    logger.info("polygon_type : %s" %polygon_type)
 
     if polygon_type == "MultiPolygon":
         logger.info("MultiPolygon")
@@ -143,7 +147,8 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
             logger.info("land = %s, water = %s" %(land, water))
             union_land += land
             union_water += water
-            union_intersection.append(intersection)
+            if intersection:
+                union_intersection.append(intersection)
         return union_land, union_water, union_intersection
 
     else:
@@ -153,7 +158,9 @@ def get_aoi_area_polygon(geojson, aoi_location):
     water_area = 0
     land_area = 0
 
-    intersection, int_env = util.get_intersection(aoi_location, geojson)
+    intersect, intersection, int_env = util.get_intersection(aoi_location, geojson)
+    if not intersect:
+        return land_area, water_area, None
     logger.info("intersection : %s" %intersection)
     if "coordinates" in intersection:
         coordinates = intersection["coordinates"]
@@ -371,10 +378,14 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
 
 def get_area_from_acq_location(geojson, aoi_location):
     logger.info("geojson : %s" %geojson)
-    intersection, int_env = util.get_intersection(aoi_location, geojson)
-    logger.info("intersection : %s" %intersection)
-    land_area = lightweight_water_mask.get_land_area(intersection)
-    water_area = lightweight_water_mask.get_water_area(intersection)
+    land_area = 0
+    water_area = 0
+    
+    intersect, intersection, int_env = util.get_intersection(aoi_location, geojson)
+    if intersect:
+        logger.info("intersection : %s" %intersection)
+        land_area = lightweight_water_mask.get_land_area(intersection)
+        water_area = lightweight_water_mask.get_water_area(intersection)
 
     logger.info("covers_land : %s " %lightweight_water_mask.covers_land(geojson))
     logger.info("covers_water : %s "%lightweight_water_mask.covers_water(geojson))
