@@ -82,14 +82,21 @@ def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
     return passed, result
 
 
+def get_time2(t):
+     
+    logger.info("get_time(t) : %s" %t)
+
+    return datetime.strptime(parser.parse(t), '%Y-%m-%dT%H:%M:%S')
+
 def get_time(t):
    
-    if '.' in t:
-        t1 = t.split('.')[0].strip()
-        logger.info("%s changed to %s" %(t, t1))
-        return datetime.strptime(t1, '%Y-%m-%dT%H:%M:%S')
-    else:
-        return datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
+    logger.info("get_time(t) : %s" %t)
+
+    t = t.lower().strip().split('.')[0].strip().split('z')[0].strip()
+    t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
+    logger.info("returning : %s" %t1)
+    return t1
+
 
 def get_area_from_orbit_file(tstart, tend, mision, orbit_file, orbit_dir, aoi_location):
     water_area = 0

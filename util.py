@@ -884,12 +884,12 @@ def get_combined_polygon():
 
 def get_time(t):
 
-    if '.' in t:
-        t1 = t.split('.')[0].strip()
-        return datetime.strptime(t1, '%Y-%m-%dT%H:%M:%S')
-    else:
-        return datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
+    logger.info("get_time(t) : %s" %t)
 
+    t = t.lower().strip().split('.')[0].strip().split('z')[0].strip()
+    t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
+    logger.info("returning : %s" %t1)
+    return t1
 
 def get_processing_version(slc):
     pv = get_processing_version_from_scihub(slc)
