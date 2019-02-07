@@ -394,8 +394,7 @@ def getUpdatedTime(s, m):
 def get_time(t):
 
     logger.info("get_time(t) : %s" %t)
-
-    t = t.lower().strip().split('.')[0].strip().split('z')[0].strip()
+    t = t.upper().strip().split('.')[0].strip().split('Z')[0].strip()
     t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
     logger.info("returning : %s" %t1)
     return t1
