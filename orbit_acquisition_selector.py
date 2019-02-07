@@ -13,6 +13,7 @@ import groundTrack
 from osgeo import ogr
 import lightweight_water_mask
 import csv
+from dateutil import parser
 
 # set logger
 log_format = "[%(asctime)s: %(levelname)s/%(name)s/%(funcName)s] %(message)s"
