@@ -106,12 +106,11 @@ def get_area_from_orbit_file(tstart, tend, mision, orbit_file, orbit_dir, aoi_lo
     geojson = get_groundTrack_footprint(tstart, tend, mission, orbit_file, orbit_dir)
     land_area = 0
     water_area = 0
-    intersect, intersection, int_env = util.get_intersection(aoi_location, geojson)
-    if intersect:
-        logger.info("intersection : %s" %intersection)
-        land_area = lightweight_water_mask.get_land_area(intersection)
-        logger.info("get_land_area(geojson) : %s " %land_area)
-        water_area = lightweight_water_mask.get_water_area(intersection)
+    intersection, int_env = util.get_intersection(aoi_location, geojson)
+    logger.info("intersection : %s" %intersection)
+    land_area = lightweight_water_mask.get_land_area(intersection)
+    logger.info("get_land_area(geojson) : %s " %land_area)
+    water_area = lightweight_water_mask.get_water_area(intersection)
 
     logger.info("covers_land : %s " %lightweight_water_mask.covers_land(geojson))
     logger.info("covers_water : %s "%lightweight_water_mask.covers_water(geojson))
@@ -158,9 +157,7 @@ def get_aoi_area_polygon(geojson, aoi_location):
     water_area = 0
     land_area = 0
 
-    intersect, intersection, int_env = util.get_intersection(aoi_location, geojson)
-    if not intersect:
-        return land_area, water_area, None
+    intersection, int_env = util.get_intersection(aoi_location, geojson)
     logger.info("intersection : %s" %intersection)
     if "coordinates" in intersection:
         coordinates = intersection["coordinates"]
@@ -410,11 +407,10 @@ def get_area_from_acq_location(geojson, aoi_location):
     land_area = 0
     water_area = 0
     
-    intersect, intersection, int_env = util.get_intersection(aoi_location, geojson)
-    if intersect:
-        logger.info("intersection : %s" %intersection)
-        land_area = lightweight_water_mask.get_land_area(intersection)
-        water_area = lightweight_water_mask.get_water_area(intersection)
+    intersection, int_env = util.get_intersection(aoi_location, geojson)
+    logger.info("intersection : %s" %intersection)
+    land_area = lightweight_water_mask.get_land_area(intersection)
+    water_area = lightweight_water_mask.get_water_area(intersection)
 
     logger.info("covers_land : %s " %lightweight_water_mask.covers_land(geojson))
     logger.info("covers_water : %s "%lightweight_water_mask.covers_water(geojson))

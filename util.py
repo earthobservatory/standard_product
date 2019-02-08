@@ -887,7 +887,7 @@ def get_intersection(js1, js2):
         print(err_value)
         raise RuntimeError(err_value)
 
-    return True, json.loads(intersection.ExportToJson()), intersection.GetEnvelope()
+    return json.loads(intersection.ExportToJson()), intersection.GetEnvelope()
 
 def get_combined_polygon():
     pass
