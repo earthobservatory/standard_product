@@ -718,6 +718,7 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
             #starttime = ref_acq.starttime
             #endtime = ref_acq.endtime
             starttime, endtime = get_time_data(ref_acq, overlapped_matches)
+            logger.info("get_match starttime : %s endtime : %s" %(starttime, endtime))
             pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
             if ref_type == "master":
                 candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
@@ -899,8 +900,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     md['time_limit'] = 86700
     md['dem_type'] = dem_type
     md['track_number'] = track
-    md['starttime'] = "%sZ" %starttime
-    md['endtime'] = "%sZ" %endtime
+    md['starttime'] = "%s" %starttime
+    md['endtime'] = "%s" %endtime
     md['union_geojson'] = union_geojson
     md['master_scenes'] = master_acquisitions 
     md['slave_scenes'] = slave_acquisitions
