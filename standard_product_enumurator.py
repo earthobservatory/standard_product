@@ -641,11 +641,11 @@ def get_time_data(ref_acq, overlapped_matches):
 
     logger.info("get_time_data : starttime %s type : %s" %(starttime, type(starttime)))
     
-    starttime=util.get_time(starttime)
+    starttime=util.get_time_str(starttime)
     logger.info("get_time_data : new starttime %s type : %s" %(starttime, type(starttime)))
     endtime = sorted(endtimes, reverse=True)[0]
     logger.info("get_time_data :endtime %s type : %s" %(starttime, type(endtime)))
-    endtime = util.get_time(endtime)
+    endtime = util.get_time_str(endtime)
     logger.info("get_time_data :endtime %s type : %s" %(starttime, type(endtime)))
     return starttime, endtime
 

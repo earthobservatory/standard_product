@@ -64,12 +64,13 @@ MISSION = 'S1A'
 
 class ACQ:
     def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform = None  ):
+        print("ACQ : %s %s %s" %(acq_id, starttime, endtime))
         self.acq_id=acq_id,
         self.download_url = download_url
         self.tracknumber = tracknumber
         self.location= location
-        self.starttime = get_time(starttime)
-        self.endtime = get_time(endtime)
+        self.starttime = get_time_str(starttime)
+        self.endtime = get_time_str(endtime)
         self.pv = pv
         self.direction = direction
         self.orbitnumber = orbitnumber
@@ -899,6 +900,12 @@ def get_time(t):
     t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
     logger.info("returning : %s" %t1)
     return t1
+
+def get_time_str(t):
+
+    logger.info("get_time(t) : %s" %t)
+    t = parser.parse(t).strftime('%Y-%m-%dT%H:%M:%S')
+    return t
 
 
 def get_processing_version(slc):
