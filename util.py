@@ -68,8 +68,8 @@ class ACQ:
         self.download_url = download_url
         self.tracknumber = tracknumber
         self.location= location
-        self.starttime = starttime
-        self.endtime = endtime
+        self.starttime = get_time(starttime)
+        self.endtime = get_time(endtime)
         self.pv = pv
         self.direction = direction
         self.orbitnumber = orbitnumber
