@@ -5,7 +5,8 @@ from xml.etree import ElementTree
 #from hysds_commons.job_utils import resolve_hysds_job
 #from hysds.celery import app
 from UrlUtils import UrlUtils
-from shapely.geometry import Polygon
+import shapely
+from shapely.geometry import shape, Polygon, MultiPolygon, mapping
 from shapely.ops import cascaded_union
 import datetime
 import dateutil.parser
@@ -770,23 +771,53 @@ def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     '''returns True if there is any overlap between the two geojsons. The geojsons
     are just a list of coordinate tuples'''
     print("find_overlap_within_aoi : %s\n%s\n%s" %(loc1, loc2, aoi_loc))
-    geojson1 = get_intersection(loc1, aoi_loc)
-    geojson2 = get_intersection(loc2, aoi_loc)
+    geojson1, env1 = get_intersection(loc1, aoi_loc)
+    geojson2, env2 = get_intersection(loc2, aoi_loc)
 
+     
     p3=0
+    intersects = False
     if type(geojson1) is tuple:
         geojson1 = geojson1[0]
     if type(geojson2) is tuple:
         geojson2 = geojson2[0]
 
-    p1=Polygon(geojson1["coordinates"][0])
-    p2=Polygon(geojson2["coordinates"][0])
+    print("geojson1['type'] : %s geojson1['coordinates'] : %s" %(geojson1['type'],geojson1["coordinates"]))
+    print("geojson2['type'] : %s geojson1['coordinates'] : %s" %(geojson2['type'],geojson2["coordinates"]))
+    if geojson1['type'] == "MultiPolygon" and geojson2['type'] == "MultiPolygon":
+        for cord1 in geojson1["coordinates"]:
+            for cord2 in geojson2["coordinates"]:
+                p3 = p3+get_intersection_area(cord1[0], cord2[0])
+    elif geojson1['type'] == "MultiPolygon" and geojson2['type'] == "Polygon":
+        for cord1 in geojson1["coordinates"]:
+            p3 = p3+get_intersection_area(cord1[0], geojson2["coordinates"][0])
+    elif geojson1['type'] == "Polygon" and geojson2['type'] == "MultiPolygon":
+        for cord2 in geojson2["coordinates"]:
+            p3 = p3+get_intersection_area(geojson1["coordinates"][0], cord2[0])
+    elif geojson1['type'] == "Polygon" and geojson2['type'] == "Polygon":
+        p3 = get_intersection_area(geojson1["coordinates"][0], geojson2["coordinates"][0])
+    else:
+        raise ValueError("Unknown Polygon Type : %s and %s" %(geojson1['type'], geojson2['type']))
+    
+    if p3>0:
+        intersects = True
+    if p3>1.0:
+        raise ValueError("Intersection value between %s and %s is too high : %s" %(geojson1["coordinates"], geojson2["coordinates"], p3)) 
+    return intersects, p3
+
+
+def get_intersection_area(cord1, cord2):
+
+    print("\nget_intersection_area between %s and %s" %(cord1, cord2))
+    p3 =0
+
+    
+    p1=Polygon(cord1)
+    p2=Polygon(cord2)
     if p1.intersects(p2):
         p3 = p1.intersection(p2).area/p1.area
         print("\n%s intersects %s with area : %s\n" %(p1, p2, p3))
-    return p1.intersects(p2), p3
-
-
+    return p3
 
 def is_within(geojson1, geojson2):
     '''returns True if there is any overlap between the two geojsons. The geojsons
@@ -916,6 +947,7 @@ def get_acq_orbit_polygon(starttime, endtime, orbit_dir):
 def get_intersection(js1, js2):
     print("GET_INTERSECTION")
     intersection = None
+    poly_type = None
     try:
         print("intersection between :\n %s\nAND\n%s\n" %(js1, js2))
         poly1 = ogr.CreateGeometryFromJson(json.dumps(js1, indent=2, sort_keys=True))
@@ -930,7 +962,11 @@ def get_intersection(js1, js2):
         err_value = "Error intersecting two polygon : %s" %str(err)
         print(err_value)
         raise RuntimeError(err_value)
-
+    if isinstance(intersection, shapely.geometry.polygon.Polygon):
+        poly_type = "POLYGON"
+    if isinstance(intersection, shapely.geometry.multipolygon.MultiPolygon):
+        poly_type = "MULTIPOLYGON"
+    print("\nSHAPELY poly_type : %s" %poly_type)
     return json.loads(intersection.ExportToJson()), intersection.GetEnvelope()
 
 def get_combined_polygon():
