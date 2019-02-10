@@ -108,7 +108,7 @@ def group_acqs_by_orbit_number_from_metadata(frames):
     return group_acqs_by_orbit_number(create_acqs_from_metadata(frames))
 
 def group_acqs_by_track_date_from_metadata(frames):
-    return group_acqs_by_track_date(create_acqs_from_metadata(frames))
+    return group_acqs_by_track_multi_date(create_acqs_from_metadata(frames))
 
 def group_acqs_by_track_date(acqs):
     print("\ngroup_acqs_by_track_date")
@@ -130,6 +130,41 @@ def group_acqs_by_track_date(acqs):
         #bisect.insort(grouped.setdefault(fields['metadata']['track_number'], {}).setdefault(day_dt, []), h['_id'])
         bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(day_dt, []), acq.acq_id)
     return {"grouped": grouped, "acq_info" : acqs_info}
+
+def group_acqs_by_track_multi_date(acqs):
+    print("\ngroup_acqs_by_track_date")
+    grouped = {}
+    acqs_info = {}
+    for acq in acqs:
+        acqs_info[acq.acq_id] = acq
+        match = SLC_RE.search(acq.identifier)
+
+        if not match:
+            raise RuntimeError("Failed to recognize SLC ID %s." % h['_id'])
+        print("group_acqs_by_track_date : Year : %s Month : %s Day : %s" %(int(match.group('start_year')), int(match.group('start_month')), int(match.group('start_day'))))
+
+        day_dt = datetime(int(match.group('start_year')),
+                          int(match.group('start_month')),
+                          int(match.group('start_day')),
+                          0, 0, 0)
+        print("day_dt : %s " %day_dt)
+        day_dt_yesterday = day_dt + timedelta(days=-1)
+        day_dt_tomorrow = day_dt + timedelta(days=1)
+        print("day_dt_yesterday : %s " %day_dt_yesterday)
+        print("day_dt_tomorrow : %s" %day_dt_tomorrow)
+        if acq.tracknumber in grouped.keys() and day_dt_yesterday in grouped[acq.tracknumber].keys():
+            print("day_dt_yesterday exists. updating day_dt to day_dt_yesterday")
+            day_dt = day_dt_yesterday
+        elif acq.tracknumber in grouped.keys() and day_dt_tomorrow in grouped[acq.tracknumber].keys():
+            print("day_dt_tomorrow exists. updating day_dt to day_dt_tomorrow")
+            day_dt = day_dt_tomorrow
+
+        #print("start_date : %s" %datetime.strptime(acq.starttime, '%Y-%m-%d'))
+        #bisect.insort(grouped.setdefault(fields['metadata']['track_number'], {}).setdefault(day_dt, []), h['_id'])
+        bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(day_dt, []), acq.acq_id)
+    return {"grouped": grouped, "acq_info" : acqs_info}
+
+
 
 def group_acqs_by_orbit_number(acqs):
     #print(acqs)

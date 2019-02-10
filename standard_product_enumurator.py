@@ -697,9 +697,13 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
         is_covered = util.is_within(ref_acq.location["coordinates"], union_loc["coordinates"])
         is_overlapped = False
         overlap = 0
+        
         try:
+            logger.info("ref_acq.location : %s, union_loc : %s, aoi_location : %s" %(ref_acq.location, union_loc, aoi_location))
             is_overlapped, overlap = util.find_overlap_within_aoi(ref_acq.location, union_loc, aoi_location)
         except Exception as err:
+            is_overlapped = False
+            overlap = 0
             logger.warn(str(err))
             traceback.print_exc()
             #logger.warn("Traceback: {}".format(traceback.format_exc()))

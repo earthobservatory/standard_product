@@ -436,7 +436,6 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
     grouped_matched = util.group_acqs_by_track_date_from_metadata(acqs) #group_acqs_by_track(acqs)
     logger.info("grouped_matched Done")
     print_groups(grouped_matched)
-
     matched_ids = grouped_matched["acq_info"].keys()
 
     #logger.info("grouped_matched : %s" %grouped_matched)
