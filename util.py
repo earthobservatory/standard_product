@@ -771,13 +771,9 @@ def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     are just a list of coordinate tuples'''
     print("find_overlap_within_aoi : %s\n%s\n%s" %(loc1, loc2, aoi_loc))
     geojson1 = get_intersection(loc1, aoi_loc)
-    print("Intersection : %s " %geojson1)
-
     geojson2 = get_intersection(loc2, aoi_loc)
-    print("Intersection : %s " %geojson2)
 
     p3=0
-    print("find_overlap_within_aoi : geojson1 : %s\n geojson2 : %s" %(geojson1, geojson2))
     if type(geojson1) is tuple:
         geojson1 = geojson1[0]
     if type(geojson2) is tuple:
@@ -787,6 +783,7 @@ def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     p2=Polygon(geojson2["coordinates"][0])
     if p1.intersects(p2):
         p3 = p1.intersection(p2).area/p1.area
+        print("\n%s intersects %s with area : %s\n" %(p1, p2, p3))
     return p1.intersects(p2), p3
 
 
@@ -920,15 +917,15 @@ def get_intersection(js1, js2):
     print("GET_INTERSECTION")
     intersection = None
     try:
-        print("intersection between :\n %s\nAND\n%s\n\n" %(js1, js2))
+        print("intersection between :\n %s\nAND\n%s\n" %(js1, js2))
         poly1 = ogr.CreateGeometryFromJson(json.dumps(js1, indent=2, sort_keys=True))
-        print("\n\npoly1 : %s\n\n" %poly1)
-
+        print("\nget_intersection : poly1 : %s" %poly1)
 
         poly2 = ogr.CreateGeometryFromJson(json.dumps(js2, indent=2, sort_keys=True))
-        print("\n\npoly2 : %s\n\n" %poly2)
+        print("\nget_intersection : poly2 : %s" %poly2)
     
         intersection = poly1.Intersection(poly2)
+        print("\nget_intersection : intersection : %s" %intersection)
     except Exception as err:
         err_value = "Error intersecting two polygon : %s" %str(err)
         print(err_value)

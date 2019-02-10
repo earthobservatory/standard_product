@@ -708,7 +708,8 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
             overlap = 0
             logger.warn(str(err))
             traceback.print_exc()
-            #logger.warn("Traceback: {}".format(traceback.format_exc()))
+            logger.warn("Traceback: {}".format(traceback.format_exc()))
+            #raise
 
         #logger.info("is_ref_truncated : %s" %is_ref_truncated)
         logger.info("is_within : %s" %is_covered)
