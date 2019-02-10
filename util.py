@@ -132,7 +132,7 @@ def group_acqs_by_track_date(acqs):
     return {"grouped": grouped, "acq_info" : acqs_info}
 
 def group_acqs_by_track_multi_date(acqs):
-    print("\ngroup_acqs_by_track_date")
+    print("\ngroup_acqs_by_track_multi_date")
     grouped = {}
     acqs_info = {}
     for acq in acqs:
@@ -141,7 +141,7 @@ def group_acqs_by_track_multi_date(acqs):
 
         if not match:
             raise RuntimeError("Failed to recognize SLC ID %s." % h['_id'])
-        print("group_acqs_by_track_date : Year : %s Month : %s Day : %s" %(int(match.group('start_year')), int(match.group('start_month')), int(match.group('start_day'))))
+        print("group_acqs_by_track_multi_date : Year : %s Month : %s Day : %s" %(int(match.group('start_year')), int(match.group('start_month')), int(match.group('start_day'))))
 
         day_dt = datetime(int(match.group('start_year')),
                           int(match.group('start_month')),
@@ -152,12 +152,15 @@ def group_acqs_by_track_multi_date(acqs):
         day_dt_tomorrow = day_dt + timedelta(days=1)
         print("day_dt_yesterday : %s " %day_dt_yesterday)
         print("day_dt_tomorrow : %s" %day_dt_tomorrow)
-        if acq.tracknumber in grouped.keys() and day_dt_yesterday in grouped[acq.tracknumber].keys():
-            print("day_dt_yesterday exists. updating day_dt to day_dt_yesterday")
-            day_dt = day_dt_yesterday
-        elif acq.tracknumber in grouped.keys() and day_dt_tomorrow in grouped[acq.tracknumber].keys():
-            print("day_dt_tomorrow exists. updating day_dt to day_dt_tomorrow")
-            day_dt = day_dt_tomorrow
+        if acq.tracknumber in grouped.keys():
+            print("acq.tracknumber : %s grouped[acq.tracknumber].keys() : %s " %(acq.tracknumber, grouped[acq.tracknumber].keys()))
+            for d in  grouped[acq.tracknumber].keys():
+                if d == day_dt_yesterday:
+                    print("day_dt_yesterday exists. updating day_dt to day_dt_yesterday")
+                    day_dt = day_dt_yesterday
+                elif d == day_dt_tomorrow:
+                    print("day_dt_tomorrow exists. updating day_dt to day_dt_tomorrow")
+                    day_dt = day_dt_tomorrow
 
         #print("start_date : %s" %datetime.strptime(acq.starttime, '%Y-%m-%d'))
         #bisect.insort(grouped.setdefault(fields['metadata']['track_number'], {}).setdefault(day_dt, []), h['_id'])
@@ -768,7 +771,11 @@ def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     are just a list of coordinate tuples'''
     print("find_overlap_within_aoi : %s\n%s\n%s" %(loc1, loc2, aoi_loc))
     geojson1 = get_intersection(loc1, aoi_loc)
-    geojson2 = get_intersection(loc1, aoi_loc)
+    print("Intersection : %s " %geojson1)
+
+    geojson2 = get_intersection(loc2, aoi_loc)
+    print("Intersection : %s " %geojson2)
+
     p3=0
     print("find_overlap_within_aoi : geojson1 : %s\n geojson2 : %s" %(geojson1, geojson2))
     if type(geojson1) is tuple:
@@ -795,14 +802,17 @@ def is_within(geojson1, geojson2):
 def find_overlap_match(master_acq, slave_acqs):
     #print("\n\nmaster info : %s : %s : %s :%s" %(master_acq.tracknumber, master_acq.orbitnumber, master_acq.pv, master_acq.acq_id))
     #print("slave info : ")
+
+
+    logger.info("\n\n\nfind_overlap_match:")
     master_loc = master_acq.location["coordinates"]
 
-    #print("\n\nmaster_loc : %s" %master_loc)
+    print("\n\nmaster id : %s master loc : %s" %(master_acq.acq_id, master_loc))
     overlapped_matches = {}
     for slave in slave_acqs:
         print("SLAVE : %s" %slave.location)
         slave_loc = slave.location["coordinates"]
-        #print("\n\nslave_loc : %s" %slave_loc)
+        print("\n\nslave_loc : %s" %slave_loc)
         is_over, overlap = is_overlap(master_loc, slave_loc)
         print("is_overlap : %s" %is_over)
         print("overlap area : %s" %overlap)
@@ -907,6 +917,7 @@ def get_acq_orbit_polygon(starttime, endtime, orbit_dir):
     pass
     
 def get_intersection(js1, js2):
+    print("GET_INTERSECTION")
     intersection = None
     try:
         print("intersection between :\n %s\nAND\n%s\n\n" %(js1, js2))

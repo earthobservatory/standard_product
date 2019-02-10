@@ -572,7 +572,6 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
 
 
         slave_grouped_matched = util.group_acqs_by_orbit_number(slave_acqs)
-        #slave_grouped_matched = util.group_acqs_by_track_date(slave_acqs)
          
         orbitnumber_pv = {}
         selected_slave_acqs_by_orbitnumber = {}
@@ -662,11 +661,14 @@ def get_union_geometry(acq_dict):
     union = None
     #logger.info(acq_dict)
     ids = sorted(acq_dict.keys())
+    logger.info("\n\nget_union_geometry of : ")
     for id in ids:
         geom = ogr.CreateGeometryFromJson(json.dumps(acq_dict[id].location))
         geoms.append(geom)
+        logger.info("id : %s geom : %s" %(id, geom))
         union = geom if union is None else union.Union(geom)
     union_geojson =  json.loads(union.ExportToJson())
+    logger.info("Final union geom : %s" %union_geojson)
     return union_geojson
 
 def get_orbit_number_list(ref_acq,  overlapped_acqs):
