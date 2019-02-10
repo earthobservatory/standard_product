@@ -159,6 +159,12 @@ def get_aoi_area_polygon(geojson, aoi_location):
 
     intersection, int_env = util.get_intersection(aoi_location, geojson)
     logger.info("intersection : %s" %intersection)
+    polygon_type = intersection['type']
+    logger.info("intersection polygon_type : %s" %polygon_type)
+
+    if polygon_type == "MultiPolygon":
+        logger.info("MultiPolygon")
+        return get_aoi_area_multipolygon(intersection, aoi_location)
     if "coordinates" in intersection:
         coordinates = intersection["coordinates"]
         cord =change_coordinate_direction(coordinates[0])
