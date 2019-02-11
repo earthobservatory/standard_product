@@ -815,8 +815,12 @@ def get_intersection_area(cord1, cord2):
     p1=Polygon(cord1)
     p2=Polygon(cord2)
     if p1.intersects(p2):
+        intersection_land_area = lightweight_water_mask.get_land_area(p1.intersection(p2))
+        p1_land_area = lightweight_water_mask.get_land_area(p1)
         p3 = p1.intersection(p2).area/p1.area
         print("\n%s intersects %s with area : %s\n" %(p1, p2, p3))
+        p3 = (1.0 *intersection_land_area)/p1_land_area
+        print("updated_land_area : %s" %p3)
     return p3
 
 def is_within(geojson1, geojson2):
