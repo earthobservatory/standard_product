@@ -693,10 +693,11 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
     if len(overlapped_matches)>0:
         overlapped_acqs = []
         logger.info("Overlapped Acq exists")
-        '''
+        
         #logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
         union_loc = get_union_geometry(overlapped_matches)
         logger.info("union loc : %s" %union_loc)
+        '''
         #is_ref_truncated = util.ref_truncated(ref_acq, overlapped_matches, covth=.99)
         is_covered = util.is_within(ref_acq.location["coordinates"], union_loc["coordinates"])
         is_overlapped = False
