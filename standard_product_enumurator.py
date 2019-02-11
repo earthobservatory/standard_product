@@ -724,6 +724,8 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
         '''
         logger.info("MATCHED")
         matched = True
+        for acq_id in overlapped_matches.keys():
+            overlapped_acqs.append(acq_id[0])
         orbitNumber = get_orbit_number_list(ref_acq,  overlapped_matches)
         starttime, endtime = get_time_data(ref_acq, overlapped_matches)
         logger.info("get_match starttime : %s endtime : %s" %(starttime, endtime))
