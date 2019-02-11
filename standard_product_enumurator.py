@@ -732,7 +732,7 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
         else:
             candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
         
-     return matched, candidate_pair
+    return matched, candidate_pair
             
 def publish_initiator(candidate_pair_list, job_data):
     for candidate_pair in candidate_pair_list:
