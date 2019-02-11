@@ -108,6 +108,10 @@ def get_area_from_orbit_file(tstart, tend, mision, orbit_file, orbit_dir, aoi_lo
     water_area = 0
     intersection, int_env = util.get_intersection(aoi_location, geojson)
     logger.info("intersection : %s" %intersection)
+    polygon_type = intersection['type']
+    logger.info("intersection polygon_type : %s" %polygon_type)
+    if polygon_type == "MultiPolygon":
+        logger.info("\n\nMULTIPOLIGON\n\n")
     land_area = lightweight_water_mask.get_land_area(intersection)
     logger.info("get_land_area(geojson) : %s " %land_area)
     water_area = lightweight_water_mask.get_water_area(intersection)
@@ -163,7 +167,7 @@ def get_aoi_area_polygon(geojson, aoi_location):
     logger.info("intersection polygon_type : %s" %polygon_type)
 
     if polygon_type == "MultiPolygon":
-        logger.info("MultiPolygon")
+        logger.info("\n\nMULTIPOLIGON\n\n")
         return get_aoi_area_multipolygon(intersection, aoi_location)
     if "coordinates" in intersection:
         coordinates = intersection["coordinates"]
@@ -415,6 +419,12 @@ def get_area_from_acq_location(geojson, aoi_location):
     
     intersection, int_env = util.get_intersection(aoi_location, geojson)
     logger.info("intersection : %s" %intersection)
+    polygon_type = intersection['type']
+    logger.info("get_area_from_acq_location : intersection polygon_type : %s" %polygon_type)
+
+    if polygon_type == "MultiPolygon":
+        logger.info("\n\nMULTIPOLIGON\n\n")
+
     land_area = lightweight_water_mask.get_land_area(intersection)
     water_area = lightweight_water_mask.get_water_area(intersection)
 

@@ -687,11 +687,13 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
     master_slave_union_loc = None
     orbitNumber = []
 
-    overlapped_matches = util.find_overlap_match(ref_acq, matched_acqs)
-    logger.info("overlapped_matches count : %s" %len(overlapped_matches))
+    overlapped_matches, total_cover_pct = util.find_overlap_match(ref_acq, matched_acqs)
+    
+    logger.info("overlapped_matches count : %s with coverage pct : %s" %(len(overlapped_matches), total_cover_pct))
     if len(overlapped_matches)>0:
         overlapped_acqs = []
         logger.info("Overlapped Acq exists")
+        '''
         #logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
         union_loc = get_union_geometry(overlapped_matches)
         logger.info("union loc : %s" %union_loc)
@@ -709,7 +711,6 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
             logger.warn(str(err))
             traceback.print_exc()
             logger.warn("Traceback: {}".format(traceback.format_exc()))
-            raise
 
         #logger.info("is_ref_truncated : %s" %is_ref_truncated)
         logger.info("is_within : %s" %is_covered)
@@ -719,19 +720,19 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
         if overlap <=0.98 or not is_overlapped:
             logger.info("ERROR ERROR, overlap is %s " %overlap)
         if is_overlapped: # and overlap>=0.98: # and overlap >=covth:
-            logger.info("MATCHED")
-            matched = True
-            orbitNumber = get_orbit_number_list(ref_acq,  overlapped_matches)
-            #starttime = ref_acq.starttime
-            #endtime = ref_acq.endtime
-            starttime, endtime = get_time_data(ref_acq, overlapped_matches)
-            logger.info("get_match starttime : %s endtime : %s" %(starttime, endtime))
-            pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
-            if ref_type == "master":
-                candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
-            else:
-                candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
-    return matched, candidate_pair
+        '''
+        logger.info("MATCHED")
+        matched = True
+        orbitNumber = get_orbit_number_list(ref_acq,  overlapped_matches)
+        starttime, endtime = get_time_data(ref_acq, overlapped_matches)
+        logger.info("get_match starttime : %s endtime : %s" %(starttime, endtime))
+        pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
+        if ref_type == "master":
+            candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
+        else:
+            candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
+        
+     return matched, candidate_pair
             
 def publish_initiator(candidate_pair_list, job_data):
     for candidate_pair in candidate_pair_list:

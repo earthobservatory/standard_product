@@ -802,7 +802,7 @@ def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     if p3>0:
         intersects = True
     if p3>1.0:
-        raise ValueError("Intersection value between %s and %s is too high : %s" %(geojson1["coordinates"], geojson2["coordinates"], p3)) 
+        logger.info("ERROR : Intersection value between %s and %s is too high : %s" %(geojson1["coordinates"], geojson2["coordinates"], p3)) 
     return intersects, p3
 
 
@@ -815,11 +815,14 @@ def get_intersection_area(cord1, cord2):
     p1=Polygon(cord1)
     p2=Polygon(cord2)
     if p1.intersects(p2):
-        intersection_land_area = lightweight_water_mask.get_land_area(p1.intersection(p2))
+        intersection = p1.intersection(p2)
+        print("intersection : %s" %intersection)
+        intersection_land_area = lightweight_water_mask.get_land_area(intersection)
         p1_land_area = lightweight_water_mask.get_land_area(p1)
+        print("intersection_land_area : %s p1_land_area : %s" %(intersection_land_area,p1_land_area))
         p3 = p1.intersection(p2).area/p1.area
         print("\n%s intersects %s with area : %s\n" %(p1, p2, p3))
-        p3 = (1.0 *intersection_land_area)/p1_land_area
+        p3 = intersection_land_area/p1_land_area
         print("updated_land_area : %s" %p3)
     return p3
 
@@ -835,13 +838,15 @@ def find_overlap_match(master_acq, slave_acqs):
     #print("\n\nmaster info : %s : %s : %s :%s" %(master_acq.tracknumber, master_acq.orbitnumber, master_acq.pv, master_acq.acq_id))
     #print("slave info : ")
 
-
+    total_cover_pct=0
     logger.info("\n\n\nfind_overlap_match:")
     master_loc = master_acq.location["coordinates"]
 
-    print("\n\nmaster id : %s master loc : %s" %(master_acq.acq_id, master_loc))
+    print("\n\nmaster id : %s master loc : %s" %(master_acq.acq_id, master_acq.location))
     overlapped_matches = {}
     for slave in slave_acqs:
+        overlap = 0
+        is_over = False
         print("SLAVE : %s" %slave.location)
         slave_loc = slave.location["coordinates"]
         print("\n\nslave_loc : %s" %slave_loc)
@@ -850,9 +855,10 @@ def find_overlap_match(master_acq, slave_acqs):
         print("overlap area : %s" %overlap)
         if is_over:
             overlapped_matches[slave.acq_id] = slave
+            total_cover_pct = total_cover_pct + overlap
             print("Overlapped slave : %s" %slave.acq_id)
 
-    return overlapped_matches
+    return overlapped_matches, total_cover_pct
 
 def ref_truncated(ref_scene, matched_footprints, covth=.99):
     """Return True if reference scene will be truncated."""
