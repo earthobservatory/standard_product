@@ -1056,6 +1056,12 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['blacklist_test_passed'] = secondary_result.get('BL_PASSED', '')
     md['referance_date'] = reference_result.get('dt', '')
     md['secondary_dt'] = secondary_result.get('dt', '')
+
+    if isinstance(md['starttime'], datetime.datetime):
+        md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S')
+    if isinstance(md['endtime'], datetime.datetime):
+        md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S')
+
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
     logger.info("publish_result : creating dataset file : %s" %ds_file)
