@@ -454,9 +454,9 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['reference_area_threshold_passed'] = reference_result.get('area_threshold_passed', '')
     md['referance_date'] = reference_result.get('dt', '')
 
-    if isinstance(md['starttime'], datetime.datetime):
+    if isinstance(md['starttime'], datetime):
         md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S')
-    if isinstance(md['endtime'], datetime.datetime):
+    if isinstance(md['endtime'], datetime):
         md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S')
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
