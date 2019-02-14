@@ -5,6 +5,7 @@ from xml.etree import ElementTree
 #from hysds_commons.job_utils import resolve_hysds_job
 #from hysds.celery import app
 from UrlUtils import UrlUtils
+import hashlib
 import shapely
 from shapely.geometry import shape, Polygon, MultiPolygon, mapping
 from shapely.ops import cascaded_union
@@ -342,11 +343,14 @@ def create_acqs_from_metadata(frames):
             acqs.append(acq_obj)
     return acqs
 
-def get_result_dict():
+def get_result_dict(aoi=None, track=None, track_dt=None):
     result = {}
-    result['aoi'] = None
-    result['track'] = None
-    result['dt']  = None
+    result['aoi'] = aoi
+    result['track'] = track
+    result['orbit_name']=None
+    #result['secondary_orbit']=None
+    #result['primary_track_dt']  = None
+    #result['secondary_track_dt']  = None
     result['acq_union_land_area'] = None
     result['acq_union_aoi_intersection'] = None
     result['ACQ_POEORB_AOI_Intersection'] = None   
@@ -357,11 +361,57 @@ def get_result_dict():
     result['WATER_MASK_PASSED'] = None
     result['matched'] = None
     result['BL_PASSED'] = None
-    result['master_ipf_count'] = None
-    result['slave_ipf_count'] = None
+    result['primary_ipf_count'] = None
+    result['secondary_ipf_count'] = None
     result['candidate_pairs'] = None
-
+    result['fail_reason'] = ''
+    result['comment'] = ''
+    result['dt']=track_dt
+    result['result']=None
+    result['union_geojson']=None
+    result['delta_area']=None
+    result['orbit_quality_check_passed']=None
+    result['area_threshold_passed'] = None
+    '''
+    result['ACQ_POEORB_AOI_Intersection_primary'] = None
+    result['ACQ_Union_POEORB_Land_primary'] = None
+    result['ACQ_POEORB_AOI_Intersection_secondary'] = None
+    result['ACQ_Union_POEORB_Land_secondary'] = None
+    result['Track_POEORB_Land_secondary'] = None
+    result['Track_AOI_Intersection_secondary'] = None
+    result['Track_POEORB_Land_secondary'] = None
+    result['Track_AOI_Intersection_secondary'] = None    
+    '''
     return result
+
+
+def get_ifg_hash(master_acqs,  slave_acqs, track, aoi_name):
+
+    master_ids_str=""
+    slave_ids_str=""
+
+    for acq in sorted(master_acqs):
+        #logger.info("master acq : %s" %acq)
+        if master_ids_str=="":
+            master_ids_str= acq
+        else:
+            master_ids_str += " "+acq
+
+    for acq in sorted(slave_acqs):
+        #logger.info("slave acq : %s" %acq)
+        if slave_ids_str=="":
+            slave_ids_str= acq
+        else:
+            slave_ids_str += " "+acq
+  
+    id_hash = hashlib.md5(json.dumps([
+            master_ids_str,
+            slave_ids_str,
+            track,
+            aoi_name]).encode("utf8")).hexdigest()
+    return id_hash
+
+
 
 def dataset_exists(id, index_suffix):
     """Query for existence of dataset by ID."""
@@ -1070,6 +1120,25 @@ def get_track(info):
         raise RuntimeError("Failed to find SLCs for only 1 track : %s" %tracks)
     return track
 
+def get_start_end_time(info):
+    starttimes = []
+    endtimes = []
+    for id in info:
+        h = info[id]
+        fields = h["_source"]
+        starttimes.append(fields['starttime'])
+        endtimes.append(fields['endtime'])
+    return sorted(starttimes)[0], sorted(endtimes)[-1]
+
+def get_start_end_time2(acq_info, acq_ids):
+    starttimes = []
+    endtimes = []
+    for acq_id in acq_ids:
+        acq = acq_info[acq_id]
+        starttimes.append(get_time(acq.starttime))
+        endtimes.append(get_time(acq.endtime))
+    return sorted(starttimes)[0], sorted(endtimes)[-1]
+
 def get_bool_param(ctx, param):
     """Return bool param from context."""
 
@@ -1330,9 +1399,15 @@ def create_dataset_json(id, version, met_file, ds_file):
         else:
             coordinates = md['union_geojson']['coordinates']
         '''
-
+        geo_type = md['union_geojson']['type']
         coordinates = md['union_geojson']['coordinates']
+        print(md['union_geojson'])
+        if geo_type == "MultiPolygon":
+            print("create_dataset_json : geo_type is %s, selecting first coordinates." %geo_type)
+            coordinates = coordinates[0]  
+            print("create_dataset_json : coordinates : %s" %coordinates)      
         cord_area = get_area(coordinates[0])
+
         if not cord_area>0:
             print("creating dataset json. coordinates are not clockwise, reversing it")
             coordinates = [coordinates[0][::-1]]

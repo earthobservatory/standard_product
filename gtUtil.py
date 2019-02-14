@@ -71,14 +71,16 @@ def get_groundTrack_footprint(tstart, tend, mission, orbit_file, orbit_dir):
     geojson = {"type":"Polygon", "coordinates": [gt_footprint]}
     return geojson
 
-def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_file=None, orbit_dir=None):
+def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_type, orbit_file=None, orbit_dir=None):
 
     passed = False
     if not aoi_location:
-        logger.info("water_mask_check FAILED as aoi_location NOT found")
+        err_msg = "water_mask_check FAILED as aoi_location NOT found"
+        result['fail_reason'] = err_msg
+        logger.info("err_msg")
         return False, {}
    
-    passed, result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_file, orbit_dir)
+    passed, result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
     return passed, result
 
 
@@ -254,7 +256,7 @@ def get_acq_time_data(acq_info, acq_ids):
     logger.info("tend : %s" %tend)
     logger.info("\n\n\n\n")
 
-def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location, aoi_id,  threshold_pixel, mission, orbit_file = None, orbit_dir = None):
+def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location, aoi_id,  threshold_pixel, mission, orbit_type, orbit_file = None, orbit_dir = None):
 
     logger.info("\n\n\nWATER MASK TEST\n")
     #return True
@@ -266,11 +268,17 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
     acqs_land = []
     acqs_water = []
     gt_polygons = []
-    result = util.get_result_dict()
-    result['aoi'] = aoi_id
-    result['track'] = track
-    result['dt']  = orbit_or_track_dt
-    
+    result = util.get_result_dict(aoi_id, track, orbit_or_track_dt)
+    #result['aoi'] = aoi_id
+    #result['track'] = track
+    #result['dt']  = orbit_or_track_dt
+    '''
+    if orbit_type=='P':
+        result['primary_track_dt'] = orbit_or_track_dt
+    else:
+        result['secondary_track_dt'] = orbit_or_track_dt
+    '''
+
     logger.info("water_mask_test1 : aoi_location : %s" %aoi_location)
     acq_area_array = []
     gt_area_array = []
@@ -296,7 +304,9 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
         logger.info("ACQ start time : %s " %acq.starttime)
         logger.info("ACQ end time : %s" %acq.endtime)
         if parser.parse(acq.starttime)>= parser.parse(acq.endtime):
-            logger.info("\nERROR : %s start time %s is greater or equal to its endtime %s" %(acq_id, acq.starttime, acq.endtime))
+            err_msg = "ERROR : %s start time %s is greater or equal to its endtime %s" %(acq_id, acq.starttime, acq.endtime)
+            result['fail_reason'] = err_msg
+            logger.info(err_msg)
             return False, result
         else:
             logger.info("Time check Passed")
@@ -311,6 +321,8 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
             isValidOrbit = groundTrack.isValidOrbit(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
             logger.info("gtUtil : isValidOrbit : %s" %isValidOrbit)
             if not isValidOrbit:
+                err_msg = "Invalid Orbit : %s" %orbit_file
+                result['fail_reason'] = err_msg
                 return False, result
             logger.info("ACQ_IDDDDD : %s" %acq_id)
             gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
@@ -347,7 +359,14 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
         logger.info("water_mask_test1 with Orbit File: union_land : %s union_water : %s union intersection : %s" %(union_land, union_water, union_intersection))
         result['ACQ_POEORB_AOI_Intersection'] = union_intersection
         result['ACQ_Union_POEORB_Land'] = union_land
-        
+        '''
+        if orbit_type == 'P':
+            result['ACQ_POEORB_AOI_Intersection_primary'] = union_intersection
+            result['ACQ_Union_POEORB_Land_primary'] = union_land
+        else:
+            result['ACQ_POEORB_AOI_Intersection_secondary'] = union_intersection
+            result['ACQ_Union_POEORB_Land_secondary'] = union_land
+        '''
         #get lowest starttime minus 10 minutes as starttime
         tstart = getUpdatedTime(sorted(starttimes)[0], -5)
         logger.info("tstart : %s" %tstart)
@@ -361,9 +380,18 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
         logger.info("water_mask_test1 with Orbit File: track_land : %s track_water : %s intersection : %s" %(track_land, track_water, track_intersection))
         result['Track_POEORB_Land'] = track_land
         result['Track_AOI_Intersection'] = track_intersection
-
+        '''
+        if orbit_type == 'P':
+            result['Track_POEORB_Land_primary'] = union_intersection
+            result['Track_AOI_Intersection_primary'] = union_land
+        else:
+            result['Track_POEORB_Land_secondary'] = union_intersection
+            result['Track_AOI_Intersection_secondary'] = union_land
+        '''
         return isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection, result)
-    else:  
+    else:
+        err_msg = "No Orbit file"
+        result['fail_reason'] = err_msg  
         logger.info("\n\nNO ORBIT\n\n")
         return False, result
       
@@ -389,13 +417,15 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
 
     #logger.info("RESULT : AOI : %s Track : %s Date : %s : Area of AOI land = %s" %(aoi_id, track, orbit_or_track_dt, track_land))
     if union_land == 0 or track_land == 0:
+        err_msg = "Land aria calculation is not correct. track land area = %s. Union of acqusition land area = %s" %(track_land, union_land)
+        result['fail_reason'] = err_msg
         logger.info("\nERROR : isTrackSelected : Returning as lands are Not correct")
         return False, result
     delta_A = abs(float(union_land - track_land))
     pctDelta = float(delta_A/track_land)
     delta_x = float(delta_A/250)
     logger.info("delta_A : %s, delta_x : %s and pctDelta : %s" %(delta_A, delta_x, pctDelta))
-    
+    result['delta_area'] = delta_A 
     # Assiuming 90 m resolution, lets change it to km
     res_km = float(90/1000)
 
@@ -406,9 +436,14 @@ def isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_lan
     result['res'] = res
     #if pctDelta <.1:
     if res <threshold_pixel:
+        result['area_threshold_passed']= True
         logger.info("Track is SELECTED !!")
         result['WATER_MASK_PASSED'] = True
         return True, result
+    else:
+        err_msg = "Acqusition Land Coverage is lower than required by track. Possibly missing scene"
+        result['fail_reason'] = err_msg
+        result['area_threshold_passed']=False
     logger.info("Track is NOT SELECTED !!")
     return False, result
 
