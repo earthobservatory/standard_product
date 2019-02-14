@@ -531,8 +531,10 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 result_track_acqs[slave_track_dt] = result
                 orbit_name = orbit_file.split('.EOF')[0].strip()
                 result['orbit_name']= orbit_name
-
+                if selected:
+                    result['orbit_quality_check_passed']=True
                 if not selected:
+                    result['orbit_quality_check_passed']=False
                     logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
                     rejected_slave_track_dt.append(slave_track_dt)
                     write_result_file(result_file, result)
@@ -559,6 +561,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 publish_result(master_result, result, id_hash)
 
                 continue
+            
             slave_ipf_count = util.get_ipf_count_by_acq_id(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
             logger.info("slave_ipf_count : %s" %slave_ipf_count)
             selected_slave_acqs =list()
@@ -1043,7 +1046,7 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['secondary_total_acqusition_land'] = secondary_result.get('ACQ_Union_POEORB_Land', '')
     md['secondary_orbit'] = secondary_result.get('orbit_name', '')
     md['reference_area_delta_in_resolution']=reference_result.get('res', '')
-    md['secondary__area_delta_in_resolution']=secondary_result.get('res', '')
+    md['secondary_area_delta_in_resolution']=secondary_result.get('res', '')
     md['enumaration_result'] = secondary_result.get('result', '')
     md['track_number'] = reference_result.get('track', '')
     md['result'] = secondary_result.get('result', '')
