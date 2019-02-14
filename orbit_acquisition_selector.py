@@ -458,6 +458,8 @@ def publish_result(reference_result, secondary_result, id_hash):
         md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S')
     if isinstance(md['endtime'], datetime):
         md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S')
+    if isinstance(md['referance_date'], datetime):
+        md['referance_date'] = md['referance_date'].strftime('%Y%m%dT%H%M%S')
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 

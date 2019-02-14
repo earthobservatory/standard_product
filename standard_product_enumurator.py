@@ -1055,14 +1055,19 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['secondary_area_threshold_passed'] = secondary_result.get('area_threshold_passed', '')
     md['blacklist_test_passed'] = secondary_result.get('BL_PASSED', '')
     md['referance_date'] = reference_result.get('dt', '')
-    md['secondary_dt'] = secondary_result.get('dt', '')
+    md['secondary_date'] = secondary_result.get('dt', '')
    
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
+    logger.info("type(md['referance_date']) : %s:" %type(md['referance_date']))
 
     if isinstance(md['starttime'], datetime):
         md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S')
     if isinstance(md['endtime'], datetime):
         md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S')
+    if isinstance(md['referance_date'], datetime):
+        md['referance_date'] = md['referance_date'].strftime('%Y%m%dT%H%M%S')
+    if isinstance(md['secondary_date'], datetime):
+        md['secondary_date'] = md['secondary_date'].strftime('%Y%m%dT%H%M%S')
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
