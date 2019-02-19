@@ -582,7 +582,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
          
             with open(result_file, 'a') as fo:
                 cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['primary_ipf_count'], result['secondary_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection'] ])
+                cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['primary_ipf_count'], result['secondary_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['fail_reason'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection'] ])
             
             if selected:
                 logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
@@ -736,7 +736,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
         result_file = "RESULT_SUMMARY_%s.csv" %aoi['id']
         with open(result_file, 'w') as fo:
             cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            cw.writerow(["Date","Track","Track_PEORB_Land","ACQ_Union_POEORB_Land", "ACQ_Union_Land", "RES", "WATER_MASK_PASSED", "Master_Ipf_Count", "Slave_Ipf_Count", "MATCHED", "BL_PASSED", "Candidate_Pairs", "Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection", "ACQ_AOI_Ingtersection"])
+            cw.writerow(["Date","Track","Track_Land","Total_Acquisition_Land", "ACQ_Union_Land", "Area_Threshold_Passed", "Orbit_Quality_Test_Passed", "Reference_Unique_IPF_Count", "Secondary_Unique_IPF_Count", "Result", "BlackList_Test_Passed", "Candidate_Pairs", "Failure_Reason", "Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection", "ACQ_AOI_Ingtersection"])
 
         selected_track_acqs, result_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file, selected_track_list)
 
