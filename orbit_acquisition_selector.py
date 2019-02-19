@@ -579,11 +579,15 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
             starttime, endtime = util.get_start_end_time2(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
             result['starttime'] = starttime
             result['endtime'] = endtime
-         
-            with open(result_file, 'a') as fo:
-                cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['primary_ipf_count'], result['secondary_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['fail_reason'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection'] ])
             
+            try:
+                with open(result_file, 'a') as fo:
+                    cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                    cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['primary_ipf_count'], result['secondary_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['fail_reason'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection'] ])
+            except Exception as err:
+                logger.info("\n\nERROR Writing to csv file : %s" %str(err))
+                traceback.print_exc()
+
             if selected:
                 logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
                 selected_acqs = []
@@ -602,6 +606,8 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
                 result['orbit_quality_check_passed']=False
                 publish_result(result, id_hash)
         selected_track_acqs[track] = selected_track_dt_acqs
+        logger.info("CHECK: selected_track_acqs[track] : %s" %selected_track_acqs[track])
+        
         result_track_acqs[track] = result_track_dt_acqs
 
 

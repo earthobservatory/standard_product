@@ -275,7 +275,7 @@ def black_list_check(candidate_pair, black_list):
         passed = False
     return passed
 
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result):
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track):
     matched = False
     candidate_pair_list = []
     result['matched'] = matched
@@ -296,7 +296,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 err_msg = "CheckMatch Failed"
                 result['result'] = False
                 result['fail_reason'] = err_msg
-                id_hash = util.get_ifg_hash(master_acqs, slave_acqs, track, aoi)
+                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
                 write_result_file(result_file, result)
                 publish_result(master_result, result, id_hash)
 
@@ -315,7 +315,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                     err_msg = "Acqusition exists in BlackList"
                     result['result'] = False
                     result['fail_reason'] = err_msg
-                    id_hash = util.get_ifg_hash(master_acqs, slave_acqs, track, aoi)
+                    id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
                     write_result_file(result_file, result)
                     publish_result(master_result, result, id_hash)
                     return False, [], result
@@ -331,7 +331,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 err_msg = "CheckMatch Failed"
                 result['result'] = False
                 result['fail_reason'] = err_msg
-                id_hash = util.get_ifg_hash(master_acqs, slave_acqs, track, aoi)
+                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
                 write_result_file(result_file, result)
                 publish_result(master_result, result, id_hash)
                 return False, [], result
@@ -347,7 +347,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                     err_msg = "Acqusition exists in BlackList"
                     result['result'] = False
                     result['fail_reason'] = err_msg
-                    id_hash = util.get_ifg_hash(master_acqs, slave_acqs, track, aoi)
+                    id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
                     write_result_file(result_file, result)
                     publish_result(master_result, result, id_hash)
 
@@ -357,7 +357,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
         err_msg = "Master and Slave both have multiple ipf"
         result['result'] = False
         result['fail_reason'] = err_msg
-        id_hash = util.get_ifg_hash(master_acqs, slave_acqs, track, aoi)
+        id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
         write_result_file(result_file, result)
         publish_result(master_result, result, id_hash)
         logger.info("Candidate Pair NOT SELECTED")
@@ -440,6 +440,11 @@ def print_candidate_pair(candidate_pair):
         logger.info(master_acq)
 
 
+def get_acq_ids(acqs):
+    acq_ids = []
+    for acq in acqs:
+        acq_ids.append(acq.acq_id)
+    return acq_ids
 
 def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
@@ -459,8 +464,15 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
    
         slaves_track = {}
         slave_acqs = []
-            
+        
+        master_acq_ids = []    
         master_acqs = selected_track_acqs[track_dt]
+        for acq in master_acqs:
+            master_acq_ids.append(acq.acq_id)
+        
+        logger.info("MASTER ACQS : %s, type : %s" %(master_acqs, type(master_acqs)))
+        if len(master_acqs)==0:
+            logger.info("ERROR: master acq list %s empty for track dt: %s" %(master_acqs, track_dt))
         master_result = result_track_acqs[track_dt]
         master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
         #master_ipf_count = util.get_ipf_count(master_acqs)
@@ -484,7 +496,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             result['fail_reason'] = err_msg
             logger.info("ERROR ERROR : NO SLAVE FOUND for AOI %s and track %s" %(aoi_data['aoi_id'], track))
             result['union_geojson'] = master_union_geojson
-            id_hash = util.get_ifg_hash(master_acqs, [], track, aoi)
+            id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
             publish_result(master_result, result, id_hash)
             continue
 
@@ -539,7 +551,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                     rejected_slave_track_dt.append(slave_track_dt)
                     write_result_file(result_file, result)
                     result['union_geojson'] = master_union_geojson
-                    id_hash = util.get_ifg_hash(master_acqs, [], track, aoi)
+                    id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
                     publish_result(master_result, result, id_hash)
                     '''
                     with open(result_file, 'a') as fo:
@@ -556,7 +568,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 result['fail_reason'] = err_msg
                 result['dt'] = slave_track_dt 
                 result['union_geojson'] = master_union_geojson
-                id_hash = util.get_ifg_hash(master_acqs, [], track, aoi)
+                id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
                 write_result_file(result_file, result)
                 publish_result(master_result, result, id_hash)
 
@@ -575,7 +587,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             
             result['reference_ipf_count'] = master_ipf_count
             result['secondary_ipf_count'] = slave_ipf_count
-            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result)            
+            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             write_result_file(result_file, result)
@@ -595,7 +607,7 @@ def write_result_file(result_file, result):
     try:
         with open(result_file, 'a') as fo:
             cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['reference_ipf_count'], result['secondary_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['fail_reason'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection']])
+            cw.writerow([result.get('dt', ''), result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('acq_union_land_area', ''), result.get('res', ''), result.get('WATER_MASK_PASSED', ''), result.get('reference_ipf_count', ''), result.get('secondary_ipf_count', ''),result.get('matched', ''), result.get('BL_PASSED', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', ''), result.get('acq_union_aoi_intersection', '')])
     except Exception as err:
         logger.info("Error writing to csv file : %s : " %str(err))
         traceback.print_exc()
@@ -664,7 +676,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             result['reference_ipf_count'] = master_ipf_count
             result['secondary_ipf_count'] = slave_ipf_count
 
-            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result)            
+            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             write_result_file(result_file, result)
