@@ -275,7 +275,7 @@ def black_list_check(candidate_pair, black_list):
         passed = False
     return passed
 
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track):
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi):
     matched = False
     candidate_pair_list = []
     result['matched'] = matched
@@ -443,7 +443,10 @@ def print_candidate_pair(candidate_pair):
 def get_acq_ids(acqs):
     acq_ids = []
     for acq in acqs:
-        acq_ids.append(acq.acq_id)
+        acq_id = acq.acq_id
+        if isinstance(acq_id, tuple) or isinstance(acq_id, list):
+            acq_id = acq_id[0]
+        acq_ids.append(acq_id)
     return acq_ids
 
 def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs):
@@ -468,7 +471,10 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         master_acq_ids = []    
         master_acqs = selected_track_acqs[track_dt]
         for acq in master_acqs:
-            master_acq_ids.append(acq.acq_id)
+            acq_id = acq.acq_id
+            if isinstance(acq_id, tuple) or isinstance(acq_id, list):
+                acq_id = acq_id[0]
+            master_acq_ids.append(acq_id)
         
         logger.info("MASTER ACQS : %s, type : %s" %(master_acqs, type(master_acqs)))
         if len(master_acqs)==0:
@@ -556,7 +562,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                     '''
                     with open(result_file, 'a') as fo:
                         cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                        cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['reference_ipf_count'], result['secondary_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection']])
+                        cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['primary_ipf_count'], result['secondary_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection']])
                     '''
                     continue
             else:
@@ -585,9 +591,9 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
 
             logger.info("Processing Slaves with date : %s" %slave_track_dt)
             
-            result['reference_ipf_count'] = master_ipf_count
+            result['primary_ipf_count'] = master_ipf_count
             result['secondary_ipf_count'] = slave_ipf_count
-            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track)            
+            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             write_result_file(result_file, result)
@@ -607,7 +613,7 @@ def write_result_file(result_file, result):
     try:
         with open(result_file, 'a') as fo:
             cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            cw.writerow([result.get('dt', ''), result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('acq_union_land_area', ''), result.get('res', ''), result.get('WATER_MASK_PASSED', ''), result.get('reference_ipf_count', ''), result.get('secondary_ipf_count', ''),result.get('matched', ''), result.get('BL_PASSED', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', ''), result.get('acq_union_aoi_intersection', '')])
+            cw.writerow([result.get('dt', ''), result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('acq_union_land_area', ''), result.get('res', ''), result.get('WATER_MASK_PASSED', ''), result.get('primary_ipf_count', ''), result.get('secondary_ipf_count', ''),result.get('matched', ''), result.get('BL_PASSED', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', ''), result.get('acq_union_aoi_intersection', '')])
     except Exception as err:
         logger.info("Error writing to csv file : %s : " %str(err))
         traceback.print_exc()
@@ -673,10 +679,10 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             slave_ipf_count = orbitnumber_pv[slave_orbitnumber]
             slave_acqs = selected_slave_acqs_by_orbitnumber[slave_orbitnumber]
             
-            result['reference_ipf_count'] = master_ipf_count
+            result['primary_ipf_count'] = master_ipf_count
             result['secondary_ipf_count'] = slave_ipf_count
 
-            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track)            
+            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             write_result_file(result_file, result)

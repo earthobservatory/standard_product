@@ -391,14 +391,20 @@ def get_ifg_hash(master_acqs,  slave_acqs, track, aoi_name):
     slave_ids_str=""
 
     for acq in sorted(master_acqs):
-        #logger.info("master acq : %s" %acq)
+        logger.info("get_ifg_hash : master acq : %s" %acq)
+        if isinstance(acq, tuple) or isinstance(acq, list):
+            acq = acq[0]
+
         if master_ids_str=="":
             master_ids_str= acq
         else:
             master_ids_str += " "+acq
 
     for acq in sorted(slave_acqs):
-        #logger.info("slave acq : %s" %acq)
+        logger.info("get_ifg_hash: slave acq : %s" %acq)
+        if isinstance(acq, tuple) or isinstance(acq, list):
+            acq = acq[0]
+        
         if slave_ids_str=="":
             slave_ids_str= acq
         else:
