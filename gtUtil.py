@@ -206,13 +206,15 @@ def change_coordinate_direction(cord):
         try:
             cord_area = util.get_area(cord)
         except:
-            cord = cortd[0]
+            cord = cord[0]
+            logger.info("change_coordinate_direction 3 : cord : %s" %cord)
             cord_area = util.get_area(cord)
         if not cord_area>0:
             logger.info("change_coordinate_direction. coordinates are STILL NOT  clockwise")
     else:
         logger.info("change_coordinate_direction: coordinates are already clockwise")
 
+    logger.info("change_coordinate_direction 4 : cord : %s" %cord)
     return cord
 
 
