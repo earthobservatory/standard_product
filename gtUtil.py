@@ -318,8 +318,18 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
             logger.info("Time check Passed")
         
         logger.info("ACQ location : %s" %acq.location)
-        land, water, acq_intersection = get_aoi_area_multipolygon(acq.location, aoi_location)
-        acq_area_array.append(land)
+        land = None 
+        water = None
+        acq_intersection=None
+        try:
+            land, water, acq_intersection = get_aoi_area_multipolygon(acq.location, aoi_location)
+            acq_area_array.append(land)
+        except Exception as err:
+            err_msg = "Failed to get area of polygon : %s" %str(err)
+            logger.info(err_msg)
+            result['fail_reason'] = err_msg
+            traceback.print_exc()
+            #return False, result
         logger.info("Area from acq.location : %s" %land)
         polygons.append(acq.location)
 
@@ -333,7 +343,18 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
             logger.info("ACQ_IDDDDD : %s" %acq_id)
             gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
             gt_polygons.append(gt_geojson)
-            land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
+            land = None 
+            water = None
+            acq_intersection=None
+            try:
+                land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
+            except Exception as err:
+                err_msg = "Failed to get area of polygon : %s" %str(err)
+                logger.info(err_msg)
+                result['fail_reason'] = err_msg
+                traceback.print_exc()
+                return False, result
+
             logger.info("Area from gt_geojson : %s" %land)
             gt_area_array.append(land)
 
