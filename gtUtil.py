@@ -197,13 +197,17 @@ def get_aoi_area_polygon(geojson, aoi_location):
 
 
 def change_coordinate_direction(cord):
-    logger.info("cord: %s\n" %cord)
+    logger.info("change_coordinate_direction 1 cord: %s\n" %cord)
     cord_area = util.get_area(cord)
     if not cord_area>0:
         logger.info("change_coordinate_direction : coordinates are not clockwise, reversing it")
         cord = [cord[::-1]]
-        logger.info(cord)
-        cord_area = util.get_area(cord)
+        logger.info("change_coordinate_direction 2 : cord : %s" %cord)
+        try:
+            cord_area = util.get_area(cord)
+        except:
+            cord = cortd[0]
+            cord_area = util.get_area(cord)
         if not cord_area>0:
             logger.info("change_coordinate_direction. coordinates are STILL NOT  clockwise")
     else:
