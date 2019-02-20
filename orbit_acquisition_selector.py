@@ -410,7 +410,7 @@ def isTrackSelected(land, water, land_area, water_area):
     if ((total_acq_land*100)/land)> 98:
         selected = True
 
-    return selectedi
+    return selected
 
 
 def write_result_file(result_file, result):
