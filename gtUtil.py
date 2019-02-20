@@ -74,14 +74,21 @@ def get_groundTrack_footprint(tstart, tend, mission, orbit_file, orbit_dir):
 def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_type, orbit_file=None, orbit_dir=None):
 
     passed = False
+    result = util.get_result_dict(aoi_id, track, orbit_or_track_dt)
     if not aoi_location:
         err_msg = "water_mask_check FAILED as aoi_location NOT found"
         result['fail_reason'] = err_msg
         logger.info("err_msg")
         return False, {}
-   
-    passed, result = water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
-    return passed, result
+    try:
+        passed, result = water_mask_test1(result, track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+        return passed, result
+    except Exception as err:
+        err_msg = "orbit quality test failed : %s" %str(err)
+        logger.info(err_msg)
+        result['fail_reason'] = err_msg
+        traceback.print_exc()
+        return False, result                                                                                                                                
 
 
 def get_time(t):
@@ -162,7 +169,8 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
 def get_aoi_area_polygon(geojson, aoi_location):
     water_area = 0
     land_area = 0
-
+    
+    logger.info("\nget_aoi_area_polygon : \ngeojson : %s, \naoi_location : %s" %(geojson, aoi_location))
     intersection, int_env = util.get_intersection(aoi_location, geojson)
     logger.info("intersection : %s" %intersection)
     polygon_type = intersection['type']
@@ -262,7 +270,7 @@ def get_acq_time_data(acq_info, acq_ids):
     logger.info("tend : %s" %tend)
     logger.info("\n\n\n\n")
 
-def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location, aoi_id,  threshold_pixel, mission, orbit_type, orbit_file = None, orbit_dir = None):
+def water_mask_test1(result, track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location, aoi_id,  threshold_pixel, mission, orbit_type, orbit_file = None, orbit_dir = None):
 
     logger.info("\n\n\nWATER MASK TEST\n")
     #return True
@@ -274,7 +282,6 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
     acqs_land = []
     acqs_water = []
     gt_polygons = []
-    result = util.get_result_dict(aoi_id, track, orbit_or_track_dt)
     #result['aoi'] = aoi_id
     #result['track'] = track
     #result['dt']  = orbit_or_track_dt
@@ -346,14 +353,7 @@ def water_mask_test1(track, orbit_or_track_dt, acq_info, acq_ids,  aoi_location,
             land = None 
             water = None
             acq_intersection=None
-            try:
-                land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
-            except Exception as err:
-                err_msg = "Failed to get area of polygon : %s" %str(err)
-                logger.info(err_msg)
-                result['fail_reason'] = err_msg
-                traceback.print_exc()
-                return False, result
+            land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
 
             logger.info("Area from gt_geojson : %s" %land)
             gt_area_array.append(land)
