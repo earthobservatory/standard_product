@@ -1030,7 +1030,7 @@ def publish_result(reference_result, secondary_result, id_hash):
     version = "v2.0.0"
     logger.info("\nPUBLISH RESULT")
 
-    ACQ_RESULT_ID_TMPL = "S1-GUNW-enum-result-R{}-TN{:03d}-{}-{}-{}"
+    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-TN{:03d}-{}-{}-{}"
 
     orbit_type = 'poeorb'
     aoi_id = reference_result['aoi'].strip().replace(' ', '_')
