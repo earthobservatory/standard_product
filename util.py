@@ -1033,11 +1033,17 @@ def get_intersection(js1, js2):
     if isinstance(intersection, shapely.geometry.multipolygon.MultiPolygon):
         poly_type = "MULTIPOLYGON"
     print("\nSHAPELY poly_type : %s" %poly_type)
-    '''
-    if poly_type is None:
-        err_msg = "util.get_intersection: intersection between %s and %s is None" %(js1, js2)
+   
+
+    if intersection.IsEmpty():
+        print("intersection is empty : %s" %intersection)
+        err_msg = "util.get_intersection: intersection between %s and %s is %s" %(js1, js2, intersection)
         raise RuntimeError(err_msg)
-    '''
+
+    if intersection is None or intersection == 'GEOMETRYCOLLECTION EMPTY':
+        err_msg = "util.get_intersection: intersection between %s and %s is %s" %(js1, js2, intersection)
+        raise RuntimeError(err_msg)
+   
     return json.loads(intersection.ExportToJson()), intersection.GetEnvelope()
 
 def get_combined_polygon():
