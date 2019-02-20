@@ -275,7 +275,7 @@ def black_list_check(candidate_pair, black_list):
         passed = False
     return passed
 
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi):
+def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi, result_file):
     matched = False
     candidate_pair_list = []
     result['matched'] = matched
@@ -593,7 +593,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             
             result['primary_ipf_count'] = master_ipf_count
             result['secondary_ipf_count'] = slave_ipf_count
-            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id)            
+            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             write_result_file(result_file, result)
@@ -682,7 +682,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             result['primary_ipf_count'] = master_ipf_count
             result['secondary_ipf_count'] = slave_ipf_count
 
-            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id)            
+            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             write_result_file(result_file, result)

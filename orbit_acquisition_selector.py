@@ -412,7 +412,7 @@ def isTrackSelected(land, water, land_area, water_area):
 
     return selected
     
-def publish_result(reference_result, secondary_result, id_hash):
+def publish_result(reference_result, id_hash):
   
     version = "v2.0.0"
     logger.info("\nPUBLISH RESULT")
