@@ -410,14 +410,31 @@ def isTrackSelected(land, water, land_area, water_area):
     if ((total_acq_land*100)/land)> 98:
         selected = True
 
-    return selected
+    return selectedi
+
+
+def write_result_file(result_file, result):
+    try:
+
+        with open(result_file, 'a') as fo:
+            cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            cw.writerow(["Date", "Orbit", "Type", "Track","Track_Land","Total_Acquisition_Land", "area_delta_in_resolution", "area_threshold_passed", "Orbit_Quality_Test_Passed", "Reference_Unique_IPF_Count", "Secondary_Unique_IPF_Count",  "BlackList_Test_Passed", "Enumeration_Passed", "Candidate_Pairs", "Failure_Reason", "comment","Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection"])
+
+            cw.writerow([result.get('dt', ''), result.get('orbit_name', ''), "Primary", result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('res', ''), result.get('area_threshold_passed', ''), result.get('WATER_MASK_PASSED', ''), result.get('primary_ipf_count', ''), result.get('secondary_ipf_count', ''), result.get('BL_PASSED', ''), result.get('matched', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('comment', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', '')])
+
+    except Exception as err:
+        logger.info("Error writing to csv file : %s : " %str(err))
+        traceback.print_exc()
+
+
     
 def publish_result(reference_result, id_hash):
   
     version = "v2.0.0"
     logger.info("\nPUBLISH RESULT")
+    #write_result_file(result_file, reference_result)
 
-    ACQ_RESULT_ID_TMPL = "S1-GUNW-enum-result-R{}-TN{:03d}-{}-{}-{}"
+    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-TN{:03d}-{}-{}-{}"
 
     orbit_type = 'poeorb'
     aoi_id = reference_result['aoi'].strip().replace(' ', '_')
@@ -580,16 +597,6 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
             result['starttime'] = starttime
             result['endtime'] = endtime
             
-            try:
-                with open(result_file, 'a') as fo:
-                    cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                    cw.writerow([result.get('dt', ''), result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('acq_union_land_area', ''), result.get('res', ''), result.get('WATER_MASK_PASSED', ''), result.get('primary_ipf_count', ''), result.get('secondary_ipf_count', ''),result.get('matched', ''), result.get('BL_PASSED', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', ''), result.get('acq_union_aoi_intersection', '')])
-
-                    #cw.writerow([result['dt'], result['track'],result['Track_POEORB_Land'] , result['ACQ_Union_POEORB_Land'], result['acq_union_land_area'], result['res'], result['WATER_MASK_PASSED'], result['primary_ipf_count'], result['secondary_ipf_count'],result['matched'], result['BL_PASSED'], result['candidate_pairs'], result['fail_reason'], result['Track_AOI_Intersection'], result['ACQ_POEORB_AOI_Intersection'], result['acq_union_aoi_intersection'] ])
-            except Exception as err:
-                logger.info("\n\nERROR Writing to csv file : %s" %str(err))
-                traceback.print_exc()
-
             if selected:
                 logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
                 selected_acqs = []
@@ -607,6 +614,14 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
                 id_hash = util.get_ifg_hash([], [], track, aoi['id'])
                 result['orbit_quality_check_passed']=False
                 publish_result(result, id_hash)
+            try:
+                with open(result_file, 'a') as fo:
+                    cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                    cw.writerow([result.get('dt', ''), result.get('orbit_name', ''), "Primary", result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('res', ''), result.get('area_threshold_passed', ''), result.get('WATER_MASK_PASSED', ''), result.get('primary_ipf_count', ''), result.get('secondary_ipf_count', ''), result.get('BL_PASSED', ''), result.get('matched', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('comment', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', '')])
+
+            except Exception as err:
+                logger.info("\n\nERROR Writing to csv file : %s" %str(err))
+                traceback.print_exc()
         selected_track_acqs[track] = selected_track_dt_acqs
         logger.info("CHECK: selected_track_acqs[track] : %s" %selected_track_acqs[track])
         
@@ -744,7 +759,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
         result_file = "RESULT_SUMMARY_%s.csv" %aoi['id']
         with open(result_file, 'w') as fo:
             cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            cw.writerow(["Date","Track","Track_Land","Total_Acquisition_Land", "ACQ_Union_Land", "Area_Threshold_Passed", "Orbit_Quality_Test_Passed", "Reference_Unique_IPF_Count", "Secondary_Unique_IPF_Count", "Result", "BlackList_Test_Passed", "Candidate_Pairs", "Failure_Reason", "Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection", "ACQ_AOI_Ingtersection"])
+            cw.writerow(["Date", "Orbit", "Type", "Track","Track_Land","Total_Acquisition_Land", "area_delta_in_resolution", "area_threshold_passed", "Orbit_Quality_Test_Passed", "Reference_Unique_IPF_Count", "Secondary_Unique_IPF_Count",  "BlackList_Test_Passed", "Enumeration_Passed", "Candidate_Pairs", "Failure_Reason", "comment","Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection"])
 
         selected_track_acqs, result_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file, selected_track_list)
 
