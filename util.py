@@ -356,6 +356,10 @@ def get_ipf_count(acqs):
             if pv:
                 update_acq_pv(acq.acq_id, pv)
                 pv_list.append(pv)
+            else:
+                err_msg = "IPF version NOT found for %s" %acq.acq_id
+                print(err_msg)
+                raise RuntimeError(err_msg)
 
     return len(list(set(pv_list)))
 

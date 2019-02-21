@@ -586,8 +586,21 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 publish_result(master_result, result, id_hash)
 
                 continue
-            
-            slave_ipf_count = util.get_ipf_count_by_acq_id(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
+            selected_slave_acqs =list()
+            slave_ids= slave_grouped_matched["grouped"][track][slave_track_dt]
+            for slave_id in slave_ids:
+                selected_slave_acqs.append(slave_grouped_matched["acq_info"][slave_id])
+
+            slave_ipf_count = None
+            try: 
+                slave_ipf_count = util.get_ipf_count_by_acq_id(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
+            except Exception as err:
+                result['fail_reason'] = str(err)
+                logger.info(str(err))
+                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), slave_ids, track, aoi)
+                publish_result(master_result, result, id_hash)
+                continue
+                
             logger.info("slave_ipf_count : %s" %slave_ipf_count)
             selected_slave_acqs =list()
             slave_ids= slave_grouped_matched["grouped"][track][slave_track_dt]
@@ -609,7 +622,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 err_msg = "ERROR : Either Master Ipf Count or Slave Ipf Count is 0 which is not correct" %(master_ipf_count, slave_ipf_count)
                 result['fail_reason'] = err_msg
                 logger.info(err_msg)
-                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
+                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(selected_slave_acqs), track, aoi)
                 publish_result(master_result, result, id_hash)
                 continue
 
