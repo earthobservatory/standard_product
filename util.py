@@ -1188,10 +1188,17 @@ def change_date_str_format(date_str, pre_format, post_format):
 
 def get_processing_version(slc, met = None):
     pv = None
-    if met:
-        pv = get_processing_version_from_scihub(slc, met)
-    if not pv:
-        pv = get_processing_version_from_asf(slc)
+    
+    try:
+        if met:
+            try:
+                pv = get_processing_version_from_scihub(slc, met)
+            except:
+                pass 
+        if not pv:
+            pv = get_processing_version_from_asf(slc)
+    except Exception as err:
+        print("Error getting IPF : %s" %str(err))
     return pv
 
 def get_processing_version_from_scihub(slc, met = None):
