@@ -605,6 +605,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             result['secondary_ipf_count'] = slave_ipf_count
             logger.info("secondary_result.get('list_master_dt', ''): %s" %result.get('list_master_dt', ''))
             logger.info("secondary_result.get('list_slave_dt', '') : %s" %result.get('list_slave_dt', ''))
+            if master_ipf_count==0 or slave_ipf_count==0:
+                err_msg = "ERROR : Either Master Ipf Count = %s or Slave Ipf Count = %s is 0 which is not correct" %(aster_ipf_count, slave_ipf_count)
+                result['fail_reason'] = err_msg
+                logger.info(err_msg)
+                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
+                publish_result(master_result, result, id_hash)
+                continue
+
             matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file, master_result)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
@@ -694,6 +702,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             
             result['primary_ipf_count'] = master_ipf_count
             result['secondary_ipf_count'] = slave_ipf_count
+            
 
             matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file, master_result)            
             result['matched'] = matched
