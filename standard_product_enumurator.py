@@ -625,7 +625,7 @@ def write_result_file(result_file, result):
     try:
         with open(result_file, 'a') as fo:
             cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            cw.writerow([result.get('dt', ''), result.get('orbit_name', ''), "Secondary", result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('res', ''), result.get('area_threshold_passed', ''), result.get('WATER_MASK_PASSED', ''), result.get('primary_ipf_count', ''), result.get('secondary_ipf_count', ''), result.get('BL_PASSED', ''), result.get('matched', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('comment', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', '')])
+            cw.writerow([result.get('dt', ''), result.get('orbit_name', ''), "Secondary", result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('delta_area', ''), result.get('res', ''), result.get('area_threshold_passed', ''), result.get('WATER_MASK_PASSED', ''), result.get('primary_ipf_count', ''), result.get('secondary_ipf_count', ''), result.get('BL_PASSED', ''), result.get('matched', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('comment', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', '')])
             #cw.writerow([result.get('dt', ''), result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('acq_union_land_area', ''), result.get('res', ''), result.get('WATER_MASK_PASSED', ''), result.get('primary_ipf_count', ''), result.get('secondary_ipf_count', ''),result.get('matched', ''), result.get('BL_PASSED', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', ''), result.get('acq_union_aoi_intersection', '')])
     except Exception as err:
         logger.info("Error writing to csv file : %s : " %str(err))
@@ -1093,7 +1093,7 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['secondary_orbit'] = secondary_result.get('orbit_name', '')
     md['reference_area_delta_in_resolution']=reference_result.get('res', '')
     md['secondary_area_delta_in_resolution']=secondary_result.get('res', '')
-    md['enumaration_result'] = secondary_result.get('result', '')
+    md['pair_created'] = secondary_result.get('result', '')
     md['track_number'] = reference_result.get('track', '')
     md['result'] = secondary_result.get('result', '')
     md['failure_reason'] = secondary_result.get('fail_reason', '')
@@ -1105,7 +1105,9 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['blacklist_test_passed'] = secondary_result.get('BL_PASSED', '')
     md['referance_date'] = reference_result.get('dt', '')
     md['secondary_date'] = secondary_result.get('dt', '')
-   
+    md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
+    md['secondary_delta_area_sqkm'] = secondary_result.get('delta_area', '')
+ 
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
     logger.info("type(md['referance_date']) : %s:" %type(md['referance_date']))
 

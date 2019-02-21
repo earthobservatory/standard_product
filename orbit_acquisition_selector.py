@@ -464,8 +464,7 @@ def publish_result(reference_result, id_hash):
     md['reference_orbit_quality_passed'] = reference_result.get('orbit_quality_check_passed', '')
     md['reference_tract_land'] = reference_result.get('Track_POEORB_Land', '')
     md['reference_total_acqusition_land'] = reference_result.get('ACQ_Union_POEORB_Land', '')
-    md['reference_area_delta_in_resolution']=reference_result.get('res', '')
-    md['enumaration_result'] = reference_result.get('result', '')
+    md['pair_created'] = reference_result.get('result', '')
     md['track_number'] = reference_result.get('track', '')
     md['failure_reason'] = reference_result.get('fail_reason', '')
     md['comment'] = reference_result.get('comment', '')
@@ -473,6 +472,8 @@ def publish_result(reference_result, id_hash):
     md['endtime'] = reference_result.get('endtime', '')
     md['reference_area_threshold_passed'] = reference_result.get('area_threshold_passed', '')
     md['referance_date'] = reference_result.get('dt', '')
+    md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
+    md['reference_delta_area_pixel'] = reference_result.get('res', '')
 
     if isinstance(md['starttime'], datetime):
         md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S')
@@ -627,7 +628,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
             try:
                 with open(result_file, 'a') as fo:
                     cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                    cw.writerow([result.get('dt', ''), result.get('orbit_name', ''), "Primary", result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('res', ''), result.get('area_threshold_passed', ''), result.get('WATER_MASK_PASSED', ''), result.get('primary_ipf_count', ''), result.get('secondary_ipf_count', ''), result.get('BL_PASSED', ''), result.get('matched', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('comment', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', '')])
+                    cw.writerow([result.get('dt', ''), result.get('orbit_name', ''), "Primary", result.get('track', ''),result.get('Track_POEORB_Land', '') , result.get('ACQ_Union_POEORB_Land', ''), result.get('delta_area', ''), result.get('res', ''), result.get('area_threshold_passed', ''), result.get('WATER_MASK_PASSED', ''), result.get('primary_ipf_count', ''), result.get('secondary_ipf_count', ''), result.get('BL_PASSED', ''), result.get('matched', ''), result.get('candidate_pairs', ''), result.get('fail_reason', ''), result.get('comment', ''), result.get('Track_AOI_Intersection', ''), result.get('ACQ_POEORB_AOI_Intersection', '')])
 
             except Exception as err:
                 logger.info("\n\nERROR Writing to csv file : %s" %str(err))
@@ -769,7 +770,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
         result_file = "RESULT_SUMMARY_%s.csv" %aoi['id']
         with open(result_file, 'w') as fo:
             cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            cw.writerow(["Date", "Orbit", "Type", "Track","Track_Land","Total_Acquisition_Land", "area_delta_in_resolution", "area_threshold_passed", "Orbit_Quality_Test_Passed", "Reference_Unique_IPF_Count", "Secondary_Unique_IPF_Count",  "BlackList_Test_Passed", "Enumeration_Passed", "Candidate_Pairs", "Failure_Reason", "comment","Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection"])
+            cw.writerow(["Date", "Orbit", "Type", "Track","Track_Land","Total_Acquisition_Land", "delta_area_sqkm", "delta_area_pixel", "area_threshold_passed", "Orbit_Quality_Test_Passed", "Reference_Unique_IPF_Count", "Secondary_Unique_IPF_Count",  "BlackList_Test_Passed", "Enumeration_Passed", "Candidate_Pairs", "Failure_Reason", "comment","Track_AOI_Intersection", "ACQ_POEORB_AOI_Intersection"])
 
         selected_track_acqs, result_track_acqs = get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file, selected_track_list)
 
