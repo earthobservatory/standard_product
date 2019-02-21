@@ -214,7 +214,99 @@ def update_acq_pv(id, ipf_version):
 def import_file_by_osks(url):
     osaka.main.get(url)
 
+def check_prod_avail(session, link):
+    """
+    check if product is currently available or in long time archive
+    :param session:
+    :param link:
+    :return:
+    """
 
+    product_url = "{}$value".format(link)
+    response = session.get(product_url, verify=False)
+    return response.status_code
+
+
+def get_scihub_manifest(session, info):
+    """Get manifest information."""
+
+    # disable extraction of manifest (takes too long); will be
+    # extracted when needed during standard product pipeline
+
+    # logger.info("info: {}".format(json.dumps(info, indent=2)))
+    manifest_url = "{}Nodes('{}')/Nodes('manifest.safe')/$value".format(info['met']['alternative'],
+                                                                             info['met']['filename'])
+    manifest_url2 = manifest_url.replace('/apihub/', '/dhus/')
+    for url in (manifest_url2, manifest_url):
+        response = session.get(url, verify=False)
+        logger.info("url: %s" % response.url)
+        if response.status_code == 200:
+            break
+    response.raise_for_status()
+    return response.content
+
+
+def get_scihub_namespaces(xml):
+    """Take an xml string and return a dict of namespace prefixes to
+       namespaces mapping."""
+
+    nss = {}
+    matches = re.findall(r'\s+xmlns:?(\w*?)\s*=\s*[\'"](.*?)[\'"]', xml)
+    for match in matches:
+        prefix = match[0]; ns = match[1]
+        if prefix == '': prefix = '_default'
+        nss[prefix] = ns
+    return nss
+
+
+def get_scihub_ipf(manifest):
+    # append processing version (ipf)
+    ns = get_scihub_namespaces(manifest)
+    x = fromstring(manifest)
+    ipf = x.xpath('.//xmlData/safe:processing/safe:facility/safe:software/@version', namespaces=ns)[0]
+
+    return ipf
+
+
+def get_dataset_json(met, version):
+    """Generated HySDS dataset JSON from met JSON."""
+
+    return {
+        "version": version,
+        "label": met['id'],
+        "location": met['location'],
+        "starttime": met['sensingStart'],
+        "endtime": met['sensingStop'],
+    }
+
+
+def extract_scihub_ipf(met):
+    user = None
+    password = None
+
+    # get session
+    session = requests.session()
+    if None not in (user, password): session.auth = (user, password)
+
+    ds = get_dataset_json(met, version="v2.0")
+
+    info = {
+        'met': met,
+        'ds': ds
+    }
+
+    prod_avail = check_prod_avail(session, info['met']['alternative'])
+    if prod_avail == 200:
+        manifest = get_scihub_manifest(session, info)
+    elif prod_avail == 202:
+        logger.info("Got 202 from SciHub. Product moved to long term archive.")
+        raise Exception("Got 202. Product moved to long term archive.")
+    else:
+        logger.info("Got code {} from SciHub".format(prod_avail))
+        raise Exception("Got code {}".format(prod_avail))
+
+    ipf = get_scihub_ipf(manifest)
+    return ipf
 
 def get_area(coords):
     '''get area of enclosed coordinates- determines clockwise or counterclockwise order'''
@@ -340,7 +432,7 @@ def create_acq_obj_from_metadata(acq):
     else:
         missing_pcv_list.append(acq_id)
         print("pv NOT in metadata,so calling ASF")
-        pv = get_processing_version(identifier)
+        pv = get_processing_version(identifier, acq_data['metadata'])
         #print("ASF returned pv : %s" %pv)
         #update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
@@ -1094,15 +1186,19 @@ def change_date_str_format(date_str, pre_format, post_format):
     except:
         return date_str
 
-def get_processing_version(slc):
-    pv = get_processing_version_from_scihub(slc)
+def get_processing_version(slc, met = None):
+    pv = None
+    if met:
+        pv = get_processing_version_from_scihub(slc, met)
     if not pv:
         pv = get_processing_version_from_asf(slc)
     return pv
 
-def get_processing_version_from_scihub(slc):
+def get_processing_version_from_scihub(slc, met = None):
 
     ipf_string = None
+    if met:
+        ipf_string = extract_scihub_ipf(met)
 
     return ipf_string
 
