@@ -428,7 +428,14 @@ def create_acq_obj_from_metadata(acq):
     pv = None
     if "processing_version" in  acq_data['metadata']:
         pv = acq_data['metadata']['processing_version']
-        print("pv found in metadata : %s" %pv)
+        if pv:
+            print("pv found in metadata : %s" %pv)
+        else:
+            print("pv NOT in metadata,so calling ASF")
+            pv = get_processing_version(identifier, acq_data['metadata'])
+            print("ASF returned pv : %s" %pv)
+            if pv:
+                update_acq_pv(acq_id, pv)
     else:
         missing_pcv_list.append(acq_id)
         print("pv NOT in metadata,so calling ASF")
@@ -1195,8 +1202,8 @@ def get_processing_version(slc, met = None):
             try:
                 pv = get_processing_version_from_scihub(slc, met)
                 print("pv from scihub : %s" %pv)
-            except:
-                pass 
+            except Exception as err:
+                print("Failed to get pv from scihub for %s : %s" %(slc, str(err)))
         if not pv:
             pv = get_processing_version_from_asf(slc)
             print("pv from asf : %s" %pv)
