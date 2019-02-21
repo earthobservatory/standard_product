@@ -354,7 +354,7 @@ def get_ipf_count(acqs):
         else:
             pv = get_processing_version(acq.identifier)
             if pv:
-                update_acq_pv(acq.acq_id, acq.pv)
+                update_acq_pv(acq.acq_id, pv)
                 pv_list.append(pv)
 
     return len(list(set(pv_list)))
@@ -433,8 +433,9 @@ def create_acq_obj_from_metadata(acq):
         missing_pcv_list.append(acq_id)
         print("pv NOT in metadata,so calling ASF")
         pv = get_processing_version(identifier, acq_data['metadata'])
-        #print("ASF returned pv : %s" %pv)
-        #update_acq_pv(acq_id, pv) 
+        print("ASF returned pv : %s" %pv)
+        if pv:
+            update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
 
 
@@ -1188,15 +1189,17 @@ def change_date_str_format(date_str, pre_format, post_format):
 
 def get_processing_version(slc, met = None):
     pv = None
-    
+    print("get_processing_version : %s" %slc)    
     try:
         if met:
             try:
                 pv = get_processing_version_from_scihub(slc, met)
+                print("pv from scihub : %s" %pv)
             except:
                 pass 
         if not pv:
             pv = get_processing_version_from_asf(slc)
+            print("pv from asf : %s" %pv)
     except Exception as err:
         print("Error getting IPF : %s" %str(err))
     return pv
@@ -1209,10 +1212,6 @@ def get_processing_version_from_scihub(slc, met = None):
 
     return ipf_string
 
-
-def update_ipf(id, ipf_version):
-    ES.update(index=_index, doc_type=_type, id=id,
-              body={"doc": {"metadata": {"processing_version": ipf_version}}})
 
 def get_processing_version_from_asf(slc):
 
