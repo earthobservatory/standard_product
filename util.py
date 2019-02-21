@@ -205,7 +205,8 @@ def update_acq_pv(id, ipf_version):
 
 
         ES.update(index=es_index, doc_type=_type, id=id,
-              body={"doc": {"metadata": {"processing_version": ipf_version}}})    
+              body={"doc": {"metadata": {"processing_version": ipf_version}}}) 
+        print("Updated IPF %s of acq %s successfully" %(id, ipf_version))    
     except Exception as err:
         logger.info("ERROR : updationg ipf : %s" %str(err))
 
