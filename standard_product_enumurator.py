@@ -524,6 +524,11 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             result['dt'] = slave_track_dt
             result['union_geojson'] = master_union_geojson
             result['list_slave_dt'] = slave_track_dt
+            result['list_slave_dt'] = slave_track_dt
+            result['list_master_dt'] = track_dt
+            result['master_count'] = len(master_acqs)
+            result['slave_count'] = len(slave_acqs)
+
             selected_slave_acqs=[]
             orbit_file = None
             orbit_dt = slave_track_dt.replace(minute=0, hour=12, second=0).isoformat()
@@ -595,7 +600,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             result['list_slave_dt'] = slave_track_dt
             result['list_master_dt'] = track_dt   
             result['master_count'] = len(master_acqs)
-            result['slave_count'] = len(slave_acqs)             
+            result['slave_count'] = len(selected_slave_acqs)             
             result['primary_ipf_count'] = master_ipf_count
             result['secondary_ipf_count'] = slave_ipf_count
             logger.info("secondary_result.get('list_master_dt', ''): %s" %result.get('list_master_dt', ''))
