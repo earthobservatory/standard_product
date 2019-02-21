@@ -36,8 +36,8 @@ logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
 
-ACQ_LIST_ID_TMPL = "acq-list_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
-ACQ_RESULT_ID_TMPL = "S1-GUNW-enum-resultR{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
+ACQ_LIST_ID_TMPL = "S1-GUNW-acqlist-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
+ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
 
 BASE_PATH = os.path.dirname(__file__)
 covth = 0.98
@@ -487,6 +487,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         result = util.get_result_dict(aoi, track)
         result['starttime'] = "%s" %util.get_isoformat_date(master_starttime)
         result['endtime'] = "%s" %util.get_isoformat_date(master_endtime)
+        result['list_master_dt'] = track_dt
         query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumber, acquisition_version)
         logger.info("Slave Finding Query : %s" %query)
         es_index = "grq_%s_acquisition-s1-iw_slc/acquisition-S1-IW_SLC/" %(acquisition_version)
@@ -522,6 +523,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         for slave_track_dt in sorted( slave_grouped_matched["grouped"][track], reverse=True):
             result['dt'] = slave_track_dt
             result['union_geojson'] = master_union_geojson
+            result['list_slave_dt'] = slave_track_dt
             selected_slave_acqs=[]
             orbit_file = None
             orbit_dt = slave_track_dt.replace(minute=0, hour=12, second=0).isoformat()
@@ -590,9 +592,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             selected_slave_acqs_by_track_dt[slave_track_dt] =  selected_slave_acqs
 
             logger.info("Processing Slaves with date : %s" %slave_track_dt)
-            
+            result['list_slave_dt'] = slave_track_dt
+            result['list_master_dt'] = track_dt   
+            result['master_count'] = len(master_acqs)
+            result['slave_count'] = len(slave_acqs)             
             result['primary_ipf_count'] = master_ipf_count
             result['secondary_ipf_count'] = slave_ipf_count
+            logger.info("secondary_result.get('list_master_dt', ''): %s" %result.get('list_master_dt', ''))
+            logger.info("secondary_result.get('list_slave_dt', '') : %s" %result.get('list_slave_dt', ''))
             matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file, master_result)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
@@ -955,6 +962,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     orbit_type = 'poeorb'
     aoi_id = aoi_id.strip().replace(' ', '_')
 
+    #ACQ_LIST_ID_TMPL = "S1-GUNW-acqlist-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
     id = ACQ_LIST_ID_TMPL.format('M', len(master_acquisitions), len(slave_acquisitions), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4], aoi_id)
     #id = "acq-list-%s" %id_hash[0:4]
     prod_dir =  id
@@ -1023,6 +1031,10 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     secondary_result['result']=True
     secondary_result['starttime'] = "%s" %starttime
     secondary_result['endtime'] = "%s" %endtime
+    secondary_result['list_master_dt'] = list_master_dt
+    secondary_result['list_slave_dt'] = list_master_dt
+    secondary_result['master_count'] = len(master_acquisitions)
+    secondary_result['slave_count'] = len(slave_acquisitions)
     publish_result(reference_result, secondary_result, id_hash)
 
 
@@ -1032,12 +1044,22 @@ def publish_result(reference_result, secondary_result, id_hash):
     logger.info("\nPUBLISH RESULT")
 
     ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-TN{:03d}-{}-{}-{}"
+    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
 
     orbit_type = 'poeorb'
     aoi_id = reference_result['aoi'].strip().replace(' ', '_')
     logger.info("aoi_id : %s" %aoi_id)
 
-    id = ACQ_RESULT_ID_TMPL.format('M', reference_result['track'], orbit_type, id_hash[0:4], reference_result['aoi'])
+    logger.info("secondary_result.get('master_count', 0) : %s" %secondary_result.get('master_count', 0))
+    logger.info("secondary_result.get('slave_count', 0) : %s" %secondary_result.get('slave_count', 0))
+    logger.info("secondary_result.get('track', 0 : %s" %secondary_result.get('track', 0))
+    logger.info("secondary_result.get('list_master_dt', ''): %s" %secondary_result.get('list_master_dt', ''))
+    logger.info("secondary_result.get('list_slave_dt', '') : %s" %secondary_result.get('list_slave_dt', ''))
+    logger.info("%s : %s : %s" %( orbit_type, id_hash[0:4], reference_result.get('aoi', '')))
+
+    #id = ACQ_RESULT_ID_TMPL.format('M', reference_result['track'], orbit_type, id_hash[0:4], reference_result['aoi'])
+    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
+    id = ACQ_RESULT_ID_TMPL.format('M', secondary_result.get('master_count', 0), secondary_result.get('slave_count', 0), secondary_result.get('track', 0), secondary_result.get('list_master_dt', ''), secondary_result.get('list_slave_dt', ''), orbit_type, id_hash[0:4], reference_result.get('aoi', ''))
    
     logger.info("publish_result : id : %s " %id)
     #id = "acq-list-%s" %id_hash[0:4]

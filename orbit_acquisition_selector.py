@@ -434,14 +434,17 @@ def publish_result(reference_result, id_hash):
     logger.info("\nPUBLISH RESULT")
     #write_result_file(result_file, reference_result)
 
-    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-TN{:03d}-{}-{}-{}"
 
     orbit_type = 'poeorb'
     aoi_id = reference_result['aoi'].strip().replace(' ', '_')
     logger.info("aoi_id : %s" %aoi_id)
 
-    id = ACQ_RESULT_ID_TMPL.format('M', reference_result['track'], orbit_type, id_hash[0:4], reference_result['aoi'])
-   
+    #id = ACQ_RESULT_ID_TMPL.format('M', reference_result['track'], orbit_type, id_hash[0:4], reference_result['aoi'])
+    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
+    id = ACQ_RESULT_ID_TMPL.format('M', reference_result.get('master_count', 0), reference_result.get('slave_count', 0), reference_result.get(track, 0), reference_result.get(list_master_dt, ''), reference_result.get(list_slave_dt, ''), orbit_type, id_hash[0:4], reference_result['aoi'])
+
+
+
     logger.info("publish_result : id : %s " %id)
     #id = "acq-list-%s" %id_hash[0:4]
     prod_dir =  id
@@ -484,7 +487,7 @@ def publish_result(reference_result, id_hash):
     util.create_dataset_json(id, version, met_file, ds_file)
 
 '''    
-def publish_result(reference_result, secondary_result, id_hash):
+def publish_result(reference_result, reference_result, id_hash):
   
     version = "v2.0.0"
     logger.info("\nPUBLISH RESULT")
@@ -513,27 +516,27 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['id'] = id
     md['aoi'] =  reference_result['aoi']
     md['reference_orbit'] = reference_result['orbit_name']
-    md['reference_unique_ipf_count'] = secondary_result['primary_ipf_count']
-    md['secondary_unique_ipf_count'] = secondary_result['secondary_ipf_count']
+    md['reference_unique_ipf_count'] = reference_result['primary_ipf_count']
+    md['secondary_unique_ipf_count'] = reference_result['secondary_ipf_count']
     md['reference_orbit_quality_passed'] = reference_result['orbit_quality_check_passed']
-    md['secondary_orbit_quality_passed'] = secondary_result['orbit_quality_check_passed']
+    md['secondary_orbit_quality_passed'] = reference_result['orbit_quality_check_passed']
     md['expected_land_reference'] = reference_result['Track_POEORB_Land']
     md['actual_land_reference'] = reference_result['ACQ_Union_POEORB_Land']
-    md['expected_land_secondary'] = secondary_result['Track_POEORB_Land']
-    md['actual_land_secondary'] = secondary_result['ACQ_Union_POEORB_Land']
-    md['secondary_orbit'] = secondary_result['orbit_name']
+    md['expected_land_secondary'] = reference_result['Track_POEORB_Land']
+    md['actual_land_secondary'] = reference_result['ACQ_Union_POEORB_Land']
+    md['secondary_orbit'] = reference_result['orbit_name']
     md['reference_resolution_diff']=reference_result['res']
-    md['secondary_resolution_diff']=secondary_result['res']
-    md['enumaration_result'] = secondary_result['result']
+    md['secondary_resolution_diff']=reference_result['res']
+    md['enumaration_result'] = reference_result['result']
     md['track_number'] = reference_result['track']
-    md['result'] = secondary_result['result']
-    md['failure_reason'] = secondary_result['fail_reason']
-    md['comment'] = secondary_result['comment']
-    md['starttime'] = secondary_result['starttime']
-    md['endtime'] = secondary_result['endtime']
+    md['result'] = reference_result['result']
+    md['failure_reason'] = reference_result['fail_reason']
+    md['comment'] = reference_result['comment']
+    md['starttime'] = reference_result['starttime']
+    md['endtime'] = reference_result['endtime']
     md['reference_area_threshold_passed'] = reference_result['area_threshold_passed'] 
-    md['secondary_area_threshold_passed'] = secondary_result['area_threshold_passed']
-    md['blacklist_test_passed'] = secondary_result['BL_PASSED']
+    md['secondary_area_threshold_passed'] = reference_result['area_threshold_passed']
+    md['blacklist_test_passed'] = reference_result['BL_PASSED']
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
     logger.info("publish_result : creating dataset file : %s" %ds_file)
@@ -596,7 +599,14 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
             starttime, endtime = util.get_start_end_time2(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
             result['starttime'] = starttime
             result['endtime'] = endtime
-            
+            #master_dt_str = util.get_time_str_with_format(track_dt, "%Y%m%dT%H%M%S")
+            logger.info("master_dt_str : %s" %track_dt)
+
+            result['list_master_dt'] = track_dt
+            result['list_slave_dt'] = track_dt
+            result['master_count'] = 1
+            result['slave_count'] = 0
+ 
             if selected:
                 logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
                 selected_acqs = []

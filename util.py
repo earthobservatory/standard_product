@@ -372,6 +372,10 @@ def get_result_dict(aoi=None, track=None, track_dt=None):
     result['delta_area']=None
     result['orbit_quality_check_passed']=None
     result['area_threshold_passed'] = None
+    result['list_master_dt'] = None
+    result['list_slave_dt'] = None
+    result['master_count'] = 0
+    result['slave_count'] = 0
     '''
     result['ACQ_POEORB_AOI_Intersection_primary'] = None
     result['ACQ_Union_POEORB_Land_primary'] = None
@@ -1063,6 +1067,19 @@ def get_time_str(t):
     t = parser.parse(t).strftime('%Y-%m-%dT%H:%M:%S')
     return t
 
+
+def get_time_str_with_format(t, str_format):
+
+    logger.info("get_time(t) : %s" %t)
+    t = parser.parse(t).strftime(str_format)
+    return t
+
+def change_date_str_format(date_str, pre_format, post_format):
+    try:
+        t = datetime.strptime(date_str, pre_format)
+        return parser.parse(t).strftime(t, post_format)
+    except:
+        return date_str
 
 def get_processing_version(slc):
     pv = get_processing_version_from_scihub(slc)

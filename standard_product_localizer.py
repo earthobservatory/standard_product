@@ -29,8 +29,8 @@ logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
-
-IFG_CFG_ID_TMPL = "ifg-cfg_R{}_M{:d}S{:d}_TN{:03d}_{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
+#"match_pattern": "/(?P<id>S1-GUNW-ifg-cfg-RM-M\\w+S\\w+-TN\\w+-\\d{8}T\\d{6}-\\d{8}T\\d{6}-poeorb-\\w{4})$"
+IFG_CFG_ID_TMPL = "S1-GUNW-ifg-cfg-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
 SLC_RE = re.compile(r'(?P<mission>S1\w)_IW_SLC__.*?' +
                     r'_(?P<start_year>\d{4})(?P<start_month>\d{2})(?P<start_day>\d{2})' +
                     r'T(?P<start_hour>\d{2})(?P<start_min>\d{2})(?P<start_sec>\d{2})' +

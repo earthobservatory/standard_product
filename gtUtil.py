@@ -149,12 +149,13 @@ def get_aoi_area_multipolygon(geojson, aoi_location):
         union_intersection = []
         for i in range(len(coordinates)):
             cord = coordinates[i]
-            #logger.info("initial cord : %s " %cord)
-            #logger.info("sending cord : %s" %cord[0])
+            logger.info("initial cord : %s " %cord)
+            logger.info("sending cord : %s" %cord[0])
             cord =change_coordinate_direction(cord[0])
-            #logger.info("returning cord : %s " %cord)
+            logger.info("returning cord : %s " %cord)
          
             geojson_new = {"type":"Polygon", "coordinates": [cord]}
+            logger.info("get_aoi_area_multipolygon : geojson_new : %s" %geojson_new)
             land, water, intersection = get_aoi_area_polygon(geojson_new, aoi_location)
             logger.info("land = %s, water = %s" %(land, water))
             union_land += land
