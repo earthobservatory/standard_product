@@ -194,8 +194,20 @@ def group_acqs_by_orbit_number(acqs):
 
 
 
-def update_acq_pv(acq_id, pv):
-    pass
+def update_acq_pv(id, ipf_version):
+    try:
+        uu = UrlUtils()
+        es_url = uu.rest_url
+        #es_index = "grq_*_{}".format(index_suffix.lower())
+        es_index = "grq_v2.0_acquisition-s1-iw_slc"
+        _type = "acquisition-S1-IW_SLC"
+        ES = elasticsearch.Elasticsearch(es_url)
+
+
+        ES.update(index=es_index, doc_type=_type, id=id,
+              body={"doc": {"metadata": {"processing_version": ipf_version}}})    
+    except Exception as err:
+        logger.info("ERROR : updationg ipf : %s" %str(err))
 
 
 def import_file_by_osks(url):
@@ -1093,12 +1105,18 @@ def get_processing_version_from_scihub(slc):
 
     return ipf_string
 
+
+def update_ipf(id, ipf_version):
+    ES.update(index=_index, doc_type=_type, id=id,
+              body={"doc": {"metadata": {"processing_version": ipf_version}}})
+
 def get_processing_version_from_asf(slc):
 
     ipf = None
 
     try:
         # query the asf search api to find the download url for the .iso.xml file
+        #request_string = "https://api.daac.asf.alaska.edu/services/search/param?platform=SA,SB&processingLevel=METADATA_SLC&granule_list=S1B_IW_SLC__1SDV_20190221T151817_20190221T151844_015046_01C1D6_240D&output=json"
         request_string = 'https://api.daac.asf.alaska.edu/services/search/param?platform=SA,SB&processingLevel=METADATA_SLC&granule_list=%s&output=json' %slc
         response = requests.get(request_string)
 
