@@ -483,10 +483,10 @@ def publish_result(reference_result, id_hash):
     if isinstance(md['referance_date'], datetime):
         md['referance_date'] = md['referance_date'].strftime('%Y%m%dT%H%M%S')
     if isinstance(md['starttime'], str):
-        if not (md['starttime'].endswith('Z'):
+        if not md['starttime'].endswith('Z'):
             md['starttime'] = md['starttime']+"Z"
     if isinstance(md['endtime'], str):
-        if not (md['endtime'].endswith('Z'):
+        if not md['endtime'].endswith('Z'):
             md['endtime'] = md['endtime']+"Z"
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)

@@ -1144,10 +1144,10 @@ def publish_result(reference_result, secondary_result, id_hash):
     if isinstance(md['secondary_date'], datetime):
         md['secondary_date'] = md['secondary_date'].strftime('%Y%m%dT%H%M%S')
     if isinstance(md['starttime'], str):
-        if not (md['starttime'].endswith('Z'):
+        if not md['starttime'].endswith('Z'):
             md['starttime'] = md['starttime']+"Z"
     if isinstance(md['endtime'], str):
-        if not (md['endtime'].endswith('Z'):
+        if not md['endtime'].endswith('Z'):
             md['endtime'] = md['endtime']+"Z"
 
         md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%.000Z')
