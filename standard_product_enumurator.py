@@ -488,6 +488,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         result['starttime'] = "%s" %util.get_isoformat_date(master_starttime)
         result['endtime'] = "%s" %util.get_isoformat_date(master_endtime)
         result['list_master_dt'] = track_dt
+        result['list_slave_dt'] = track_dt
         result['union_geojson'] = master_union_geojson
         query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumber, acquisition_version)
         logger.info("Slave Finding Query : %s" %query)
@@ -510,6 +511,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
 
         #matched_acqs = util.create_acqs_from_metadata(process_query(query))
         slave_acqs = create_acqs_from_metadata(acqs)
+        id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
+
         logger.info("\nSLAVE ACQS")
         #util.print_acquisitions(aoi_id, slave_acqs)
 
@@ -524,7 +527,6 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         for slave_track_dt in sorted( slave_grouped_matched["grouped"][track], reverse=True):
             result['dt'] = slave_track_dt
             result['union_geojson'] = master_union_geojson
-            result['list_slave_dt'] = slave_track_dt
             result['list_slave_dt'] = slave_track_dt
             result['list_master_dt'] = track_dt
             result['master_count'] = len(master_acqs)
@@ -554,6 +556,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             if orbit_file:
                 logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s in %s" %(slave_track_dt, orbit_file, orbit_dir))
                 selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+                result['dt'] = slave_track_dt
+                result['union_geojson'] = master_union_geojson
+                result['list_slave_dt'] = slave_track_dt
+                result['list_master_dt'] = track_dt
+                result['master_count'] = len(master_acqs)
+                result['slave_count'] = len(slave_acqs)
+                result['starttime'] = "%s" %util.get_isoformat_date(master_starttime)
+                result['endtime'] = "%s" %util.get_isoformat_date(master_endtime)
                 result_track_acqs[slave_track_dt] = result
                 orbit_name = orbit_file.split('.EOF')[0].strip()
                 result['orbit_name']= orbit_name
@@ -565,7 +575,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                     rejected_slave_track_dt.append(slave_track_dt)
                     write_result_file(result_file, result)
                     result['union_geojson'] = master_union_geojson
-                    id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
+                    #id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
                     publish_result(master_result, result, id_hash)
                     '''
                     with open(result_file, 'a') as fo:
@@ -582,7 +592,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 result['fail_reason'] = err_msg
                 result['dt'] = slave_track_dt 
                 result['union_geojson'] = master_union_geojson
-                id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
+                #id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
                 write_result_file(result_file, result)
                 publish_result(master_result, result, id_hash)
 
@@ -1080,7 +1090,7 @@ def publish_result(reference_result, secondary_result, id_hash):
 
     logger.info("secondary_result.get('master_count', 0) : %s" %secondary_result.get('master_count', 0))
     logger.info("secondary_result.get('slave_count', 0) : %s" %secondary_result.get('slave_count', 0))
-    logger.info("secondary_result.get('track', 0 : %s" %secondary_result.get('track', 0))
+    logger.info("secondary_result.get('track', 0) : %s" %secondary_result.get('track', 0))
     logger.info("secondary_result.get('list_master_dt', ''): %s" %secondary_result.get('list_master_dt', ''))
     logger.info("secondary_result.get('list_slave_dt', '') : %s" %secondary_result.get('list_slave_dt', ''))
     logger.info("%s : %s : %s" %( orbit_type, id_hash[0:4], reference_result.get('aoi', '')))

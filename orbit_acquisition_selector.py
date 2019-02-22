@@ -441,7 +441,7 @@ def publish_result(reference_result, id_hash):
 
     #id = ACQ_RESULT_ID_TMPL.format('M', reference_result['track'], orbit_type, id_hash[0:4], reference_result['aoi'])
     ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
-    id = ACQ_RESULT_ID_TMPL.format('M', reference_result.get('master_count', 0), reference_result.get('slave_count', 0), reference_result.get(track, 0), reference_result.get(list_master_dt, ''), reference_result.get(list_slave_dt, ''), orbit_type, id_hash[0:4], reference_result['aoi'])
+    id = ACQ_RESULT_ID_TMPL.format('M', reference_result.get('master_count', 0), reference_result.get('slave_count', 0), reference_result.get('track', 0), reference_result.get('list_master_dt', ''), reference_result.get('list_slave_dt', ''), orbit_type, id_hash[0:4], reference_result['aoi'])
 
 
 
@@ -546,6 +546,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
             selected, result = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
             orbit_name = orbit_file.split('.EOF')[0].strip()
             result['orbit_name']= orbit_name
+            result['track'] = track
             result_track_dt_acqs[track_dt] = result
             starttime, endtime = util.get_start_end_time2(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
             result['starttime'] = starttime
