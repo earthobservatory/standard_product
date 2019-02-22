@@ -482,68 +482,17 @@ def publish_result(reference_result, id_hash):
         md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S.000Z')
     if isinstance(md['referance_date'], datetime):
         md['referance_date'] = md['referance_date'].strftime('%Y%m%dT%H%M%S')
+    if isinstance(md['starttime'], str):
+        if not (md['starttime'].endswith('Z'):
+            md['starttime'] = md['starttime']+"Z"
+    if isinstance(md['endtime'], str):
+        if not (md['endtime'].endswith('Z'):
+            md['endtime'] = md['endtime']+"Z"
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
     logger.info("publish_result : creating dataset file : %s" %ds_file)
     util.create_dataset_json(id, version, met_file, ds_file)
-
-'''    
-def publish_result(reference_result, reference_result, id_hash):
-  
-    version = "v2.0.0"
-    logger.info("\nPUBLISH RESULT")
-
-    ACQ_RESULT_ID_TMPL = "S1-GUNW-enum-result-R{}-TN{:03d}-{}-{}-{}"
-
-    orbit_type = 'poeorb'
-    aoi_id = reference_result['aoi'].strip().replace(' ', '_')
-    logger.info("aoi_id : %s" %aoi_id)
-
-    id = ACQ_RESULT_ID_TMPL.format('M', reference_result['track'], orbit_type, id_hash[0:4], reference_result['aoi'])
-   
-    logger.info("publish_result : id : %s " %id)
-    #id = "acq-list-%s" %id_hash[0:4]
-    prod_dir =  id
-    os.makedirs(prod_dir, 0o755)
-
-    met_file = os.path.join(prod_dir, "{}.met.json".format(id))
-    ds_file = os.path.join(prod_dir, "{}.dataset.json".format(id))
-    
-
-
-    logger.info("\n\npublish_result: PUBLISHING %s : " %id)  
-    #with open(met_file) as f: md = json.load(f)
-    md = {}
-    md['id'] = id
-    md['aoi'] =  reference_result['aoi']
-    md['reference_orbit'] = reference_result['orbit_name']
-    md['reference_unique_ipf_count'] = reference_result['primary_ipf_count']
-    md['secondary_unique_ipf_count'] = reference_result['secondary_ipf_count']
-    md['reference_orbit_quality_passed'] = reference_result['orbit_quality_check_passed']
-    md['secondary_orbit_quality_passed'] = reference_result['orbit_quality_check_passed']
-    md['expected_land_reference'] = reference_result['Track_POEORB_Land']
-    md['actual_land_reference'] = reference_result['ACQ_Union_POEORB_Land']
-    md['expected_land_secondary'] = reference_result['Track_POEORB_Land']
-    md['actual_land_secondary'] = reference_result['ACQ_Union_POEORB_Land']
-    md['secondary_orbit'] = reference_result['orbit_name']
-    md['reference_resolution_diff']=reference_result['res']
-    md['secondary_resolution_diff']=reference_result['res']
-    md['enumaration_result'] = reference_result['result']
-    md['track_number'] = reference_result['track']
-    md['result'] = reference_result['result']
-    md['failure_reason'] = reference_result['fail_reason']
-    md['comment'] = reference_result['comment']
-    md['starttime'] = reference_result['starttime']
-    md['endtime'] = reference_result['endtime']
-    md['reference_area_threshold_passed'] = reference_result['area_threshold_passed'] 
-    md['secondary_area_threshold_passed'] = reference_result['area_threshold_passed']
-    md['blacklist_test_passed'] = reference_result['BL_PASSED']
-    with open(met_file, 'w') as f: json.dump(md, f, indent=2)
-
-    logger.info("publish_result : creating dataset file : %s" %ds_file)
-    util.create_dataset_json(id, version, met_file, ds_file)
-'''
 
         
 def print_groups(grouped_matched):

@@ -1143,7 +1143,14 @@ def publish_result(reference_result, secondary_result, id_hash):
         md['referance_date'] = md['referance_date'].strftime('%Y%m%dT%H%M%S')
     if isinstance(md['secondary_date'], datetime):
         md['secondary_date'] = md['secondary_date'].strftime('%Y%m%dT%H%M%S')
+    if isinstance(md['starttime'], str):
+        if not (md['starttime'].endswith('Z'):
+            md['starttime'] = md['starttime']+"Z"
+    if isinstance(md['endtime'], str):
+        if not (md['endtime'].endswith('Z'):
+            md['endtime'] = md['endtime']+"Z"
 
+        md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%.000Z')
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
     logger.info("publish_result : creating dataset file : %s" %ds_file)
