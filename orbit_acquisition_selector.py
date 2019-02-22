@@ -474,11 +474,12 @@ def publish_result(reference_result, id_hash):
     md['referance_date'] = reference_result.get('dt', '')
     md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
     md['reference_delta_area_pixel'] = reference_result.get('res', '')
+    md['union_geojson'] = reference_result.get('union_geojson', '')
 
     if isinstance(md['starttime'], datetime):
-        md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S')
+        md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S.000Z')
     if isinstance(md['endtime'], datetime):
-        md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S')
+        md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S.000Z')
     if isinstance(md['referance_date'], datetime):
         md['referance_date'] = md['referance_date'].strftime('%Y%m%dT%H%M%S')
 
@@ -577,7 +578,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
     if platform == "Sentinel-1B":
         mission = "S1B"
 
-
+   
     selected_track_acqs = {}
     result_track_acqs = {}
   
@@ -600,6 +601,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
             starttime, endtime = util.get_start_end_time2(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
             result['starttime'] = starttime
             result['endtime'] = endtime
+            result['union_geojson']=aoi['location']
             #master_dt_str = util.get_time_str_with_format(track_dt, "%Y%m%dT%H%M%S")
             logger.info("master_dt_str : %s" %track_dt)
 

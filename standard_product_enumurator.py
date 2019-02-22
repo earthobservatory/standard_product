@@ -488,6 +488,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         result['starttime'] = "%s" %util.get_isoformat_date(master_starttime)
         result['endtime'] = "%s" %util.get_isoformat_date(master_endtime)
         result['list_master_dt'] = track_dt
+        result['union_geojson'] = master_union_geojson
         query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumber, acquisition_version)
         logger.info("Slave Finding Query : %s" %query)
         es_index = "grq_%s_acquisition-s1-iw_slc/acquisition-S1-IW_SLC/" %(acquisition_version)
@@ -1129,14 +1130,15 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['secondary_date'] = secondary_result.get('dt', '')
     md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
     md['secondary_delta_area_sqkm'] = secondary_result.get('delta_area', '')
+    md['union_geojson'] = secondary_result.get('union_geojson', '')
  
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
     logger.info("type(md['referance_date']) : %s:" %type(md['referance_date']))
 
     if isinstance(md['starttime'], datetime):
-        md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S')
+        md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%.000Z')
     if isinstance(md['endtime'], datetime):
-        md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S')
+        md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S.000Z')
     if isinstance(md['referance_date'], datetime):
         md['referance_date'] = md['referance_date'].strftime('%Y%m%dT%H%M%S')
     if isinstance(md['secondary_date'], datetime):
