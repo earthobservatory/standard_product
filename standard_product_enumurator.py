@@ -1136,21 +1136,21 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['reference_area_threshold_passed'] = reference_result.get('area_threshold_passed', '')
     md['secondary_area_threshold_passed'] = secondary_result.get('area_threshold_passed', '')
     md['blacklist_test_passed'] = secondary_result.get('BL_PASSED', '')
-    md['referance_date'] = reference_result.get('dt', '')
+    md['reference_date'] = reference_result.get('dt', '')
     md['secondary_date'] = secondary_result.get('dt', '')
     md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
     md['secondary_delta_area_sqkm'] = secondary_result.get('delta_area', '')
     md['union_geojson'] = secondary_result.get('union_geojson', '')
  
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
-    logger.info("type(md['referance_date']) : %s:" %type(md['referance_date']))
+    logger.info("type(md['reference_date']) : %s:" %type(md['reference_date']))
 
     if isinstance(md['starttime'], datetime):
         md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%.000Z')
     if isinstance(md['endtime'], datetime):
         md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S.000Z')
-    if isinstance(md['referance_date'], datetime):
-        md['referance_date'] = md['referance_date'].strftime('%Y%m%dT%H%M%S')
+    if isinstance(md['reference_date'], datetime):
+        md['reference_date'] = md['reference_date'].strftime('%Y%m%dT%H%M%S')
     if isinstance(md['secondary_date'], datetime):
         md['secondary_date'] = md['secondary_date'].strftime('%Y%m%dT%H%M%S')
     if isinstance(md['starttime'], str):

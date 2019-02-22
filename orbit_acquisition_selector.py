@@ -471,7 +471,7 @@ def publish_result(reference_result, id_hash):
     md['starttime'] = reference_result.get('starttime', '')
     md['endtime'] = reference_result.get('endtime', '')
     md['reference_area_threshold_passed'] = reference_result.get('area_threshold_passed', '')
-    md['referance_date'] = reference_result.get('dt', '')
+    md['reference_date'] = reference_result.get('dt', '')
     md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
     md['reference_delta_area_pixel'] = reference_result.get('res', '')
     md['union_geojson'] = reference_result.get('union_geojson', '')
@@ -480,8 +480,8 @@ def publish_result(reference_result, id_hash):
         md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S.000Z')
     if isinstance(md['endtime'], datetime):
         md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S.000Z')
-    if isinstance(md['referance_date'], datetime):
-        md['referance_date'] = md['referance_date'].strftime('%Y%m%dT%H%M%S')
+    if isinstance(md['reference_date'], datetime):
+        md['reference_date'] = md['reference_date'].strftime('%Y%m%dT%H%M%S')
     if isinstance(md['starttime'], str):
         if not md['starttime'].endswith('Z'):
             md['starttime'] = md['starttime']+"Z"
