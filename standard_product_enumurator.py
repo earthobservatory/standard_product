@@ -501,9 +501,9 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
 
         if len(acqs) == 0:
             result['result'] = False
-            err_msg = "NO SLAVE FOUND for AOI %s and track %s" %(aoi_data['aoi_id'], track)
+            err_msg = "NO SLAVE FOUND for AOI %s and track %s and master track dt: %s" %(aoi_data['aoi_id'], track, track_dt)
             result['fail_reason'] = err_msg
-            logger.info("ERROR ERROR : NO SLAVE FOUND for AOI %s and track %s" %(aoi_data['aoi_id'], track))
+            logger.info(err_msg)
             result['union_geojson'] = master_union_geojson
             id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
             publish_result(master_result, result, id_hash)
