@@ -412,6 +412,16 @@ def isTrackSelected(land, water, land_area, water_area):
 
     return selected
 
+def update_dateformat(d):
+    try:
+        if isinstance(d, datetime):
+            d = d.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        elif (d, str):
+            d = parser.parse(d).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    except Exception as err:
+        logger.info(str(err))
+    return d
+
 
 def write_result_file(result_file, result):
     try:
@@ -468,31 +478,13 @@ def publish_result(reference_result, id_hash):
     md['track_number'] = reference_result.get('track', '')
     md['failure_reason'] = reference_result.get('fail_reason', '')
     md['comment'] = reference_result.get('comment', '')
-    md['starttime'] = reference_result.get('starttime', '')
-    md['endtime'] = reference_result.get('endtime', '')
+    md['starttime'] = update_dateformat(reference_result.get('starttime', ''))
+    md['endtime'] = update_dateformat(reference_result.get('endtime', ''))
     md['reference_area_threshold_passed'] = reference_result.get('area_threshold_passed', '')
-    md['reference_date'] = reference_result.get('dt', '')
+    md['reference_date'] = update_dateformat(reference_result.get('dt', ''))
     md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
     md['reference_delta_area_pixel'] = reference_result.get('res', '')
     md['union_geojson'] = reference_result.get('union_geojson', '')
-
-    if isinstance(md['starttime'], datetime):
-        md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%S.000Z')
-    if isinstance(md['endtime'], datetime):
-        md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S.000Z')
-    if isinstance(md['reference_date'], datetime):
-        md['reference_date'] = md['reference_date'].strftime('%Y%m%dT%H%M%S.000Z')
-    if isinstance(md['starttime'], str):
-        if not md['starttime'].endswith('Z'):
-            md['starttime'] = md['starttime']+".000Z"
-    if isinstance(md['endtime'], str):
-        if not md['endtime'].endswith('Z'):
-            md['endtime'] = md['endtime']+".000Z"
-    
-    if isinstance(md['reference_date'], str):
-        if not md['reference_date'].endswith('Z'):
-            md['reference_date'] = md['reference_date']+".000Z"
-
 
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)

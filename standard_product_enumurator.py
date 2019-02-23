@@ -1075,6 +1075,16 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     secondary_result['slave_count'] = len(slave_acquisitions)
     publish_result(reference_result, secondary_result, id_hash)
 
+def update_dateformat(d):
+    try:
+        if isinstance(d, datetime):
+            d = d.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        elif (d, str):
+            d = parser.parse(d).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    except Exception as err:
+        logger.info(str(err))
+    return d
+
 
 def publish_result(reference_result, secondary_result, id_hash):
   
@@ -1131,41 +1141,19 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['result'] = secondary_result.get('result', '')
     md['failure_reason'] = secondary_result.get('fail_reason', '')
     md['comment'] = secondary_result.get('comment', '')
-    md['starttime'] = secondary_result.get('starttime', '')
-    md['endtime'] = secondary_result.get('endtime', '')
+    md['starttime'] = update_dateformat(secondary_result.get('starttime', ''))
+    md['endtime'] = update_dateformat(secondary_result.get('endtime', ''))
     md['reference_area_threshold_passed'] = reference_result.get('area_threshold_passed', '')
     md['secondary_area_threshold_passed'] = secondary_result.get('area_threshold_passed', '')
     md['blacklist_test_passed'] = secondary_result.get('BL_PASSED', '')
-    md['reference_date'] = reference_result.get('dt', '')
-    md['secondary_date'] = secondary_result.get('dt', '')
+    md['reference_date'] = update_dateformat(reference_result.get('dt', ''))
+    md['secondary_date'] = update_dateformat(secondary_result.get('dt', ''))
     md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
     md['secondary_delta_area_sqkm'] = secondary_result.get('delta_area', '')
     md['union_geojson'] = secondary_result.get('union_geojson', '')
  
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
     logger.info("type(md['reference_date']) : %s:" %type(md['reference_date']))
-
-    if isinstance(md['starttime'], datetime):
-        md['starttime'] = md['starttime'].strftime('%Y%m%dT%H%M%.000Z')
-    if isinstance(md['endtime'], datetime):
-        md['endtime'] = md['endtime'].strftime('%Y%m%dT%H%M%S.000Z')
-    if isinstance(md['reference_date'], datetime):
-        md['reference_date'] = md['reference_date'].strftime('%Y%m%dT%H%M%S.000Z')
-    if isinstance(md['secondary_date'], datetime):
-        md['secondary_date'] = md['secondary_date'].strftime('%Y%m%dT%H%M%S.000Z')
-    if isinstance(md['starttime'], str):
-        if not md['starttime'].endswith('Z'):
-            md['starttime'] = md['starttime']+".000Z"
-   
-    if isinstance(md['endtime'], str):
-        if not md['endtime'].endswith('Z'):
-            md['endtime'] = md['endtime']+".000Z"
-    if isinstance(md['reference_date'], str):
-        if not md['reference_date'].endswith('Z'):
-            md['reference_date'] = md['reference_date']+".000Z"
-    if isinstance(md['secondary_date'], str):
-        if not md['secondary_date'].endswith('Z'):
-            md['secondary_date'] = md['reference_date']+".000Z"
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
