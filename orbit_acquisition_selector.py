@@ -412,16 +412,20 @@ def isTrackSelected(land, water, land_area, water_area):
 
     return selected
 
+
 def update_dateformat(d):
+    logger.info("update_dateformat in: %s" %d)
     try:
         if isinstance(d, datetime):
             d = d.strftime('%Y-%m-%dT%H:%M:%SZ')
         elif isinstance(d, str):
             d = parser.parse(d).strftime('%Y-%m-%dT%H:%M:%SZ')
+        else:
+            logger.info("unknown type : %s" %type(d))
     except Exception as err:
         logger.info(str(err))
+    logger.info("update_dateformat out: %s" %d)
     return d
-
 
 def write_result_file(result_file, result):
     try:
