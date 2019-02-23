@@ -1078,9 +1078,9 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
 def update_dateformat(d):
     try:
         if isinstance(d, datetime):
-            d = d.strftime('%Y-%m-%dT%H:%M:%S.000Z')
-        elif (d, str):
-            d = parser.parse(d).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            d = d.strftime('%Y-%m-%dT%H:%M:%SZ')
+        elif isinstance(d, str):
+            d = parser.parse(d).strftime('%Y-%m-%dT%H:%M:%SZ')
     except Exception as err:
         logger.info(str(err))
     return d
