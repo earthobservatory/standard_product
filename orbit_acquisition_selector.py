@@ -7,7 +7,6 @@ import util
 import gtUtil
 from util import ACQ
 import datetime  
-import dateutil.parser
 from datetime import datetime, timedelta
 import groundTrack
 from osgeo import ogr

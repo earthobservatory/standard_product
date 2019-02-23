@@ -13,7 +13,7 @@ from collections import OrderedDict
 from shapely.geometry import Polygon
 from util import ACQ
 import gtUtil
-import dateutil.parser
+from dateutil import parser
 import pickle
 import csv
 #import osaka.main
