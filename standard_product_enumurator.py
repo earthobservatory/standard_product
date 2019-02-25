@@ -488,7 +488,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         result['starttime'] = "%s" %util.get_isoformat_date(master_starttime)
         result['endtime'] = "%s" %util.get_isoformat_date(master_endtime)
         result['list_master_dt'] = track_dt
-        result['list_slave_dt'] = track_dt
+        result['list_slave_dt'] = "00000000T000000"
         result['union_geojson'] = master_union_geojson
         query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumber, acquisition_version)
         logger.info("Slave Finding Query : %s" %query)
@@ -649,7 +649,9 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                     candidate_pair_list.append(orbit_candidate_pair)
 
                 min_max_count = min_max_count + 1
+                logger.info("MIN-MATCH matched for slave date: %s. Present Min-Match : %s" %(slave_track_dt, min_max_count))
                 if min_max_count>=MIN_MATCH:
+                    logger.info("Completing Enumeration as Min Match is : %s" %min_max_count)
                     return min_max_count, candidate_pair_list
     return min_max_count, candidate_pair_list
 

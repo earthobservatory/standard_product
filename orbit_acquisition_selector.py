@@ -451,7 +451,7 @@ def publish_result(reference_result, id_hash):
     orbit_type = 'poeorb'
     aoi_id = reference_result['aoi'].strip().replace(' ', '_')
     logger.info("aoi_id : %s" %aoi_id)
-
+    reference_result['list_slave_dt']="00000000T000000"
     #id = ACQ_RESULT_ID_TMPL.format('M', reference_result['track'], orbit_type, id_hash[0:4], reference_result['aoi'])
     ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
     id = ACQ_RESULT_ID_TMPL.format('M', reference_result.get('master_count', 0), reference_result.get('slave_count', 0), reference_result.get('track', 0), reference_result.get('list_master_dt', ''), reference_result.get('list_slave_dt', ''), orbit_type, id_hash[0:4], reference_result['aoi'])
