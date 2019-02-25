@@ -1072,7 +1072,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     secondary_result['starttime'] = "%s" %starttime
     secondary_result['endtime'] = "%s" %endtime
     secondary_result['list_master_dt'] = list_master_dt
-    secondary_result['list_slave_dt'] = list_master_dt
+    secondary_result['list_slave_dt'] = list_slave_dt
     secondary_result['master_count'] = len(master_acquisitions)
     secondary_result['slave_count'] = len(slave_acquisitions)
     publish_result(reference_result, secondary_result, id_hash)
