@@ -425,6 +425,19 @@ def update_dateformat(d):
         logger.info(str(err))
     logger.info("update_dateformat out: %s" %d)
     return d
+def update_dateformat2(d):
+    logger.info("update_dateformat in: %s" %d)
+    try:
+        if isinstance(d, datetime):
+            d = d.strftime('%Y%m%dT%H%M%S')
+        elif isinstance(d, str):
+            d = parser.parse(d).strftime('%Y%m%dT%H%M%S')
+        else:
+            logger.info("unknown type : %s" %type(d))
+    except Exception as err:
+        logger.info(str(err))
+    logger.info("update_dateformat out: %s" %d)
+    return d
 
 def write_result_file(result_file, result):
     try:
@@ -452,9 +465,9 @@ def publish_result(reference_result, id_hash):
     aoi_id = reference_result['aoi'].strip().replace(' ', '_')
     logger.info("aoi_id : %s" %aoi_id)
     reference_result['list_slave_dt']="00000000T000000"
-    #id = ACQ_RESULT_ID_TMPL.format('M', reference_result['track'], orbit_type, id_hash[0:4], reference_result['aoi'])
-    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
-    id = ACQ_RESULT_ID_TMPL.format('M', reference_result.get('master_count', 0), reference_result.get('slave_count', 0), reference_result.get('track', 0), reference_result.get('list_master_dt', ''), reference_result.get('list_slave_dt', ''), orbit_type, id_hash[0:4], reference_result['aoi'])
+    
+    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{}-{}-{}-{}-{}"
+    id = ACQ_RESULT_ID_TMPL.format('M', reference_result.get('master_count', 0), reference_result.get('slave_count', 0), reference_result.get('track', 0), V(reference_result.get('list_master_dt', '')), update_dateformat2(reference_result.get('list_slave_dt', '')), orbit_type, id_hash[0:4], reference_result['aoi'])
 
 
 
