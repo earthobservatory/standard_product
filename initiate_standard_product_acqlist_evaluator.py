@@ -166,7 +166,7 @@ def get_acqlists_by_acqid(acq_id, acqlist_version):
             }
         }
     }
-    es_index = "grq_{}_acq-list".format(acqlist_version)
+    es_index = "grq_{}_S1-GUNW-acq-list".format(acqlist_version)
     result = query_es(query, es_index)
 
     if len(result) == 0:
@@ -186,7 +186,7 @@ def ifgcfg_exists(ifgcfg_id, version):
         },
         "fields": []
     }
-    index = "grq_{}_ifg-cfg".format(version)
+    index = "grq_{}_S1-GUNW-ifg-cfg".format(version)
     result = query_es(query, index)
     return False if len(result) == 0 else True
 
