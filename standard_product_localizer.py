@@ -508,20 +508,16 @@ def get_dem_type(info):
 
     dems = {}
     for id in info:
-	dem_type = "SRTM+v3"
         h = info[id]
         fields = h["_source"]
 	try:
 	    if 'city' in fields:
 	        if fields['city'][0]['country_name'] is not None and fields['city'][0]['country_name'].lower() == "united states":
                     dem_type="Ned1"
-                dems.setdefault(dem_type, []).append(id)
+                    break
 	except:
 	    dem_type = "SRTM+v3"
 
-    if len(dems) != 1:
-	logger.info("There are more than one type of dem, so selecting SRTM+v3")
-	dem_type = "SRTM+v3"
     return dem_type
 
 
@@ -653,7 +649,6 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     md['master_zip_url'] = master_zip_url
     md['slave_zip_url'] = slave_zip_url
     md['localize_urls'] = localize_urls
-    md['dem_type'] = dem_type
     md['slc_master_dt'] = slc_master_dt.strftime('%Y%m%dT%H%M%S')
     md['slc_slave_dt'] = slc_slave_dt.strftime('%Y%m%dT%H%M%S')
     md["master_zip_file"] = [os.path.basename(i) for i in master_zip_url]
