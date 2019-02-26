@@ -1384,13 +1384,10 @@ def get_dem_type(info):
             if 'city' in fields:
                 if fields['city'][0]['country_name'] is not None and fields['city'][0]['country_name'].lower() == "united states":
                     dem_type="Ned1"
-                dems.setdefault(dem_type, []).append(id)
+                    break
         except:
             dem_type = "SRTM+v3"
 
-    if len(dems) != 1:
-        print("There are more than one type of dem, so selecting SRTM+v3")
-        dem_type = "SRTM+v3"
     return dem_type
 '''
 def get_overlapping_slaves_query(master):
