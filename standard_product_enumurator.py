@@ -682,7 +682,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             
         master_acqs = selected_track_acqs[orbitnumber]
         master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
-        #master_ipf_count = util.get_ipf_count(master_acqs)
+        master_ipf_count = util.get_ipf_count(master_acqs)
         #master_union_geojson = util.get_union_geojson_acqs(master_acqs)
 
         #util.print_acquisitions(aoi_data['aoi_id'], master_acqs)
