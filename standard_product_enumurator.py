@@ -464,7 +464,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
 
     for track_dt in sorted(selected_track_acqs.keys(), reverse=True):
         logger.info(track_dt)
-   
+  
+        result = util.get_result_dict(aoi, track) 
         slaves_track = {}
         slave_acqs = []
         
@@ -481,6 +482,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             logger.info("ERROR: master acq list %s empty for track dt: %s" %(master_acqs, track_dt))
         master_result = result_track_acqs[track_dt]
         master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
+        master_union_geojson = util.get_union_geojson_acqs(master_acqs)
+        orbitNumber.append(master_orbitnumber)
+        #result = util.get_result_dict(aoi, track)
+        result['starttime'] = "%s" %util.get_isoformat_date(master_starttime)
+        result['endtime'] = "%s" %util.get_isoformat_date(master_endtime)
+        result['list_master_dt'] = track_dt
+        result['list_slave_dt'] = "00000000T000000"
+        result['union_geojson'] = master_union_geojson
         master_ipf_count = None
         try:
             master_ipf_count = util.get_ipf_count(master_acqs)
@@ -490,14 +499,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
             id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), [], track, aoi)
             publish_result(master_result, result, id_hash)
             continue
-        master_union_geojson = util.get_union_geojson_acqs(master_acqs)
-        orbitNumber.append(master_orbitnumber)
-        result = util.get_result_dict(aoi, track)
-        result['starttime'] = "%s" %util.get_isoformat_date(master_starttime)
-        result['endtime'] = "%s" %util.get_isoformat_date(master_endtime)
-        result['list_master_dt'] = track_dt
-        result['list_slave_dt'] = "00000000T000000"
-        result['union_geojson'] = master_union_geojson
+
         query = util.get_overlapping_slaves_query(util.get_isoformat_date(master_starttime), aoi_location, track, direction, orbit_data['platform'], master_orbitnumber, acquisition_version)
         logger.info("Slave Finding Query : %s" %query)
         es_index = "grq_%s_acquisition-s1-iw_slc/acquisition-S1-IW_SLC/" %(acquisition_version)
