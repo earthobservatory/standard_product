@@ -19,9 +19,20 @@ import lightweight_water_mask
 import pytz
 from dateutil import parser
 
-#logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
-#logger.setLevel(logging.INFO)
-#logger.addFilter(LogFilter())
+'''
+log_format = "[%(asctime)s: %(levelname)s/%(name)s/%(funcName)s] %(message)s"
+logging.basicConfig(format=log_format, level=logging.INFO)
+
+class LogFilter(logging.Filter):
+    def filter(self, record):
+        if not hasattr(record, 'id'): record.id = '--'
+        return True
+
+logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
+logger.setLevel(logging.INFO)
+logger.addFilter(LogFilter())
+'''
+
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
 
@@ -33,6 +44,7 @@ class LogFilter(logging.Filter):
 logger = logging.getLogger('util')
 logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
+
 
 DATE_RE = re.compile(r'(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<min>\d{2}):(?P<sec>\d{2}).*$')
 
@@ -99,6 +111,8 @@ logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
 
+
+
 BASE_PATH = os.path.dirname(__file__)
 MOZART_ES_ENDPOINT = "MOZART"
 GRQ_ES_ENDPOINT = "GRQ"
@@ -107,9 +121,11 @@ def print_acq(acq):
     print("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq.acq_id, acq.download_url, acq.tracknumber, acq.location, acq.starttime, acq.endtime, acq.direction, acq.orbitnumber, acq.identifier, acq.pv))
 
 def group_acqs_by_orbit_number_from_metadata(frames):
+    print("group_acqs_by_orbit_number_from_metadata")
     return group_acqs_by_orbit_number(create_acqs_from_metadata(frames))
 
 def group_acqs_by_track_date_from_metadata(frames):
+    logger.info("group_acqs_by_track_date_from_metadata")
     return group_acqs_by_track_multi_date(create_acqs_from_metadata(frames))
 
 def group_acqs_by_track_date(acqs):
@@ -409,8 +425,8 @@ def create_acq_obj_from_metadata(acq):
     acq_data = acq #acq['fields']['partial'][0]
     missing_pcv_list = list()
     acq_id = acq['id']
-    print("logger level : %s" %logger.level)
-    print("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
+    logger.info("logger level : %s" %logger.level)
+    logger.info("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
     '''
     match = SLC_RE.search(acq_id)
     if not match:
@@ -433,18 +449,18 @@ def create_acq_obj_from_metadata(acq):
     if "processing_version" in  acq_data['metadata']:
         pv = acq_data['metadata']['processing_version']
         if pv:
-            print("pv found in metadata : %s" %pv)
+            logger.info("pv found in metadata : %s" %pv)
         else:
-            print("pv NOT in metadata,so calling ASF")
+            logger.info("pv NOT in metadata,so calling ASF")
             pv = get_processing_version(identifier, acq_data['metadata'])
-            print("ASF returned pv : %s" %pv)
+            logger.info("ASF returned pv : %s" %pv)
             if pv:
                 update_acq_pv(acq_id, pv)
     else:
         missing_pcv_list.append(acq_id)
-        print("pv NOT in metadata,so calling ASF")
+        logger.info("pv NOT in metadata,so calling ASF")
         pv = get_processing_version(identifier, acq_data['metadata'])
-        print("ASF returned pv : %s" %pv)
+        logger.info("ASF returned pv : %s" %pv)
         if pv:
             update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
@@ -1218,9 +1234,10 @@ def get_processing_version(slc, met = None):
 def get_processing_version_from_scihub(slc, met = None):
 
     ipf_string = None
+    '''
     if met:
         ipf_string = extract_scihub_ipf(met)
-
+    '''
     return ipf_string
 
 
@@ -1232,6 +1249,7 @@ def get_processing_version_from_asf(slc):
         # query the asf search api to find the download url for the .iso.xml file
         #request_string = "https://api.daac.asf.alaska.edu/services/search/param?platform=SA,SB&processingLevel=METADATA_SLC&granule_list=S1B_IW_SLC__1SDV_20190221T151817_20190221T151844_015046_01C1D6_240D&output=json"
         request_string = 'https://api.daac.asf.alaska.edu/services/search/param?platform=SA,SB&processingLevel=METADATA_SLC&granule_list=%s&output=json' %slc
+        print("get_processing_version_from_asf : request_string : %s" %request_string)
         response = requests.get(request_string)
 
         response.raise_for_status()
@@ -1247,9 +1265,14 @@ def get_processing_version_from_asf(slc):
         ipf_string = root.find('gmd:composedOf/gmd:DS_DataSet/gmd:has/gmi:MI_Metadata/gmd:dataQualityInfo/gmd:DQ_DataQuality/gmd:lineage/gmd:LI_Lineage/gmd:processStep/gmd:LI_ProcessStep/gmd:description/gco:CharacterString', ns).text
 
         if ipf_string:
+            print("get_processing_version_from_asf : ipf_string : %s" %ipf_string)
             ipf = ipf_string.split('version')[1].split(')')[0].strip()
+            print("get_processing_version_from_asf : ipf_string : %s" %ipf)
+        else:
+            print("get_processing_version_from_asf : ipf_string is NONE")
     except Exception as err:
-        print("get_processing_version_from_asf : %s" %str(err))
+        print("get_processing_version_from_asf ERROR: %s" %str(err))
+        raise
  
         
     return ipf
