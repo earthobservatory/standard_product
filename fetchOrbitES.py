@@ -70,7 +70,7 @@ def download_file(url, outdir='.', session=None):
 
 def get_orbits(es_url, otype, timebef, timeaft, mission):
     """Query for the orbits."""
-    print("get_orbits : es_url, otype %s, timebef %s, timeaft %s, mission %s" %(es_url, otype, timebef, timeaft, mission))
+    print("get_orbits : es_url %s, otype %s, timebef %s, timeaft %s, mission %s" %(es_url, otype, timebef, timeaft, mission))
     query = {
         "query":{
             "bool":{
