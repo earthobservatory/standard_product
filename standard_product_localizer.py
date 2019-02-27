@@ -532,6 +532,7 @@ def get_orbit_from_metadata(mds):
     """Get orbit for a set of SLC ids. They need to belong to the same day."""
 
     day_dt, all_dts, mission = util.get_date_from_metadata(mds)
+    logger.info("get_orbit_from_metadata : day_dt %s, all_dts %s, mission %s" %(day_dt, all_dts, mission))
     return fetch("%s.0" % all_dts[0].isoformat(), "%s.0" % all_dts[-1].isoformat(),
                  mission=mission, dry_run=True)
 
