@@ -76,6 +76,7 @@ def resolve_acq(slc_id, version):
     result = query_es(query, es_index)
 
     if len(result) == 0:
+        logger.info("query : \n%s\n" %query)
         raise RuntimeError(
             "Failed to resolve acquisition ID for SLC ID: {}".format(slc_id))
 
@@ -104,6 +105,7 @@ def all_slcs_exist(acq_ids, acq_version, slc_version):
         for hit in result:
             slc_ids.append(hit['fields']['metadata.identifier'][0])
     if len(slc_ids) != len(acq_ids):
+        logger.info("acq_query : \n%s\n" %acq_query)
         raise RuntimeError(
             "Failed to resolve SLC IDs for all acquisition IDs: {} vs. {}".format(acq_ids, slc_ids))
 
