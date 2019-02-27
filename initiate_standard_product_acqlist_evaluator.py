@@ -187,11 +187,7 @@ def ifgcfg_exists(ifgcfg_id, version):
         "fields": []
     }
     index = "grq_{}_s1-gunw-ifg-cfg".format(version)
-    result = None
-    try:
-        result = query_es(query, index)a
-    except:
-        return False
+    result = query_es(query, index)a
     return False if len(result) == 0 else True
 
 
