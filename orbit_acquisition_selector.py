@@ -519,14 +519,28 @@ def print_groups(grouped_matched):
                 logger.info("\t\t %s" %acq[0])
 
 
+def group_acqs_by_track_date_from_metadata(frames):
+    logger.info("group_acqs_by_track_date_from_metadata")
+    return util.group_acqs_by_track_multi_date(create_acqs_from_metadata(frames))
+
+
+def create_acqs_from_metadata(frames):
+    acqs = []
+    logger.info("frame length : %s" %len(frames))
+    for acq in frames:
+        logger.info("create_acqs_from_metadata : %s" %acq['id'])
+        acq_obj = util.create_acq_obj_from_metadata(acq)
+        if acq_obj:
+            acqs.append(acq_obj)
+    return acqs
 
 def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_file, orbit_dir, platform, result_file, selected_track_list):
     #util.print_acquisitions(aoi['id'], util.create_acqs_from_metadata(acqs))
 
 
     logger.info("\nget_covered_acquisitions_by_track_date")
-    
-    logger.info("PROCESSING AOI : %s : %s" %(aoi['id'], aoi['location']))
+    #logger.info(acqs) 
+    logger.info("PROCESSING AOI : %s : \nlocation  %s" %(aoi['id'], aoi['location']))
     grouped_matched = util.group_acqs_by_track_date_from_metadata(acqs) #group_acqs_by_track(acqs)
     logger.info("grouped_matched Done")
     print_groups(grouped_matched)

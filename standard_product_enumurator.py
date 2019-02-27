@@ -381,7 +381,9 @@ def enumerate_acquisations(orbit_acq_selections):
     threshold_pixel = job_data['threshold_pixel']
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
+    logger.info("master_orbit_data : %s " %orbit_data)
     orbit_file = job_data['orbit_file']
+    logger.info("master_orbit_file : %s " %orbit_file)
     acquisition_version = job_data["acquisition_version"]
     selected_track_list = job_data["selected_track_list"]
 
@@ -410,7 +412,7 @@ def enumerate_acquisations(orbit_acq_selections):
             if len(selected_track_acqs[track].keys()) <=0:
                 logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                 continue
-            min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs[track])
+            min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs[track], orbit_file)
             logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
             if min_max_count>0:
                 print_candidate_pair_list_per_track(track_candidate_pair_list)
@@ -449,7 +451,7 @@ def get_acq_ids(acqs):
         acq_ids.append(acq_id)
     return acq_ids
 
-def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs):
+def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs, master_orbit_file):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -490,6 +492,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         result['list_master_dt'] = track_dt
         result['list_slave_dt'] = "00000000T000000"
         result['union_geojson'] = master_union_geojson
+        result['master_orbit_file'] = master_orbit_file
         master_ipf_count = None
         try:
             master_ipf_count = util.get_ipf_count(master_acqs)
@@ -574,6 +577,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 result['slave_count'] = len(slave_acqs)
                 result['starttime'] = "%s" %util.get_isoformat_date(master_starttime)
                 result['endtime'] = "%s" %util.get_isoformat_date(master_endtime)
+                result['master_orbit_file'] = master_orbit_file
+                result['slave_orbit_file'] = orbit_file
                 result_track_acqs[slave_track_dt] = result
                 orbit_name = orbit_file.split('.EOF')[0].strip()
                 result['orbit_name']= orbit_name
@@ -655,7 +660,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
                 for candidate_pair in orbit_candidate_pair:
                     candidate_pair["master_track_dt"] = track_dt
                     candidate_pair["slave_trck_dt"] = slave_track_dt
-                    publish_initiator_pair(candidate_pair, job_data, orbit_data, aoi_id, master_result, result)   
+                    publish_initiator_pair(candidate_pair, job_data, orbit_data, aoi_id, master_orbit_file, orbit_file, master_result, result)   
                     candidate_pair_list.append(orbit_candidate_pair)
 
                 min_max_count = min_max_count + 1
@@ -884,7 +889,7 @@ def publish_initiator(candidate_pair_list, job_data):
         #publish_initiator_pair(candidate_pair, job_data)
 '''
 
-def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id, reference_result=None, secondary_result = None):
+def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,  master_orbit_file, slave_orbit_file, reference_result=None, secondary_result = None):
   
 
     logger.info("\nPUBLISH CANDIDATE PAIR : %s" %candidate_pair)
@@ -955,7 +960,6 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
         raise RuntimeError("Single Scene Reference Required.")
  
 
-    dem_type = util.get_dem_type(master_md)
     master_start_time, master_end_time = util.get_start_end_time(master_md)
     slave_start_time, slave_end_time = util.get_start_end_time(slave_md)
     # get dem_type
@@ -1056,6 +1060,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     md['master_end_time'] = master_end_time
     md['slave_start_time'] = slave_start_time
     md['slave_end_time'] = slave_end_time
+    md['master_orbit_file'] = master_orbit_file
+    md['slave_orbit_file'] = slave_orbit_file
 
  
     try:
@@ -1077,6 +1083,9 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
 
     print("creating dataset file : %s" %ds_file)
     util.create_dataset_json(id, version, met_file, ds_file)
+   
+    secondary_result['master_orbit_file'] = master_orbit_file
+    secondary_result['slave_orbit_file'] = slave_orbit_file
     secondary_result['union_geojson'] = union_geojson
     secondary_result['result']=True
     secondary_result['starttime'] = "%s" %starttime
@@ -1085,6 +1094,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     secondary_result['list_slave_dt'] = list_slave_dt
     secondary_result['master_count'] = len(master_acquisitions)
     secondary_result['slave_count'] = len(slave_acquisitions)
+
     publish_result(reference_result, secondary_result, id_hash)
 
 def update_dateformat(d):
@@ -1177,7 +1187,8 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
     md['secondary_delta_area_sqkm'] = secondary_result.get('delta_area', '')
     md['union_geojson'] = secondary_result.get('union_geojson', '')
- 
+
+
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
     logger.info("type(md['reference_date']) : %s:" %type(md['reference_date']))
 

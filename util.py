@@ -509,6 +509,8 @@ def get_result_dict(aoi=None, track=None, track_dt=None):
     result['list_slave_dt'] = None
     result['master_count'] = 0
     result['slave_count'] = 0
+    result['master_orbit_file'] = ''
+    result['slave_orbit_file'] = ''
     '''
     result['ACQ_POEORB_AOI_Intersection_primary'] = None
     result['ACQ_Union_POEORB_Land_primary'] = None
