@@ -962,6 +962,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
 
     master_start_time, master_end_time = util.get_start_end_time(master_md)
     slave_start_time, slave_end_time = util.get_start_end_time(slave_md)
+
+    '''
     # get dem_type
     dem_type = util.get_dem_type(master_md)
     logger.info("master_dem_type: {}".format(dem_type))
@@ -969,7 +971,7 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     logger.info("slave_dem_type: {}".format(slave_dem_type))
     if dem_type != slave_dem_type:
         dem_type = "SRTM+v3"
-
+    '''
 
  
     job_queue = "%s-job_worker-large" % project
@@ -1022,6 +1024,22 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     prod_dir =  id
     os.makedirs(prod_dir, 0o755)
 
+
+
+
+    # get dem_type
+    logger.info("finding dem_type for %s" %id)
+    dem_type = util.get_dem_type(master_md)
+    logger.info("master_dem_type: {}".format(dem_type))
+    '''
+    slave_dem_type = util.get_dem_type(slave_md)
+    logger.info("slave_dem_type: {}".format(slave_dem_type))
+    if dem_type == "Ned" or  slave_dem_type == "Ned":
+        logger.info("Master dem type (%s) or Slave dem type (%s). So selecting Ned as dem type" %(dem_type, slave_dem_type))
+        dem_type = "Ned"
+    '''
+
+
     met_file = os.path.join(prod_dir, "{}.met.json".format(id))
     ds_file = os.path.join(prod_dir, "{}.dataset.json".format(id))
     
@@ -1060,8 +1078,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     md['master_end_time'] = master_end_time
     md['slave_start_time'] = slave_start_time
     md['slave_end_time'] = slave_end_time
-    md['master_orbit_file'] = master_orbit_file
-    md['slave_orbit_file'] = slave_orbit_file
+    md['master_orbit_file'] = os.path.basename(master_orbit_file)
+    md['slave_orbit_file'] = os.path.basename(slave_orbit_file)
 
  
     try:

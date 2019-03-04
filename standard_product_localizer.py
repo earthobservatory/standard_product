@@ -501,6 +501,7 @@ def check_all_job_completed(job_info):
 	    break
     return all_done
 
+
 def get_dem_type(info):
     """Get dem type."""
 
@@ -508,17 +509,26 @@ def get_dem_type(info):
 
     dems = {}
     for id in info:
+        dem_type = "SRTM+v3"
         h = info[id]
         fields = h["_source"]
-	try:
-	    if 'city' in fields:
-	        if fields['city'][0]['country_name'] is not None and fields['city'][0]['country_name'].lower() == "united states":
-                    dem_type="Ned1"
-                    break
-	except:
-	    dem_type = "SRTM+v3"
+        try:
+            if 'city' in fields:
+                for city in fields['city']:
+                    if city['country_name'] is not None:
+                        if city['country_name'].lower() == "united states":
+                            dem_type="Ned1"
+                            print("Found city in US : %s. So dem type is ned" %fields['city'][0]['country_name'].lower())
+                            break
+                    else:
+                        print("fields['city'][0]['country_name'] is None")
+        except:
+            dem_type = "SRTM+v3"
+        if dem_type.upper().startswith("NED"):
+            break
 
     return dem_type
+
 
 
 def get_orbit_from_ids(ids, scene_type="slc"):
@@ -592,8 +602,11 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     slave_orbit_url = get_orbit_from_metadata(slave_md)
     logger.info("slave_orbit_url: {}".format(slave_orbit_url))
 
-    dem_type = get_dem_type(master_md)
-   
+    try:
+        dem_type = get_dem_type(master_md)
+    except:
+        pass
+ 
     slc_master_dt, slc_slave_dt = util.get_scene_dates_from_metadata(master_md, slave_md) 
     
 
