@@ -1384,11 +1384,18 @@ def get_dem_type(info):
         fields = h["_source"]
         try:
             if 'city' in fields:
-                if fields['city'][0]['country_name'] is not None and fields['city'][0]['country_name'].lower() == "united states":
-                    dem_type="Ned1"
-                    break
+                for city in fields['city']:
+                    if city['country_name'] is not None:
+                        if city['country_name'].lower() == "united states":
+                            dem_type="Ned1"
+                            print("Found city in US : %s. So dem type is ned" %fields['city'][0]['country_name'].lower())
+                            break
+                    else:
+                        print("fields['city'][0]['country_name'] is None")
         except:
             dem_type = "SRTM+v3"
+        if dem_type.upper().startswith("NED"):
+            break
 
     return dem_type
 '''
