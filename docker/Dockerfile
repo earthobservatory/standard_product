@@ -27,7 +27,7 @@ RUN pip3 install shapely
 
 RUN pip install 'fiona==1.7.13'
 RUN pip3 install 'fiona==1.7.13'
-RUN sudo pip3 install geopandas
+RUN sudo pip3 install 'geopandas==0.4.0'
 RUN pip3 install elasticsearch
 RUN pip install elasticsearch
 RUN pip3 install 'pyproj==1.9.6'
