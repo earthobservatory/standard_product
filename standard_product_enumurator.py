@@ -1012,11 +1012,10 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
             dem_type
     ]).encode("utf8")).hexdigest()
     '''
-
+    aoi_id = aoi_id.strip().replace(' ', '_')
     id_hash = util.get_ifg_hash(master_acquisitions, slave_acquisitions, track, aoi_id)
 
     orbit_type = 'poeorb'
-    aoi_id = aoi_id.strip().replace(' ', '_')
 
     #ACQ_LIST_ID_TMPL = "S1-GUNW-acqlist-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
     id = ACQ_LIST_ID_TMPL.format('M', len(master_acquisitions), len(slave_acquisitions), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4], aoi_id)

@@ -7,6 +7,7 @@ from xml.etree import ElementTree
 from UrlUtils import UrlUtils
 import hashlib
 import shapely
+import pickle
 from shapely.geometry import shape, Polygon, MultiPolygon, mapping
 from shapely.ops import cascaded_union
 import datetime
@@ -522,6 +523,25 @@ def get_result_dict(aoi=None, track=None, track_dt=None):
     result['Track_AOI_Intersection_secondary'] = None    
     '''
     return result
+
+
+def get_acq_ids(acqs):
+    acq_ids = []
+    for acq in acqs:
+        acq_id = acq.acq_id
+        if isinstance(acq_id, tuple) or isinstance(acq_id, list):
+            acq_id = acq_id[0]
+        acq_ids.append(acq_id)
+    return acq_ids
+
+
+def gen_hash(master_scenes, slave_scenes):
+    '''Generates a hash from the master and slave scene list'''
+    master = [x.replace('acquisition-', '') for x in master_scenes]
+    slave = [x.replace('acquisition-', '') for x in slave_scenes]
+    master = pickle.dumps(sorted(master))
+    slave = pickle.dumps(sorted(slave))
+    return '{}_{}'.format(hashlib.md5(master).hexdigest(), hashlib.md5(slave).hexdigest())
 
 
 def get_ifg_hash(master_acqs,  slave_acqs, track, aoi_name):

@@ -466,7 +466,6 @@ def get_id_hash(acq_info, job_priority, dem_type):
 
        
     id_hash = hashlib.md5(json.dumps([
-	job_priority,
 	master_ids_str,
 	slave_ids_str,
         dem_type
