@@ -558,6 +558,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     logger.info("project : %s " %project)
     logger.info("dem type : %s " %dem_type)
     logger.info("track : %s" %track)
+    logger.info("aoi_id : %s" %aoi_id)
     logger.info("starttime, endtime, : %s : %s " %(starttime, endtime))
     logger.info(" master_scene, slave_scene : %s, %s" %(master_scene, slave_scene))
     logger.info(" union_geojson : %s, bbox : %s " %( union_geojson, bbox))
