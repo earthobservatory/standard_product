@@ -547,11 +547,11 @@ def get_orbit_from_metadata(mds):
 
 
 
-def publish_localized_info( acq_info, project, job_priority, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
+def publish_localized_info( acq_info, project, job_priority, dem_type, track, aoi_id, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
     for i in range(len(project)):
-        publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], direction[i], platform[i], union_geojson[i], bbox[i])
+        publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], aoi_id[i],  starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], direction[i], platform[i], union_geojson[i], bbox[i])
 
-def publish_data( acq_info, project, job_priority, dem_type, track,starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
+def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
@@ -576,8 +576,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track,starttime, en
     job_queue = "standard_product_s1ifg-slc_localizer"
     #job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
        
-
-    id_hash = get_id_hash(acq_info, job_priority, dem_type)
+    id_hash = util.get_ifg_hash(master_scene,  slave_scene, track, aoi_id)
+    #id_hash = get_id_hash(acq_info, job_priority, dem_type)
     master_slcs = get_acq_data_from_list(master_scene)
     slave_slcs = get_acq_data_from_list(slave_scene)
 
