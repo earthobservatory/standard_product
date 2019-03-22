@@ -683,8 +683,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
 
 
 def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisition_localizer_version, acq_list, priority):
-    esa_download_queue = "factotum-job_worker-scihub_throttled"
-    asf_ngap_download_queue = "factotum-job_worker-scihub_throttled"
+    esa_download_queue = "spyddder-sling-extract-scihub"
+    asf_ngap_download_queue = "spyddder-sling-extract-asf"
     job_type = "job-acquisition_localizer_multi:{}".format(multi_acquisition_localizer_version)
     job_version = multi_acquisition_localizer_version
     try:
