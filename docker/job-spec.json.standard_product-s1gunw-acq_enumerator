@@ -44,6 +44,10 @@
       "destination": "context"
     },
     {
+      "name": "skipDays",
+      "destination": "context"
+    },
+    {
         "name": "starttime",
         "destination": "context"
     },

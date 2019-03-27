@@ -379,6 +379,7 @@ def enumerate_acquisations(orbit_acq_selections):
     job_data = orbit_acq_selections["job_data"]
     MIN_MATCH = job_data['minMatch']
     threshold_pixel = job_data['threshold_pixel']
+    skip_days = job_data["skip_days"]
     orbit_aoi_data = orbit_acq_selections["orbit_aoi_data"]
     orbit_data = orbit_acq_selections["orbit_data"]
     logger.info("master_orbit_data : %s " %orbit_data)
@@ -412,7 +413,7 @@ def enumerate_acquisations(orbit_acq_selections):
             if len(selected_track_acqs[track].keys()) <=0:
                 logger.info("\nenumerate_acquisations : No selected data for track : %s " %track)
                 continue
-            min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs[track], orbit_file)
+            min_max_count, track_candidate_pair_list = get_candidate_pair_list(aoi_id, track, selected_track_acqs[track], aoi_data, skip_days, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs[track], orbit_file)
             logger.info("\n\nAOI ID : %s MIN MAX count for track : %s = %s" %(aoi_id, track, min_max_count))
             if min_max_count>0:
                 print_candidate_pair_list_per_track(track_candidate_pair_list)
@@ -451,7 +452,7 @@ def get_acq_ids(acqs):
         acq_ids.append(acq_id)
     return acq_ids
 
-def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs, master_orbit_file):
+def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days, orbit_data, job_data, aoi_blacklist, threshold_pixel, acquisition_version, result_track_acqs, master_orbit_file):
     logger.info("get_candidate_pair_list : %s Orbits" %len(selected_track_acqs.keys()))
     candidate_pair_list = []
     orbit_ipf_dict = {}
@@ -462,7 +463,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
     aoi_id = aoi_data['aoi_id']
     orbit_type="S" 
     orbitNumber = []
-   
+    logger.info("skip_days : %s" %skip_days)
 
     for track_dt in sorted(selected_track_acqs.keys(), reverse=True):
         logger.info(track_dt)
@@ -493,6 +494,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, orbit_dat
         result['list_slave_dt'] = "00000000T000000"
         result['union_geojson'] = master_union_geojson
         result['master_orbit_file'] = master_orbit_file
+        result['skip_days'] = skip_days
         master_ipf_count = None
         try:
             master_ipf_count = util.get_ipf_count(master_acqs)

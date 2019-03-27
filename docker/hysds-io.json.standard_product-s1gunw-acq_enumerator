@@ -54,7 +54,15 @@
       "type": "text",
       "placeholder": "comma-separated aoi dataset id. Example : 'aoi_id_1, aoi_id_2'",
       "optional": true
-    },     
+    },
+    {
+      "name": "skipDays",
+      "from": "submitter",
+      "type": "number",
+      "lambda": "lambda x: int(x)",
+      "default": "0",
+      "optional": true
+    },
     {
       "name": "starttime",
       "from": "dataset_jpath:_source.starttime",

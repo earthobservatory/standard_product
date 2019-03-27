@@ -849,7 +849,7 @@ def resolve_aoi_acqs(ctx_file):
     acquisition_version = ctx["acquisition_version"]  
     threshold_pixel = int(ctx["threshold_pixel"])
     job_type, job_version = ctx['job_specification']['id'].split(':')
-
+    skip_days = int(ctx.get("skipDays", 0))
     selected_track_list = []
 
     try:
@@ -877,6 +877,7 @@ def resolve_aoi_acqs(ctx_file):
     selected_aoi_list = list(set(selected_aoi_list))
     logger.info("selected_aoi_list : %s" %selected_aoi_list)
     logger.info("selected_track_list : %s" %selected_track_list)
+    logger.info("skip_days : %s" %skip_days)
 
     #Find Orbit File Info
     orbit_file = None
@@ -919,7 +920,7 @@ def resolve_aoi_acqs(ctx_file):
     job_data['threshold_pixel'] = threshold_pixel
     job_data["acquisition_version"] = acquisition_version
     job_data["selected_track_list"] = selected_track_list
-
+    job_data["skip_days"] = skip_days
     
     orbit_data = {}
     orbit_data['starttime'] = ctx['starttime']
