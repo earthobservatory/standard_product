@@ -687,6 +687,11 @@ def submit_sling_job(id_hash, project, spyddder_extract_version, multi_acquisiti
     asf_ngap_download_queue = "spyddder-sling-extract-asf"
     job_type = "job-acquisition_localizer_multi:{}".format(multi_acquisition_localizer_version)
     job_version = multi_acquisition_localizer_version
+    logger.info("submit_sling_job : acq_list %s, \nspyddder_extract_version : %s, \nmulti_acquisition_localizer_version: %s, \nesa_download_queue : %s, \nasf_ngap_download_queue: %s, \npriority : %s, \njob_type : %s, \njob_version : %s" %(acq_list, spyddder_extract_version, multi_acquisition_localizer_version, esa_download_queue, asf_ngap_download_queue, priority, job_type, job_version))
+
+
+
+
     try:
         return acquisition_localizer_multi.sling(acq_list, spyddder_extract_version, multi_acquisition_localizer_version, esa_download_queue, asf_ngap_download_queue, priority, job_type, job_version)
     except Exception as e:
