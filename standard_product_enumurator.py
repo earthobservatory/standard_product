@@ -505,7 +505,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             publish_result(master_result, result, id_hash)
             continue
         logger.info("master_starttime : %s" %master_starttime)
-        logger.info("Before %s skip days, master_starttime : %s" %util.get_past_isoformat_date(master_starttime, skip_days))
+        logger.info("Before %s skip days, master_starttime : %s" %(skip_days, util.get_past_isoformat_date(master_starttime, skip_days)))
 
         query = util.get_overlapping_slaves_query(util.get_past_isoformat_date(master_starttime, skip_days), aoi_location, track, direction, orbit_data['platform'], master_orbitnumber, acquisition_version)
         logger.info("Slave Finding Query : %s" %query)
