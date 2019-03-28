@@ -64,6 +64,9 @@ def create_acq_obj_from_metadata(acq):
     orbitnumber = acq_data['metadata']['orbitNumber']
     identifier = acq_data['metadata']['identifier']
     platform = acq_data['metadata']['platform']
+    sensingStop = acq_data['metadata']['sensingStop']
+    sensingStart = acq_data['metadata']['sensingStart']
+    ingestiondate = acq_data['metadata']['ingestiondate']
     pv = None
     if "processing_version" in  acq_data['metadata']:
         pv = acq_data['metadata']['processing_version']
@@ -74,7 +77,7 @@ def create_acq_obj_from_metadata(acq):
         #pv = util.get_processing_version(identifier)
         #logger.info("ASF returned pv : %s" %pv)
         #util.update_acq_pv(acq_id, pv) 
-    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
+    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform)
 
 def create_acqs_from_metadata(frames):
     acqs = []
@@ -572,7 +575,10 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             logger.info("slave_platform : %s" %slave_platform)
             if orbit_file:
                 logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s in %s" %(slave_track_dt, orbit_file, orbit_dir))
-                selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt],  aoi_location, aoi, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+                filtered_acd_ids = util.filter_acq_ids(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt], 3)
+                logger.info("SLAVE filtered_acd_ids : %s" %filtered_acd_ids)
+
+                selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], filtered_acd_ids,  aoi_location, aoi, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
                 result['dt'] = slave_track_dt
                 result['union_geojson'] = master_union_geojson
                 result['list_slave_dt'] = slave_track_dt

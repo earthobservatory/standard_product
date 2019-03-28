@@ -19,6 +19,8 @@ import elasticsearch
 import lightweight_water_mask
 import pytz
 from dateutil import parser
+import collections, operator
+from collections import OrderedDict
 
 '''
 log_format = "[%(asctime)s: %(levelname)s/%(name)s/%(funcName)s] %(message)s"
@@ -78,7 +80,7 @@ MISSION = 'S1A'
 
 
 class ACQ:
-    def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform = None  ):
+    def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform = None  ):
         print("ACQ : %s %s %s" %(acq_id, starttime, endtime))
         self.acq_id=acq_id,
         self.download_url = download_url
@@ -91,6 +93,9 @@ class ACQ:
         self.orbitnumber = orbitnumber
         self.identifier = identifier
         self.platform = platform
+        self.sensingStart = sensingStart
+        self.sensingStop = sensingStop
+        self.ingestiondate = ingestiondate
         self.covers_only_water = lightweight_water_mask.covers_only_water(location)
         self.covers_only_land = lightweight_water_mask.covers_only_land(location)
         
@@ -442,6 +447,9 @@ def create_acq_obj_from_metadata(acq):
     location = acq_data['metadata']['location']
     starttime = acq_data['starttime']
     endtime = acq_data['endtime']
+    sensingStop = acq_data['metadata']['sensingStop']
+    sensingStart = acq_data['metadata']['sensingStart']
+    ingestiondate = acq_data['metadata']['ingestiondate']
     direction = acq_data['metadata']['direction']
     orbitnumber = acq_data['metadata']['orbitNumber']
     platform = acq_data['metadata']['platform']
@@ -464,7 +472,7 @@ def create_acq_obj_from_metadata(acq):
         logger.info("ASF returned pv : %s" %pv)
         if pv:
             update_acq_pv(acq_id, pv) 
-    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
+    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform)
 
 
 def create_acqs_from_metadata(frames):
@@ -938,11 +946,14 @@ def group_acqs_by_track(frames):
         orbitnumber = acq_data['metadata']['orbitNumber']
         identifier = acq['metadata']['identifier']
         platform = acq_data['metadata']['platform']
+        sensingStop = acq_data['metadata']['sensingStop']
+        sensingStart = acq_data['metadata']['sensingStart']
+        ingestiondate = acq_data['metadata']['ingestiondate']
 
         pv = None
         if "processing_version" in  acq_data['metadata']:
             pv = acq_data['metadata']['processing_version']
-        this_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, platform)
+        this_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform)
         acq_info[acq_id] = this_acq
 
         #print("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
@@ -960,6 +971,93 @@ def group_acqs_by_track(frames):
                     grouped[track][orbitnumber] = 
         '''
     return {"grouped": grouped, "acq_info" : acq_info}
+
+def filter_acq_ids(track, track_dt, acq_info, acq_ids, ssth=3):
+    logger.info("\nfilter_acq_ids: track : %s track_dt : %s acq_ids: %s" %(track, track_dt, acq_ids))
+    dedup_acqs = dict()
+    last_id = None
+    last_sensing_start = None
+    temp_dict = {}
+
+    for acq_id in acq_ids:
+        print("type(acq_id) : %s" %type(acq_id))
+        if type(acq_id) == 'tuple' or type(acq_id)=='list':
+            acq_id = acq_id[0]
+        acq = acq_info[acq_id]
+        sensing_start = datetime.strptime(
+            acq.sensingStart[:-1] if acq.sensingStart.endswith('Z') else acq.sensingStart,  "%Y-%m-%dT%H:%M:%S.%f"
+        )
+        temp_dict[acq_id] = sensing_start
+
+
+    sorted_x = sorted(temp_dict.items(), key=operator.itemgetter(0))
+    sorted_temp_dict = OrderedDict(sorted_x)
+    print ("sorted_temp_dict : %s " %sorted_temp_dict)
+
+
+    for acq_id, sensing_start in sorted_temp_dict.items():
+        print("type(acq_id) : %s" %type(acq_id))
+        print("acq_id: %s  sensing_start : %s" %(acq_id, sensing_start))
+        if type(acq_id) == 'tuple' or type(acq_id)=='list':
+            acq_id = acq_id[0]
+        acq = acq_info[acq_id]
+        sensing_start = datetime.strptime(
+            acq.sensingStart[:-1] if acq.sensingStart.endswith('Z') else acq.sensingStart,  "%Y-%m-%dT%H:%M:%S.%f"
+        )
+        
+        sensing_stop = datetime.strptime(
+            acq.sensingStop[:-1] if acq.sensingStop.endswith('Z') else acq.sensingStop,  "%Y-%m-%dT%H:%M:%S.%f"
+        )       
+        
+        pv = acq.pv
+
+        if last_id is not None:
+            sec_diff = abs((sensing_start-last_sensing_start).total_seconds())
+            logger.info("sec_diff: %s" % sec_diff)
+            if sec_diff < ssth:
+                print("DUPLICATE SLCS : %s and %s" %(acq_id, last_id))
+                if not dedup_acqs[last_id]['pv'] and not pv:
+                    if dedup_acqs[last_id]['sensingStop'] > sensing_stop:
+                        print("DROPPING : %s" %acq_id)
+                        continue
+                    elif dedup_acqs[last_id]['sensingStop'] < sensing_stop: 
+                        print("DROPPING : %s" %last_id)
+                        del dedup_acqs[last_id]
+                    elif dedup_acqs[last_id]['sensingStop'] == sensing_stop:
+                        print("DROPPING : %s" %acq_id)
+                        continue
+                elif pv and not dedup_acqs[last_id]['pv']:
+                    print("DROPPING : %s" %last_id)
+                    del dedup_acqs[last_id]
+                elif dedup_acqs[last_id]['pv'] and not pv:
+                    print("DROPPING : %s" %acq_id)
+                    continue
+                elif pv and dedup_acqs[last_id]['pv']:
+                    if pv > dedup_acqs[last_id]['pv']:
+                        print("DROPPING : %s" %last_id)
+                        del dedup_acqs[last_id]
+                    elif pv < dedup_acqs[last_id]['pv']:
+                        print("DROPPING : %s" %acq_id)
+                        continue
+                    elif pv == dedup_acqs[last_id]['pv']:
+                        if dedup_acqs[last_id]['sensingStop'] > sensing_stop:
+                            print("DROPPING : %s" %acq_id)
+                            continue
+                        elif dedup_acqs[last_id]['sensingStop'] < sensing_stop:
+                            print("DROPPING : %s" %last_id)
+                            del dedup_acqs[last_id]
+                        elif dedup_acqs[last_id]['sensingStop'] == sensing_stop:
+                            print("DROPPING : %s" %acq_id)
+                            continue
+        last_id = acq_id
+        last_sensing_start = sensing_start
+        dedup_acqs[acq_id] = {
+            'pv': pv,
+            'sensingStop' : sensing_stop
+                }
+
+    
+    return dedup_acqs.keys()
 
 
 def getUpdatedTime(s, m):
@@ -1656,6 +1754,10 @@ def get_isoformat_date(s):
     date = dateutil.parser.parse(s, ignoretz=True)
     return date.isoformat()
 
+def get_past_isoformat_date(s, skip_days=0):
+    date = dateutil.parser.parse(s, ignoretz=True) - timedelta(days=skip_days)
+    return date.isoformat()
+    
 
 def get_orbit_file(orbit_dt, platform):
     print("get_orbit_file : %s : %s" %(orbit_dt, platform))

@@ -570,8 +570,9 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
         result_track_dt_acqs = {}
         
         for track_dt in grouped_matched["grouped"][track]:
-            #water_mask_test1(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id,  orbit_file = None)
-            selected, result = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt],  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+            filtered_acd_ids = util.filter_acq_ids(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
+            logger.info("filtered_acd_ids : %s" %filtered_acd_ids)
+            selected, result = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], filtered_acd_ids,  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
             orbit_name = orbit_file.split('.EOF')[0].strip()
             result['orbit_name']= orbit_name
             result['track'] = track
@@ -936,68 +937,6 @@ def resolve_aoi_acqs(ctx_file):
     return orbit_acq_selections
 
 
-    '''
-    acquisitions = []
-    acquisition_array =[]
-
-    for id in sorted(acq_info):
-        acq = acq_info[id]
-        aoi = acq['aoi']
-        pv = None
-        if "processing_version" in  acq['metadata']:
-            pv = acq['metadata']['processing_version']
-            pv2 = get_processing_version(acq['metadata']['identifier'])
-            logger.info("pv : %s, pv2 : %s" %(pv, pv2))
-        else:
-            pv = get_processing_version(acq['metadata']['identifier'])
-        logging.info("\n\nPrinting AOI : %s, Acq : %s" %(aoi, id))
-            #print(acq)
-
-    	#job_type = "job-standard_product_localizer:{}".format(standard_product_localizer_version)
-       
-	    #return id, project, spyddder_extract_version, aoi, priority, queue
-
-
-        acq_data = {
-            "acq_id" : id,
-            "project" : project,
-            #"identifier" : acq['metadata']['identifier'],
-	    "spyddder_extract_version" : spyddder_extract_version,
-	    "standard_product_ifg_version" : standard_product_ifg_version,
-	    "acquisition_localizer_version" : acquisition_localizer_version,
-	    "standard_product_localizer_version" : standard_product_localizer_version,
-  	    #"job_type" : job_type, 
-	    #"job_version" : job_version,
-	    "job_priority" : ctx['job_priority']
-		
-        } 
-
-        #logger.info("\n\nacq data for :%s :\n%s" %(id, acq_data))
-        acquisition_array.append(acq_data)
-
-    acquisitions.append(acquisition_array)
-
-    logging.info("acquisition_array length : %s" %acquisition_array)
-    #return acquisitions
-    return acquisition_array
-
-   
-        logging.info("acq identifier : %s " %identifier)
-	logging.info("acq city : %s " %acq['city'])
-        logging.info("dem_type : %s" %dem_type)
-	logging.info("query : %s" %query)
-	logging.info("bbox : %s" %bbox)
-        logging.info("ipf : %s" %ipf)
-	
-        acquisition_array.append([project, True, bbox, dataset, identifier, download_url, dataset_type, ipf, archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version, queue, job_priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only])
-        
-        return project, True, bbox, dataset, identifier, download_url, dataset_type, ipf, archive_filename, query, aoi, dem_type, spyddder_extract_version, standard_product_version, queue, job_priority, preReferencePairDirection, postReferencePairDirection, temporalBaseline, singlesceneOnly, precise_orbit_only
-        exit(0)
-        #job = resolve_hysds_job(job_type, queue, priority=acq['priority'], params=params, job_name="%s-%s-%s" % (job_type, aoi, prod_name))
-
-        #job_id = submit_hysds_job(job)
-
-    '''
 
 def main():
 
