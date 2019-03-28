@@ -10,7 +10,7 @@ import shapely
 import pickle
 from shapely.geometry import shape, Polygon, MultiPolygon, mapping
 from shapely.ops import cascaded_union
-import datetime
+import datetime, time
 import dateutil.parser
 from datetime import datetime, timedelta
 #import groundTrack
@@ -21,6 +21,7 @@ import pytz
 from dateutil import parser
 import collections, operator
 from collections import OrderedDict
+import random
 
 '''
 log_format = "[%(asctime)s: %(levelname)s/%(name)s/%(funcName)s] %(message)s"
@@ -979,6 +980,8 @@ def filter_acq_ids(track, track_dt, acq_info, acq_ids, ssth=3):
     last_sensing_start = None
     temp_dict = {}
 
+    
+    ''' First we need to have all the acqusitions sorted by sensing_start time '''
     for acq_id in acq_ids:
         print("type(acq_id) : %s" %type(acq_id))
         if type(acq_id) == 'tuple' or type(acq_id)=='list':
@@ -994,16 +997,12 @@ def filter_acq_ids(track, track_dt, acq_info, acq_ids, ssth=3):
     sorted_temp_dict = OrderedDict(sorted_x)
     print ("sorted_temp_dict : %s " %sorted_temp_dict)
 
-
+    ''' All the acquisition ids are sorted by sensing_start time in sorted_temp_dict now '''
     for acq_id, sensing_start in sorted_temp_dict.items():
-        print("type(acq_id) : %s" %type(acq_id))
         print("acq_id: %s  sensing_start : %s" %(acq_id, sensing_start))
         if type(acq_id) == 'tuple' or type(acq_id)=='list':
             acq_id = acq_id[0]
         acq = acq_info[acq_id]
-        sensing_start = datetime.strptime(
-            acq.sensingStart[:-1] if acq.sensingStart.endswith('Z') else acq.sensingStart,  "%Y-%m-%dT%H:%M:%S.%f"
-        )
         
         sensing_stop = datetime.strptime(
             acq.sensingStop[:-1] if acq.sensingStop.endswith('Z') else acq.sensingStop,  "%Y-%m-%dT%H:%M:%S.%f"
@@ -1470,6 +1469,35 @@ def get_metadata(id, rest_url, url):
     r.raise_for_status()
     scan_result = r.json()
     
+    count = scan_result['hits']['total']
+    if count == 0:
+        return []
+
+    if '_scroll_id' not in scan_result:
+        print("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
+        return []
+
+    scroll_id = scan_result['_scroll_id']
+    hits = []
+    while True:
+        r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        res = r.json()
+        scroll_id = res['_scroll_id']
+        if len(res['hits']['hits']) == 0: break
+        hits.extend(res['hits']['hits'])
+    if len(hits) == 0:
+        time.sleep(random.randint(5,21))
+        return get_metadata_try_again(query, rest_url, url)
+        #raise RuntimeError("Failed to find {}.".format(id))
+    return hits[0]
+
+def get_metadata_try_again(query, rest_url, url):
+    """Get SLC metadata."""
+
+    r = requests.post(url, data=json.dumps(query))
+    r.raise_for_status()
+    scan_result = r.json()
+
     count = scan_result['hits']['total']
     if count == 0:
         return []

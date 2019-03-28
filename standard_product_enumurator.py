@@ -16,6 +16,8 @@ import gtUtil
 from dateutil import parser
 import pickle
 import csv
+import time
+import random
 #import osaka.main
 
 #import isce
@@ -948,9 +950,22 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, grq_index_prefix)
 
     # get metadata
-    master_md = { i:util.get_metadata(i, rest_url, url) for i in master_acquisitions }
+    master_md = None
+    slave_md = None
+    try:
+        master_md = { i:util.get_metadata(i, rest_url, url) for i in master_acquisitions }
+    except:
+        time.sleep(random.randint(10,21))
+        master_md = { i:util.get_metadata(i, rest_url, url) for i in master_acquisitions }
+
     #logger.info("master_md: {}".format(json.dumps(master_md, indent=2)))
-    slave_md = { i:util.get_metadata(i, rest_url, url) for i in slave_acquisitions }
+    
+    try:
+        slave_md = { i:util.get_metadata(i, rest_url, url) for i in slave_acquisitions }
+    except:
+        time.sleep(random.randint(10,21))
+        slave_md = { i:util.get_metadata(i, rest_url, url) for i in slave_acquisitions }
+
     #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
 
     # get tracks
