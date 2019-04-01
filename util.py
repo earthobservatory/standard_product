@@ -521,6 +521,8 @@ def get_result_dict(aoi=None, track=None, track_dt=None):
     result['slave_count'] = 0
     result['master_orbit_file'] = ''
     result['slave_orbit_file'] = ''
+    result['master_dropped_ids'] = []
+    result['slave_dropped_ids'] = []
     '''
     result['ACQ_POEORB_AOI_Intersection_primary'] = None
     result['ACQ_Union_POEORB_Land_primary'] = None
@@ -979,6 +981,7 @@ def filter_acq_ids(track, track_dt, acq_info, acq_ids, ssth=3):
     last_id = None
     last_sensing_start = None
     temp_dict = {}
+    dropped_ids = []
 
     
     ''' First we need to have all the acqusitions sorted by sensing_start time '''
@@ -1018,35 +1021,45 @@ def filter_acq_ids(track, track_dt, acq_info, acq_ids, ssth=3):
                 if not dedup_acqs[last_id]['pv'] and not pv:
                     if dedup_acqs[last_id]['sensingStop'] > sensing_stop:
                         print("DROPPING : %s" %acq_id)
+                        dropped_ids.append(acq_id)
                         continue
                     elif dedup_acqs[last_id]['sensingStop'] < sensing_stop: 
                         print("DROPPING : %s" %last_id)
                         del dedup_acqs[last_id]
+                        dropped_ids.append(last_id)
                     elif dedup_acqs[last_id]['sensingStop'] == sensing_stop:
                         print("DROPPING : %s" %acq_id)
+                        dropped_ids.append(acq_id)
                         continue
                 elif pv and not dedup_acqs[last_id]['pv']:
                     print("DROPPING : %s" %last_id)
                     del dedup_acqs[last_id]
+                    dropped_ids.append(last_id)
                 elif dedup_acqs[last_id]['pv'] and not pv:
                     print("DROPPING : %s" %acq_id)
+                    dropped_ids.append(acq_id)
                     continue
                 elif pv and dedup_acqs[last_id]['pv']:
                     if pv > dedup_acqs[last_id]['pv']:
                         print("DROPPING : %s" %last_id)
                         del dedup_acqs[last_id]
+                        dropped_ids.append(last_id)
                     elif pv < dedup_acqs[last_id]['pv']:
                         print("DROPPING : %s" %acq_id)
+                        dropped_ids.append(acq_id)
                         continue
                     elif pv == dedup_acqs[last_id]['pv']:
                         if dedup_acqs[last_id]['sensingStop'] > sensing_stop:
                             print("DROPPING : %s" %acq_id)
+                            dropped_ids.append(acq_id)
                             continue
                         elif dedup_acqs[last_id]['sensingStop'] < sensing_stop:
                             print("DROPPING : %s" %last_id)
                             del dedup_acqs[last_id]
+                            dropped_ids.append(last_id)
                         elif dedup_acqs[last_id]['sensingStop'] == sensing_stop:
                             print("DROPPING : %s" %acq_id)
+                            dropped_ids.append(acq_id)
                             continue
         last_id = acq_id
         last_sensing_start = sensing_start
@@ -1056,7 +1069,7 @@ def filter_acq_ids(track, track_dt, acq_info, acq_ids, ssth=3):
                 }
 
     
-    return dedup_acqs.keys()
+    return dedup_acqs.keys(), dropped_ids
 
 
 def getUpdatedTime(s, m):

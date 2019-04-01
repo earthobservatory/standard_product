@@ -577,7 +577,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             logger.info("slave_platform : %s" %slave_platform)
             if orbit_file:
                 logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s in %s" %(slave_track_dt, orbit_file, orbit_dir))
-                filtered_acd_ids = util.filter_acq_ids(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt], 3)
+                filtered_acd_ids, dropped_ids = util.filter_acq_ids(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt], 3)
                 logger.info("SLAVE filtered_acd_ids : %s" %filtered_acd_ids)
 
                 selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], filtered_acd_ids,  aoi_location, aoi, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
@@ -591,6 +591,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 result['endtime'] = "%s" %util.get_isoformat_date(master_endtime)
                 result['master_orbit_file'] = master_orbit_file
                 result['slave_orbit_file'] = orbit_file
+                result['slave_dropped_ids'] = dropped_ids
                 result_track_acqs[slave_track_dt] = result
                 orbit_name = orbit_file.split('.EOF')[0].strip()
                 result['orbit_name']= orbit_name
@@ -1229,7 +1230,8 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
     md['secondary_delta_area_sqkm'] = secondary_result.get('delta_area', '')
     md['union_geojson'] = secondary_result.get('union_geojson', '')
-
+    md['secondary_dropped_ids'] = secondary_result.get('slave_dropped_ids', [])
+    md['reference_dropped_ids'] = reference_result.get('master_dropped_ids', [])
 
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
     logger.info("type(md['reference_date']) : %s:" %type(md['reference_date']))

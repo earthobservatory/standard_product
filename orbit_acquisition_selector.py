@@ -501,7 +501,7 @@ def publish_result(reference_result, id_hash):
     md['reference_delta_area_sqkm'] = reference_result.get('delta_area', '')
     md['reference_delta_area_pixel'] = reference_result.get('res', '')
     md['union_geojson'] = reference_result.get('union_geojson', '')
-
+    md['reference_dropped_ids']=reference_result.get('master_dropped_ids', [])
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
@@ -570,12 +570,13 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
         result_track_dt_acqs = {}
         
         for track_dt in grouped_matched["grouped"][track]:
-            filtered_acd_ids = util.filter_acq_ids(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
+            filtered_acd_ids, dropped_ids = util.filter_acq_ids(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
             logger.info("filtered_acd_ids : %s" %filtered_acd_ids)
             selected, result = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], filtered_acd_ids,  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
             orbit_name = orbit_file.split('.EOF')[0].strip()
             result['orbit_name']= orbit_name
             result['track'] = track
+            result['master_dropped_ids'] = dropped_ids
             result_track_dt_acqs[track_dt] = result
             starttime, endtime = util.get_start_end_time2(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
             result['starttime'] = starttime
