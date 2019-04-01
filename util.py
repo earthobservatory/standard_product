@@ -371,6 +371,7 @@ def isTrackSelected(acqs_land, total_land):
 
 def get_ipf_count(acqs):
     pv_list = []
+    no_pv_list = []
     for acq in acqs:
         if acq.pv:
             pv_list.append(acq.pv)
@@ -381,8 +382,12 @@ def get_ipf_count(acqs):
                 pv_list.append(pv)
             else:
                 err_msg = "IPF version NOT found for %s" %acq.acq_id
+                no_pv_list.append(acq.acq_id)
                 print(err_msg)
-                raise RuntimeError(err_msg)
+
+    if len(no_pv_list)>0:
+        err_msg = "IPF NOT Found for acquisitions : %s" %no_pv_list
+        raise RuntimeError(err_msg)
 
     return len(list(set(pv_list)))
 
@@ -402,6 +407,8 @@ def get_union_data_from_acqs(acqs):
     direction = None
     orbitnumber = None
     pv_list = []
+    no_pv_list = []
+
 
     for acq in acqs:
         if acq.pv:
@@ -411,6 +418,8 @@ def get_union_data_from_acqs(acqs):
             if pv:
                 update_acq_pv(acq.acq_id, pv)
                 pv_list.append(pv)
+            else:
+                no_pv_list.append(acq.identifier)
 
         starttimes.append(get_time(acq.starttime))
         endtimes.append(get_time(acq.endtime)) 
@@ -418,6 +427,11 @@ def get_union_data_from_acqs(acqs):
         track = acq.tracknumber
         direction = acq.direction
         orbitnumber =acq.orbitnumber
+    
+    if len(no_pv_list)>0:
+        err_msg = "IPF NOT Found for : %s" %no_pv_list
+        raise RuntimeError(err_msg)
+
     starttime = sorted(starttimes)[0]
     endtime = sorted(endtimes, reverse=True)[0]
     location = get_union_geometry(polygons)
@@ -477,7 +491,7 @@ def create_acq_obj_from_metadata(acq):
 
 
 def create_acqs_from_metadata(frames):
-    acqs = []
+    acqs = list()
     #print("frame length : %s" %len(frames))
     for acq in frames:
         print("create_acqs_from_metadata : %s" %acq['id'])
@@ -521,8 +535,8 @@ def get_result_dict(aoi=None, track=None, track_dt=None):
     result['slave_count'] = 0
     result['master_orbit_file'] = ''
     result['slave_orbit_file'] = ''
-    result['master_dropped_ids'] = []
-    result['slave_dropped_ids'] = []
+    result['master_dropped_ids'] = list()
+    result['slave_dropped_ids'] = list()
     '''
     result['ACQ_POEORB_AOI_Intersection_primary'] = None
     result['ACQ_Union_POEORB_Land_primary'] = None
@@ -537,7 +551,7 @@ def get_result_dict(aoi=None, track=None, track_dt=None):
 
 
 def get_acq_ids(acqs):
-    acq_ids = []
+    acq_ids = list()
     for acq in acqs:
         acq_id = acq.acq_id
         if isinstance(acq_id, tuple) or isinstance(acq_id, list):
@@ -975,8 +989,8 @@ def group_acqs_by_track(frames):
         '''
     return {"grouped": grouped, "acq_info" : acq_info}
 
-def filter_acq_ids(track, track_dt, acq_info, acq_ids, ssth=3):
-    logger.info("\nfilter_acq_ids: track : %s track_dt : %s acq_ids: %s" %(track, track_dt, acq_ids))
+def filter_acq_ids(acq_info, acq_ids, ssth=3):
+    logger.info("\nfilter_acq_ids: acq_ids: %s" %(acq_ids))
     dedup_acqs = dict()
     last_id = None
     last_sensing_start = None
@@ -1208,9 +1222,9 @@ def ref_truncated(ref_scene, matched_footprints, covth=.99):
     print("Reference GeoJSON: %s" % ref_geom.ExportToJson())
 
     # get union geometry of all matched scenes
-    matched_geoms = []
+    matched_geoms = list()
     matched_union = None
-    matched_geoms_tr = []
+    matched_geoms_tr = list()
     matched_union_tr = None
     ids = sorted(matched_footprints.keys())
     #ids.sort()
@@ -1249,7 +1263,7 @@ def ref_truncated(ref_scene, matched_footprints, covth=.99):
    
     return False
 def get_union_geojson_acqs(acqs):
-    geoms = []
+    geoms = list()
     union = None
     for acq in acqs:
         geom = ogr.CreateGeometryFromJson(json.dumps(acq.location))
@@ -1267,7 +1281,7 @@ def get_union_geometry(geojsons):
     #src_srs.ImportFromEPSG(4326)
 
     # get union geometry of all scenes
-    geoms = []
+    geoms = list()
     union = None
     for geojson in geojsons:
         geom = ogr.CreateGeometryFromJson(json.dumps(geojson))
@@ -1442,8 +1456,8 @@ def get_track(info):
     return track
 
 def get_start_end_time(info):
-    starttimes = []
-    endtimes = []
+    starttimes = list()
+    endtimes = list()
     for id in info:
         h = info[id]
         fields = h["_source"]
@@ -1452,8 +1466,8 @@ def get_start_end_time(info):
     return sorted(starttimes)[0], sorted(endtimes)[-1]
 
 def get_start_end_time2(acq_info, acq_ids):
-    starttimes = []
-    endtimes = []
+    starttimes = list()
+    endtimes = list()
     for acq_id in acq_ids:
         acq = acq_info[acq_id]
         starttimes.append(get_time(acq.starttime))
@@ -1484,14 +1498,14 @@ def get_metadata(id, rest_url, url):
     
     count = scan_result['hits']['total']
     if count == 0:
-        return []
+        return list()
 
     if '_scroll_id' not in scan_result:
         print("_scroll_id not found in scan_result. Returning empty array for the query :\n%s" %query)
         return []
 
     scroll_id = scan_result['_scroll_id']
-    hits = []
+    hits = list()
     while True:
         r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
         res = r.json()
@@ -2041,7 +2055,7 @@ def get_scene_dates_from_ids(master_ids, slave_ids, scene_type):
 def get_urls(info):
     """Return list of SLC URLs with preference for S3 URLs."""
 
-    urls = []
+    urls = list()
     for id in info:
         h = info[id]
         fields = h['_source']

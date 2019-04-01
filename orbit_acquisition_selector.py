@@ -570,7 +570,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
         result_track_dt_acqs = {}
         
         for track_dt in grouped_matched["grouped"][track]:
-            filtered_acd_ids, dropped_ids = util.filter_acq_ids(track, track_dt, grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
+            filtered_acd_ids, dropped_ids = util.filter_acq_ids(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
             logger.info("filtered_acd_ids : %s" %filtered_acd_ids)
             selected, result = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], filtered_acd_ids,  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
             orbit_name = orbit_file.split('.EOF')[0].strip()

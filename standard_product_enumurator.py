@@ -489,7 +489,16 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
         if len(master_acqs)==0:
             logger.info("ERROR: master acq list %s empty for track dt: %s" %(master_acqs, track_dt))
         master_result = result_track_acqs[track_dt]
-        master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
+        try:
+            master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
+        except Exception as err:
+            result['fail_reason'] = str(err)
+            logger.info(str(err))
+            id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), [], track, aoi)
+            publish_result(master_result, result, id_hash)
+            raise RuntimeError(str(err))
+ 
+
         master_union_geojson = util.get_union_geojson_acqs(master_acqs)
         orbitNumber.append(master_orbitnumber)
         #result = util.get_result_dict(aoi, track)
@@ -508,7 +517,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             logger.info(str(err))
             id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), [], track, aoi)
             publish_result(master_result, result, id_hash)
-            continue
+            raise RuntimeError(str(err))
         logger.info("master_starttime : %s" %master_starttime)
         logger.info("Before %s skip days, master_starttime : %s" %(skip_days, util.get_past_isoformat_date(master_starttime, skip_days)))
 
@@ -577,8 +586,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             logger.info("slave_platform : %s" %slave_platform)
             if orbit_file:
                 logger.info("Orbit File Exists, so Running water_mask_check for slave for date %s is running with orbit file : %s in %s" %(slave_track_dt, orbit_file, orbit_dir))
-                filtered_acd_ids, dropped_ids = util.filter_acq_ids(track, slave_track_dt, slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt], 3)
-                logger.info("SLAVE filtered_acd_ids : %s" %filtered_acd_ids)
+                filtered_acd_ids, dropped_ids = util.filter_acq_ids(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt], 3)
+                logger.info("SLAVE filtered_acd_ids for track %s, track_dt : %s : %s" %(track, slave_track_dt, filtered_acd_ids))
 
                 selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], filtered_acd_ids,  aoi_location, aoi, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
                 result['dt'] = slave_track_dt
