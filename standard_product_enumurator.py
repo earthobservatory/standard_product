@@ -638,7 +638,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 logger.info(str(err))
                 id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), slave_ids, track, aoi)
                 publish_result(master_result, result, id_hash)
-                continue
+                raise RuntimeError("Error in Ipf Count : %s" %str(err))
                 
             logger.info("slave_ipf_count : %s" %slave_ipf_count)
             selected_slave_acqs =list()
