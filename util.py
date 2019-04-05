@@ -1115,6 +1115,39 @@ def is_overlap(geojson1, geojson2):
         p3 = p1.intersection(p2).area/p1.area
     return p1.intersects(p2), p3
 
+def is_overlap_multi(geojson1, geojson2):
+
+    print("is_overlap_multi : geojson1 : %s, \ngeojson2 : %s" %(geojson1, geojson2))
+    p3=0
+    intersects = False
+    if type(geojson1) is tuple:
+        geojson1 = geojson1[0]
+    if type(geojson2) is tuple:
+        geojson2 = geojson2[0]
+
+    print("geojson1['type'] : %s geojson1['coordinates'] : %s" %(geojson1['type'],geojson1["coordinates"]))
+    print("geojson2['type'] : %s geojson1['coordinates'] : %s" %(geojson2['type'],geojson2["coordinates"]))
+    if geojson1['type'] == "MultiPolygon" and geojson2['type'] == "MultiPolygon":
+        for cord1 in geojson1["coordinates"]:
+            for cord2 in geojson2["coordinates"]:
+                p3 = p3+get_intersection_area(cord1[0], cord2[0])
+    elif geojson1['type'] == "MultiPolygon" and geojson2['type'] == "Polygon":
+        for cord1 in geojson1["coordinates"]:
+            p3 = p3+get_intersection_area(cord1[0], geojson2["coordinates"][0])
+    elif geojson1['type'] == "Polygon" and geojson2['type'] == "MultiPolygon":
+        for cord2 in geojson2["coordinates"]:
+            p3 = p3+get_intersection_area(geojson1["coordinates"][0], cord2[0])
+    elif geojson1['type'] == "Polygon" and geojson2['type'] == "Polygon":
+        p3 = get_intersection_area(geojson1["coordinates"][0], geojson2["coordinates"][0])
+    else:
+        raise ValueError("Unknown Polygon Type : %s and %s" %(geojson1['type'], geojson2['type']))
+
+    if p3>0:
+        intersects = True
+    if p3>1.0:
+        print("ERROR : Intersection value between %s and %s is too high : %s" %(geojson1["coordinates"], geojson2["coordinates"], p3))
+    return intersects, p3
+
 def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     '''returns True if there is any overlap between the two geojsons. The geojsons
     are just a list of coordinate tuples'''
@@ -1198,7 +1231,7 @@ def find_overlap_match(master_acq, slave_acqs):
         print("SLAVE : %s" %slave.location)
         slave_loc = slave.location["coordinates"]
         print("\n\nslave_loc : %s" %slave_loc)
-        is_over, overlap = is_overlap(master_loc, slave_loc)
+        is_over, overlap = is_overlap_multi(master_acq.location, slave.location)
         print("is_overlap : %s" %is_over)
         print("overlap area : %s" %overlap)
         if is_over:
