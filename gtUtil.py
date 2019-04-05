@@ -13,9 +13,8 @@ import groundTrack
 from osgeo import ogr, osr
 import lightweight_water_mask
 import util
-from util import ACQ
+from util import ACQ, NoIntersectException
 import urllib.request
-
 
 #logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
 #logger.setLevel(logging.INFO)
@@ -79,16 +78,16 @@ def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
         err_msg = "water_mask_check FAILED as aoi_location NOT found"
         result['fail_reason'] = err_msg
         logger.info("err_msg")
-        return False, {}
+        return False, {}, []
     try:
-        passed, result = water_mask_test1(result, track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
-        return passed, result
+        passed, result, removed_ids = water_mask_test1(result, track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+        return passed, result, removed_ids
     except Exception as err:
         err_msg = "orbit quality test failed : %s" %str(err)
         logger.info(err_msg)
         result['fail_reason'] = err_msg
         traceback.print_exc()
-        return False, result                                                                                                                                
+        return False, result, []                                                                                                                                
 
 
 def get_time(t):
@@ -283,6 +282,7 @@ def water_mask_test1(result, track, orbit_or_track_dt, acq_info, acq_ids,  aoi_l
     acqs_land = []
     acqs_water = []
     gt_polygons = []
+    removed_ids = []
     #result['aoi'] = aoi_id
     #result['track'] = track
     #result['dt']  = orbit_or_track_dt
@@ -312,8 +312,6 @@ def water_mask_test1(result, track, orbit_or_track_dt, acq_info, acq_ids,  aoi_l
         else:
             logger.info("COVERS BOTH LAND & WATER")
 
-        starttimes.append(get_time(acq.starttime))
-        endtimes.append(get_time(acq.endtime))
 
         logger.info("ACQ start time : %s " %acq.starttime)
         logger.info("ACQ end time : %s" %acq.endtime)
@@ -321,11 +319,10 @@ def water_mask_test1(result, track, orbit_or_track_dt, acq_info, acq_ids,  aoi_l
             err_msg = "ERROR : %s start time %s is greater or equal to its endtime %s" %(acq_id, acq.starttime, acq.endtime)
             result['fail_reason'] = err_msg
             logger.info(err_msg)
-            return False, result
+            return False, result, removed_ids
         else:
             logger.info("Time check Passed")
         
-        logger.info("ACQ location : %s" %acq.location)
         land = None 
         water = None
         acq_intersection=None
@@ -337,27 +334,48 @@ def water_mask_test1(result, track, orbit_or_track_dt, acq_info, acq_ids,  aoi_l
             logger.info(err_msg)
             result['fail_reason'] = err_msg
             traceback.print_exc()
-            #return False, result
+            #return False, result, removed_ids
         logger.info("Area from acq.location : %s" %land)
-        polygons.append(acq.location)
 
         if orbit_file:
+            logger.info("\n\nisValidOrbitTest for acquisition : %s\n" %acq_id)
             isValidOrbit = groundTrack.isValidOrbit(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
             logger.info("gtUtil : isValidOrbit : %s" %isValidOrbit)
             if not isValidOrbit:
                 err_msg = "Invalid Orbit : %s" %orbit_file
                 result['fail_reason'] = err_msg
-                return False, result
+                return False, result, removed_ids
             logger.info("ACQ_IDDDDD : %s" %acq_id)
             gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
-            gt_polygons.append(gt_geojson)
             land = None 
             water = None
             acq_intersection=None
-            land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
+            try:
+                land, water, acq_intersection= get_aoi_area_multipolygon(gt_geojson, aoi_location)
 
+            except NoIntersectException as err:
+                logger.info("\n\nError Calculating the intersection with AOI  of acquisition : %s" %acq_id)
+                logger.info("Error : %s" %str(err))
+                logger.info(traceback.format_exc())
+                logger.info("\n Removing acquisition from list : %s" %acq_id)
+                #acq_ids.remove(acq_id)
+                removed_ids.append(acq_id)
+                #drop this acqusition
+                continue
+
+                
+            #As it is a valid and intersected acquisition, we can add its info in the calculation    
+            logger.info("\n\nValid Acquisition %s" %acq_id)
             logger.info("Area from gt_geojson : %s" %land)
             gt_area_array.append(land)
+           
+            logger.info("Area from acq.location : %s" %land)
+            polygons.append(acq.location)
+            gt_polygons.append(gt_geojson)
+            starttimes.append(get_time(acq.starttime))
+            endtimes.append(get_time(acq.endtime))
+        else:
+            raise RuntimeError("No Orbit File Found")
 
     logger.info("Sum of acq.location area : %s" %sum(acq_area_array))
     logger.info("Sum of gt location area : %s" %sum(gt_area_array))
@@ -416,12 +434,13 @@ def water_mask_test1(result, track, orbit_or_track_dt, acq_info, acq_ids,  aoi_l
             result['Track_POEORB_Land_secondary'] = union_intersection
             result['Track_AOI_Intersection_secondary'] = union_land
         '''
-        return isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection, result)
+        is_selected, result = isTrackSelected(track, orbit_or_track_dt, union_land, union_water, track_land, track_water, aoi_id, threshold_pixel, union_intersection, track_intersection, result)
+        return is_selected, result, removed_ids
     else:
         err_msg = "No Orbit file"
         result['fail_reason'] = err_msg  
         logger.info("\n\nNO ORBIT\n\n")
-        return False, result
+        return False, result, removed_ids
       
         '''
         union_polygon = util.get_union_geometry(polygons)

@@ -572,13 +572,23 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
         for track_dt in grouped_matched["grouped"][track]:
             filtered_acd_ids, dropped_ids = util.filter_acq_ids(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
             logger.info("filtered_acd_ids : %s" %filtered_acd_ids)
-            selected, result = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], filtered_acd_ids,  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+         
+
+            selected, result, removed_ids = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], filtered_acd_ids,  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
             orbit_name = orbit_file.split('.EOF')[0].strip()
+            if len(removed_ids)>0:
+                logger.info("Removed Acquisitions by WaterMaskTest : %s" %removed_ids)
+                for acq_id in removed_ids:
+                    logger.info("removing %s from filtered_acd_ids" %acq_id)
+                                     
+                    filtered_acd_ids.remove(acq_id)
+            logger.info("filtered_acd_ids : %s:" %filtered_acd_ids)
+
             result['orbit_name']= orbit_name
             result['track'] = track
             result['master_dropped_ids'] = dropped_ids
             result_track_dt_acqs[track_dt] = result
-            starttime, endtime = util.get_start_end_time2(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
+            starttime, endtime = util.get_start_end_time2(grouped_matched["acq_info"], filtered_acd_ids)
             result['starttime'] = starttime
             result['endtime'] = endtime
             result['union_geojson']=aoi['location']
@@ -593,7 +603,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
             if selected:
                 logger.info("SELECTED : aoi : %s track : %s  track_dt : %s" %(aoi['id'], track, track_dt))
                 selected_acqs = []
-                for acq_id in grouped_matched["grouped"][track][track_dt]:
+                for acq_id in filtered_acd_ids:
                     acq = grouped_matched["acq_info"][acq_id]
 
                         #acq.pv = pv #util.get_processing_version(acq.identifier)

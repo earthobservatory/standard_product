@@ -589,7 +589,15 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 filtered_acd_ids, dropped_ids = util.filter_acq_ids(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt], 3)
                 logger.info("SLAVE filtered_acd_ids for track %s, track_dt : %s : %s" %(track, slave_track_dt, filtered_acd_ids))
 
-                selected, result = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], filtered_acd_ids,  aoi_location, aoi, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+                selected, result, removed_ids = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], filtered_acd_ids,  aoi_location, aoi, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+                if len(removed_ids)>0:
+                    logger.info("Removed Acquisitions by WaterMaskTest : %s" %removed_ids)
+                    for acq_id in removed_ids:
+                        logger.info("removing %s from filtered_acd_ids" %acq_id)
+                        filtered_acd_ids.remove(acq_id)
+                        #del filtered_acd_ids[acq_id]
+                logger.info("filtered_acd_ids : %s:" %filtered_acd_ids)
+
                 result['dt'] = slave_track_dt
                 result['union_geojson'] = master_union_geojson
                 result['list_slave_dt'] = slave_track_dt
@@ -635,13 +643,13 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
 
                 continue
             selected_slave_acqs =list()
-            slave_ids= slave_grouped_matched["grouped"][track][slave_track_dt]
+            slave_ids= filtered_acd_ids
             for slave_id in slave_ids:
                 selected_slave_acqs.append(slave_grouped_matched["acq_info"][slave_id])
 
             slave_ipf_count = None
             try: 
-                slave_ipf_count = util.get_ipf_count_by_acq_id(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
+                slave_ipf_count = util.get_ipf_count_by_acq_id(filtered_acd_ids, slave_grouped_matched["acq_info"])
             except Exception as err:
                 result['fail_reason'] = str(err)
                 logger.info(str(err))
@@ -651,7 +659,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 
             logger.info("slave_ipf_count : %s" %slave_ipf_count)
             selected_slave_acqs =list()
-            slave_ids= slave_grouped_matched["grouped"][track][slave_track_dt]
+            slave_ids= filtered_acd_ids
             for slave_id in slave_ids:
                 selected_slave_acqs.append(slave_grouped_matched["acq_info"][slave_id])
             track_dt_pv[slave_track_dt] = slave_ipf_count
@@ -891,15 +899,19 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
         logger.info("MATCHED")
         matched = True
         for acq_id in overlapped_matches.keys():
-            overlapped_acqs.append(acq_id[0])
+            if isinstance(acq_id, tuple) or isinstance(acq_id, list):
+                acq_id = acq_id[0]
+            overlapped_acqs.append(acq_id)
         orbitNumber = get_orbit_number_list(ref_acq,  overlapped_matches)
         starttime, endtime = get_time_data(ref_acq, overlapped_matches)
         logger.info("get_match starttime : %s endtime : %s" %(starttime, endtime))
         pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
+        if isinstance(ref_acq.acq_id, tuple) or isinstance(ref_acq.acq_id, list):
+            ref_acq_id = ref_acq.acq_id[0]
         if ref_type == "master":
-            candidate_pair = {"master_acqs" : [ref_acq.acq_id[0]], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
+            candidate_pair = {"master_acqs" : [ref_acq_id], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
         else:
-            candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq.acq_id[0]], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
+            candidate_pair = {"master_acqs" : overlapped_acqs, "slave_acqs" : [ref_acq_id], "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
         
     return matched, candidate_pair
            

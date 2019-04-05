@@ -40,6 +40,9 @@ logger.addFilter(LogFilter())
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
 
+class NoIntersectException(Exception):
+    pass
+
 class LogFilter(logging.Filter):
     def filter(self, record):
         if not hasattr(record, 'id'): record.id = '--'
@@ -83,6 +86,8 @@ MISSION = 'S1A'
 class ACQ:
     def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform = None  ):
         print("ACQ : %s %s %s" %(acq_id, starttime, endtime))
+        if isinstance(acq_id, tuple) or isinstance(acq_id, list):
+            acq_id = acq_id[0]
         self.acq_id=acq_id,
         self.download_url = download_url
         self.tracknumber = tracknumber
@@ -161,6 +166,10 @@ def group_acqs_by_track_multi_date(acqs):
     grouped = {}
     acqs_info = {}
     for acq in acqs:
+        print("group_acqs_by_track_multi_date : acq.acq_id : %s" %acq.acq_id)
+        if isinstance(acq.acq_id, tuple) or isinstance(acq.acq_id, list):
+            acq.acq_id = acq.acq_id[0]
+        print("group_acqs_by_track_multi_date : acq.acq_id 2: %s" %acq.acq_id)
         acqs_info[acq.acq_id] = acq
         match = SLC_RE.search(acq.identifier)
 
@@ -996,12 +1005,13 @@ def filter_acq_ids(acq_info, acq_ids, ssth=3):
     last_sensing_start = None
     temp_dict = {}
     dropped_ids = []
+    filtered_ids = []
 
     
     ''' First we need to have all the acqusitions sorted by sensing_start time '''
     for acq_id in acq_ids:
         print("type(acq_id) : %s" %type(acq_id))
-        if type(acq_id) == 'tuple' or type(acq_id)=='list':
+        if type(acq_id) == 'tuple' or type(acq_id)=='list' or isinstance(acq_id, tuple)  or isinstance(acq_id, list):
             acq_id = acq_id[0]
         acq = acq_info[acq_id]
         sensing_start = get_time(acq.sensingStart[:-1]) if acq.sensingStart.endswith('Z') else get_time(acq.sensingStart)
@@ -1090,9 +1100,11 @@ def filter_acq_ids(acq_info, acq_ids, ssth=3):
             'pv': pv,
             'sensingStop' : sensing_stop
                 }
-
-    print("returning : dedup_acqs.keys() : %s, dropped_ids : %s" %(dedup_acqs.keys(), dropped_ids))   
-    return dedup_acqs.keys(), dropped_ids
+    filtered_ids = []
+    for k in dedup_acqs.keys():
+        filtered_ids.append(k)
+    print("returning : filtered_ids : %s, dropped_ids : %s" %(filtered_ids, dropped_ids))   
+    return filtered_ids, dropped_ids
 
 
 def getUpdatedTime(s, m):
@@ -1363,11 +1375,11 @@ def get_intersection(js1, js2):
     if intersection.IsEmpty():
         print("intersection is empty : %s" %intersection)
         err_msg = "util.get_intersection: intersection between %s and %s is %s" %(js1, js2, intersection)
-        raise RuntimeError(err_msg)
+        raise NoIntersectException(err_msg)
 
     if intersection is None or intersection == 'GEOMETRYCOLLECTION EMPTY':
         err_msg = "util.get_intersection: intersection between %s and %s is %s" %(js1, js2, intersection)
-        raise RuntimeError(err_msg)
+        raise NoIntersectException(err_msg)
    
     return json.loads(intersection.ExportToJson()), intersection.GetEnvelope()
 
