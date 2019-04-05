@@ -906,8 +906,10 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
         starttime, endtime = get_time_data(ref_acq, overlapped_matches)
         logger.info("get_match starttime : %s endtime : %s" %(starttime, endtime))
         pair_intersection_loc, pair_intersection_env = util.get_intersection(ref_acq.location, union_loc)
+        ref_acq_id = ref_acq.acq_id
         if isinstance(ref_acq.acq_id, tuple) or isinstance(ref_acq.acq_id, list):
             ref_acq_id = ref_acq.acq_id[0]
+
         if ref_type == "master":
             candidate_pair = {"master_acqs" : [ref_acq_id], "slave_acqs" : overlapped_acqs, "intersect_geojson" : pair_intersection_loc, "starttime" : starttime, "endtime" : endtime, "orbitNumber" : orbitNumber, "direction" : direction}
         else:
