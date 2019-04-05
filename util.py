@@ -1127,17 +1127,17 @@ def is_overlap_multi(geojson1, geojson2):
 
     print("geojson1['type'] : %s geojson1['coordinates'] : %s" %(geojson1['type'],geojson1["coordinates"]))
     print("geojson2['type'] : %s geojson1['coordinates'] : %s" %(geojson2['type'],geojson2["coordinates"]))
-    if geojson1['type'] == "MultiPolygon" and geojson2['type'] == "MultiPolygon":
+    if geojson1['type'].upper() == "MULTIPOLYGON" and geojson2['type'].upper() == "MULTIPOLYGON":
         for cord1 in geojson1["coordinates"]:
             for cord2 in geojson2["coordinates"]:
                 p3 = p3+get_intersection_area(cord1[0], cord2[0])
-    elif geojson1['type'] == "MultiPolygon" and geojson2['type'] == "Polygon":
+    elif geojson1['type'].upper() == "MULTIPOLYGON" and geojson2['type'].upper() == "POLYGON":
         for cord1 in geojson1["coordinates"]:
             p3 = p3+get_intersection_area(cord1[0], geojson2["coordinates"][0])
-    elif geojson1['type'] == "Polygon" and geojson2['type'] == "MultiPolygon":
+    elif geojson1['type'].upper() == "POLYGON" and geojson2['type'].upper() == "MULTIPOLYGON":
         for cord2 in geojson2["coordinates"]:
             p3 = p3+get_intersection_area(geojson1["coordinates"][0], cord2[0])
-    elif geojson1['type'] == "Polygon" and geojson2['type'] == "Polygon":
+    elif geojson1['type'].upper() == "POLYGON" and geojson2['type'].upper() == "POLYGON":
         p3 = get_intersection_area(geojson1["coordinates"][0], geojson2["coordinates"][0])
     else:
         raise ValueError("Unknown Polygon Type : %s and %s" %(geojson1['type'], geojson2['type']))
