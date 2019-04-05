@@ -132,7 +132,7 @@ def group_acqs_by_orbit_number_from_metadata(frames):
     return group_acqs_by_orbit_number(create_acqs_from_metadata(frames))
 
 def group_acqs_by_track_date_from_metadata(frames):
-    logger.info("group_acqs_by_track_date_from_metadata")
+    print("group_acqs_by_track_date_from_metadata")
     return group_acqs_by_track_multi_date(create_acqs_from_metadata(frames))
 
 def group_acqs_by_track_date(acqs):
@@ -231,7 +231,7 @@ def update_acq_pv(id, ipf_version):
               body={"doc": {"metadata": {"processing_version": ipf_version}}}) 
         print("Updated IPF %s of acq %s successfully" %(id, ipf_version))    
     except Exception as err:
-        logger.info("ERROR : updationg ipf : %s" %str(err))
+        print("ERROR : updationg ipf : %s" %str(err))
 
 
 def import_file_by_osks(url):
@@ -256,13 +256,13 @@ def get_scihub_manifest(session, info):
     # disable extraction of manifest (takes too long); will be
     # extracted when needed during standard product pipeline
 
-    # logger.info("info: {}".format(json.dumps(info, indent=2)))
+    # print("info: {}".format(json.dumps(info, indent=2)))
     manifest_url = "{}Nodes('{}')/Nodes('manifest.safe')/$value".format(info['met']['alternative'],
                                                                              info['met']['filename'])
     manifest_url2 = manifest_url.replace('/apihub/', '/dhus/')
     for url in (manifest_url2, manifest_url):
         response = session.get(url, verify=False)
-        logger.info("url: %s" % response.url)
+        print("url: %s" % response.url)
         if response.status_code == 200:
             break
     response.raise_for_status()
@@ -322,10 +322,10 @@ def extract_scihub_ipf(met):
     if prod_avail == 200:
         manifest = get_scihub_manifest(session, info)
     elif prod_avail == 202:
-        logger.info("Got 202 from SciHub. Product moved to long term archive.")
+        print("Got 202 from SciHub. Product moved to long term archive.")
         raise Exception("Got 202. Product moved to long term archive.")
     else:
-        logger.info("Got code {} from SciHub".format(prod_avail))
+        print("Got code {} from SciHub".format(prod_avail))
         raise Exception("Got code {}".format(prod_avail))
 
     ipf = get_scihub_ipf(manifest)
@@ -446,8 +446,8 @@ def create_acq_obj_from_metadata(acq):
     acq_data = acq #acq['fields']['partial'][0]
     missing_pcv_list = list()
     acq_id = acq['id']
-    logger.info("logger level : %s" %logger.level)
-    logger.info("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
+    print("logger level : %s" %logger.level)
+    print("Creating Acquisition Obj for acq_id : %s : %s" %(type(acq_id), acq_id))
     '''
     match = SLC_RE.search(acq_id)
     if not match:
@@ -473,18 +473,18 @@ def create_acq_obj_from_metadata(acq):
     if "processing_version" in  acq_data['metadata']:
         pv = acq_data['metadata']['processing_version']
         if pv:
-            logger.info("pv found in metadata : %s" %pv)
+            print("pv found in metadata : %s" %pv)
         else:
-            logger.info("pv NOT in metadata,so calling ASF")
+            print("pv NOT in metadata,so calling ASF")
             pv = get_processing_version(identifier, acq_data['metadata'])
-            logger.info("ASF returned pv : %s" %pv)
+            print("ASF returned pv : %s" %pv)
             if pv:
                 update_acq_pv(acq_id, pv)
     else:
         missing_pcv_list.append(acq_id)
-        logger.info("pv NOT in metadata,so calling ASF")
+        print("pv NOT in metadata,so calling ASF")
         pv = get_processing_version(identifier, acq_data['metadata'])
-        logger.info("ASF returned pv : %s" %pv)
+        print("ASF returned pv : %s" %pv)
         if pv:
             update_acq_pv(acq_id, pv) 
     return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform)
@@ -575,7 +575,7 @@ def get_ifg_hash(master_acqs,  slave_acqs, track, aoi_name):
     slave_ids_str=""
 
     for acq in sorted(master_acqs):
-        logger.info("get_ifg_hash : master acq : %s" %acq)
+        print("get_ifg_hash : master acq : %s" %acq)
         if isinstance(acq, tuple) or isinstance(acq, list):
             acq = acq[0]
 
@@ -585,7 +585,7 @@ def get_ifg_hash(master_acqs,  slave_acqs, track, aoi_name):
             master_ids_str += " "+acq
 
     for acq in sorted(slave_acqs):
-        logger.info("get_ifg_hash: slave acq : %s" %acq)
+        print("get_ifg_hash: slave acq : %s" %acq)
         if isinstance(acq, tuple) or isinstance(acq, list):
             acq = acq[0]
         
@@ -990,7 +990,7 @@ def group_acqs_by_track(frames):
     return {"grouped": grouped, "acq_info" : acq_info}
 
 def filter_acq_ids(acq_info, acq_ids, ssth=3):
-    logger.info("\nfilter_acq_ids: acq_ids: %s" %(acq_ids))
+    print("\nfilter_acq_ids: acq_ids: %s" %(acq_ids))
     dedup_acqs = dict()
     last_id = None
     last_sensing_start = None
@@ -1004,11 +1004,17 @@ def filter_acq_ids(acq_info, acq_ids, ssth=3):
         if type(acq_id) == 'tuple' or type(acq_id)=='list':
             acq_id = acq_id[0]
         acq = acq_info[acq_id]
-        sensing_start = datetime.strptime(
+        sensing_start = get_time(acq.sensingStart[:-1]) if acq.sensingStart.endswith('Z') else get_time(acq.sensingStart)
+
+        #get_time(acq.sensingStart)
+
+        '''
+        datetime.strptime(
             acq.sensingStart[:-1] if acq.sensingStart.endswith('Z') else acq.sensingStart,  "%Y-%m-%dT%H:%M:%S.%f"
         )
+        '''
         temp_dict[acq_id] = sensing_start
-
+        
 
     sorted_x = sorted(temp_dict.items(), key=operator.itemgetter(0))
     sorted_temp_dict = OrderedDict(sorted_x)
@@ -1021,15 +1027,18 @@ def filter_acq_ids(acq_info, acq_ids, ssth=3):
             acq_id = acq_id[0]
         acq = acq_info[acq_id]
         
-        sensing_stop = datetime.strptime(
+        #sensing_stop = get_time(acq.sensingStop)
+        sensing_stop = get_time(acq.sensingStop[:-1]) if acq.sensingStop.endswith('Z') else get_time(acq.sensingStop)
+        '''
+        datetime.strptime(
             acq.sensingStop[:-1] if acq.sensingStop.endswith('Z') else acq.sensingStop,  "%Y-%m-%dT%H:%M:%S.%f"
         )       
-        
+        '''
         pv = acq.pv
 
         if last_id is not None:
             sec_diff = abs((sensing_start-last_sensing_start).total_seconds())
-            logger.info("sec_diff: %s" % sec_diff)
+            print("sec_diff: %s" % sec_diff)
             if sec_diff < ssth:
                 print("DUPLICATE SLCS : %s and %s" %(acq_id, last_id))
                 if not dedup_acqs[last_id]['pv'] and not pv:
@@ -1082,7 +1091,7 @@ def filter_acq_ids(acq_info, acq_ids, ssth=3):
             'sensingStop' : sensing_stop
                 }
 
-    
+    print("returning : dedup_acqs.keys() : %s, dropped_ids : %s" %(dedup_acqs.keys(), dropped_ids))   
     return dedup_acqs.keys(), dropped_ids
 
 
@@ -1141,7 +1150,7 @@ def find_overlap_within_aoi(loc1, loc2, aoi_loc):
     if p3>0:
         intersects = True
     if p3>1.0:
-        logger.info("ERROR : Intersection value between %s and %s is too high : %s" %(geojson1["coordinates"], geojson2["coordinates"], p3)) 
+        print("ERROR : Intersection value between %s and %s is too high : %s" %(geojson1["coordinates"], geojson2["coordinates"], p3)) 
     return intersects, p3
 
 
@@ -1178,7 +1187,7 @@ def find_overlap_match(master_acq, slave_acqs):
     #print("slave info : ")
 
     total_cover_pct=0
-    logger.info("\n\n\nfind_overlap_match:")
+    print("\n\n\nfind_overlap_match:")
     master_loc = master_acq.location["coordinates"]
 
     print("\n\nmaster id : %s master loc : %s" %(master_acq.acq_id, master_acq.location))
@@ -1334,22 +1343,22 @@ def get_combined_polygon():
 
 def get_time(t):
 
-    logger.info("get_time(t) : %s" %t)
+    print("get_time(t) : %s" %t)
     t = parser.parse(t).strftime('%Y-%m-%dT%H:%M:%S')
     t1 = datetime.strptime(t, '%Y-%m-%dT%H:%M:%S')
-    logger.info("returning : %s" %t1)
+    print("returning : %s" %t1)
     return t1
 
 def get_time_str(t):
 
-    logger.info("get_time(t) : %s" %t)
+    print("get_time(t) : %s" %t)
     t = parser.parse(t).strftime('%Y-%m-%dT%H:%M:%S')
     return t
 
 
 def get_time_str_with_format(t, str_format):
 
-    logger.info("get_time(t) : %s" %t)
+    print("get_time(t) : %s" %t)
     t = parser.parse(t).strftime(str_format)
     return t
 
