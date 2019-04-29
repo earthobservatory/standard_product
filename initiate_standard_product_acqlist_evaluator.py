@@ -218,18 +218,19 @@ def main():
     for acqlist in acqlists:
         logger.info(json.dumps(acqlist, indent=2))
         acq_info = {}
-        for acq in acqlist['metadata']['master_scenes']:
+        for acq in acqlist['metadata']['master_acquisitions']:
             acq_info[acq] = get_acq_object(acq, "master")
-        for acq in acqlist['metadata']['slave_scenes']:
+        for acq in acqlist['metadata']['slave_acquisitions']:
             acq_info[acq] = get_acq_object(acq, "slave")
         if all_slcs_exist(acq_info.keys(), acq_version, slc_version):
             prod_dir = publish_data(acq_info, acqlist['metadata']['project'], acqlist['metadata']['job_priority'],
                                     acqlist['metadata']['dem_type'], acqlist['metadata']['track_number'], acqlist['metadata']['tags'],
                                     acqlist['metadata']['starttime'], acqlist['metadata']['endtime'],
                                     acqlist['metadata']['master_scenes'], acqlist['metadata']['slave_scenes'],
+                                    acqlist['metadata']['master_acquisitions'], acqlist['metadata']['slave_acquisitions'],
                                     acqlist['metadata']['orbitNumber'], acqlist['metadata']['direction'],
                                     acqlist['metadata']['platform'], acqlist['metadata']['union_geojson'],
-                                    acqlist['metadata']['bbox'])
+                                    acqlist['metadata']['bbox'], acqlist['metadata']['full_id_hash'])
             logger.info(
                 "Created ifg-cfg {} for acq-list {}.".format(prod_dir, acqlist['id']))
             if ifgcfg_exists(prod_dir, ifgcfg_version):

@@ -578,38 +578,48 @@ def gen_hash(master_scenes, slave_scenes):
     return '{}_{}'.format(hashlib.md5(master).hexdigest(), hashlib.md5(slave).hexdigest())
 
 
-def get_ifg_hash(master_acqs,  slave_acqs, track, aoi_name):
+def get_ifg_hash(master_slcs,  slave_slcs):
 
     master_ids_str=""
     slave_ids_str=""
 
-    for acq in sorted(master_acqs):
-        print("get_ifg_hash : master acq : %s" %acq)
-        if isinstance(acq, tuple) or isinstance(acq, list):
-            acq = acq[0]
+    for slc in sorted(master_slcs):
+        print("get_ifg_hash : master slc : %s" %slc)
+        if isinstance(slc, tuple) or isinstance(slc, list):
+            slc = slc[0]
 
         if master_ids_str=="":
-            master_ids_str= acq
+            master_ids_str= slc
         else:
-            master_ids_str += " "+acq
+            master_ids_str += " "+slc
 
-    for acq in sorted(slave_acqs):
-        print("get_ifg_hash: slave acq : %s" %acq)
-        if isinstance(acq, tuple) or isinstance(acq, list):
-            acq = acq[0]
-        
+    for slc in sorted(slave_slcs):
+        print("get_ifg_hash: slave slc : %s" %slc)
+        if isinstance(slc, tuple) or isinstance(slc, list):
+            slc = slc[0]
+
         if slave_ids_str=="":
-            slave_ids_str= acq
+            slave_ids_str= slc
         else:
-            slave_ids_str += " "+acq
-  
+            slave_ids_str += " "+slc
+
     id_hash = hashlib.md5(json.dumps([
             master_ids_str,
-            slave_ids_str,
-            track,
-            aoi_name]).encode("utf8")).hexdigest()
+            slave_ids_str
+            ]).encode("utf8")).hexdigest()
     return id_hash
 
+def get_ifg_hash_from_acqs(master_acqs,  slave_acqs):
+
+    master_slcs = []
+    slave_slcs = []
+
+    if len(master_acqs)>0:
+        master_slcs = get_slc_list_from_acq_list(master_acqs)
+    if len(slave_acqs)>0:
+        slave_slcs = get_slc_list_from_acq_list(slave_acqs)
+
+    return get_ifg_hash(master_slcs,  slave_slcs)
 
 
 def dataset_exists(id, index_suffix):
@@ -1105,6 +1115,19 @@ def filter_acq_ids(acq_info, acq_ids, ssth=3):
         filtered_ids.append(k)
     print("returning : filtered_ids : %s, dropped_ids : %s" %(filtered_ids, dropped_ids))   
     return filtered_ids, dropped_ids
+
+
+
+def get_slc_list_from_acq_list(acq_list):
+    logger.info("get_acq_data_from_list")
+    acq_info = {}
+    slcs = []
+
+    # Find out status of all Master ACQs, create a ACQ object with that and update acq_info dictionary 
+    for acq in acq_list:
+        acq_data = get_partial_grq_data(acq)['fields']['partial'][0]
+        slcs.append(acq_data['metadata']['identifier'])
+    return slcs
 
 
 def getUpdatedTime(s, m):

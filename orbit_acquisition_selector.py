@@ -853,7 +853,7 @@ def resolve_aoi_acqs(ctx_file):
     with open(ctx_file) as f:
         ctx = json.load(f)
 
-    project = ctx['project']
+    project = 'grfn'
     logger.info("PROJECT : %s" %project)
     priority = int(ctx["job_priority"])
     minMatch = int(ctx["minMatch"])

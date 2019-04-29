@@ -38,7 +38,7 @@ logger.setLevel(logging.INFO)
 logger.addFilter(LogFilter())
 
 
-ACQ_LIST_ID_TMPL = "S1-GUNW-acqlist-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
+ACQ_LIST_ID_TMPL = "S1-GUNW-acqlist-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}"
 ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
 
 BASE_PATH = os.path.dirname(__file__)
@@ -301,7 +301,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 err_msg = "CheckMatch Failed"
                 result['result'] = False
                 result['fail_reason'] = err_msg
-                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
+                id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
                 write_result_file(result_file, result)
                 publish_result(master_result, result, id_hash)
 
@@ -320,7 +320,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                     err_msg = "Acqusition exists in BlackList"
                     result['result'] = False
                     result['fail_reason'] = err_msg
-                    id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
+                    id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
                     write_result_file(result_file, result)
                     publish_result(master_result, result, id_hash)
                     return False, [], result
@@ -336,7 +336,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 err_msg = "CheckMatch Failed"
                 result['result'] = False
                 result['fail_reason'] = err_msg
-                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
+                id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
                 write_result_file(result_file, result)
                 publish_result(master_result, result, id_hash)
                 return False, [], result
@@ -352,7 +352,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                     err_msg = "Acqusition exists in BlackList"
                     result['result'] = False
                     result['fail_reason'] = err_msg
-                    id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
+                    id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
                     write_result_file(result_file, result)
                     publish_result(master_result, result, id_hash)
 
@@ -362,7 +362,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
         err_msg = "Master and Slave both have multiple ipf"
         result['result'] = False
         result['fail_reason'] = err_msg
-        id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
+        id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
         write_result_file(result_file, result)
         publish_result(master_result, result, id_hash)
         logger.info("Candidate Pair NOT SELECTED")
@@ -494,7 +494,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
         except Exception as err:
             result['fail_reason'] = str(err)
             logger.info(str(err))
-            id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), [], track, aoi)
+            id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), [])
             publish_result(master_result, result, id_hash)
             raise RuntimeError(str(err))
  
@@ -515,7 +515,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
         except Exception as err:
             result['fail_reason'] = str(err)
             logger.info(str(err))
-            id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), [], track, aoi)
+            id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), [])
             publish_result(master_result, result, id_hash)
             raise RuntimeError(str(err))
         logger.info("master_starttime : %s" %master_starttime)
@@ -536,13 +536,13 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             result['fail_reason'] = err_msg
             logger.info(err_msg)
             result['union_geojson'] = master_union_geojson
-            id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
+            id_hash = util.get_ifg_hash_from_acqs(master_acq_ids, [])
             publish_result(master_result, result, id_hash)
             continue
 
         #matched_acqs = util.create_acqs_from_metadata(process_query(query))
         slave_acqs = create_acqs_from_metadata(acqs)
-        id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(slave_acqs), track, aoi)
+        id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
 
         logger.info("\nSLAVE ACQS")
         #util.print_acquisitions(aoi_id, slave_acqs)
@@ -653,7 +653,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             except Exception as err:
                 result['fail_reason'] = str(err)
                 logger.info(str(err))
-                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), slave_ids, track, aoi)
+                id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), slave_ids)
                 publish_result(master_result, result, id_hash)
                 raise RuntimeError("Error in Ipf Count : %s" %str(err))
                 
@@ -678,7 +678,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 err_msg = "ERROR : Either Master Ipf Count or Slave Ipf Count is 0 which is not correct" %(master_ipf_count, slave_ipf_count)
                 result['fail_reason'] = err_msg
                 logger.info(err_msg)
-                id_hash = util.get_ifg_hash(get_acq_ids(master_acqs), get_acq_ids(selected_slave_acqs), track, aoi)
+                id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(selected_slave_acqs))
                 publish_result(master_result, result, id_hash)
                 continue
 
@@ -954,9 +954,13 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     #job_data["job_version"] = job_version
     job_priority = publish_job_data["job_priority"] 
 
-
-    logger.info("MASTER : %s " %master_acquisitions)
-    logger.info("SLAVE : %s" %slave_acquisitions) 
+    master_slcs = util.get_slc_list_from_acq_list(master_acquisitions)
+    slave_slcs = util.get_slc_list_from_acq_list(slave_acquisitions)
+    
+    logger.info("MASTER ACQS: %s " %master_acquisitions)
+    logger.info("SLAVE ACQS: %s" %slave_acquisitions) 
+    logger.info("MASTER SLCS: %s " %master_slcs)
+    logger.info("SLAVE SLCS: %s" %slave_slcs)
     logger.info("project: %s" %project)
 
     #version = get_version()
@@ -1062,12 +1066,12 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     ]).encode("utf8")).hexdigest()
     '''
     aoi_id = aoi_id.strip().replace(' ', '_')
-    id_hash = util.get_ifg_hash(master_acquisitions, slave_acquisitions, track, aoi_id)
+    id_hash = util.get_ifg_hash(master_slcs, slave_slcs)
 
     orbit_type = 'poeorb'
 
     #ACQ_LIST_ID_TMPL = "S1-GUNW-acqlist-R{}-M{:d}S{:d}-TN{:03d}-{:%Y%m%dT%H%M%S}-{:%Y%m%dT%H%M%S}-{}-{}-{}"
-    id = ACQ_LIST_ID_TMPL.format('M', len(master_acquisitions), len(slave_acquisitions), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4], aoi_id)
+    id = ACQ_LIST_ID_TMPL.format('M', len(master_acquisitions), len(slave_acquisitions), track, list_master_dt, list_slave_dt, orbit_type, id_hash[0:4])
     #id = "acq-list-%s" %id_hash[0:4]
     prod_dir =  id
     os.makedirs(prod_dir, 0o755)
@@ -1098,8 +1102,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     md = {}
     md['id'] = id
     md['project'] =  project,
-    md['master_acquisitions'] = master_ids_str
-    md['slave_acquisitions'] = slave_ids_str
+    md['master_acquisitions'] = master_acquisitions
+    md['slave_acquisitions'] = slave_acquisitions
     '''
     md['spyddder_extract_version'] = spyddder_extract_version
     md['acquisition_localizer_version'] = acquisition_localizer_version
@@ -1114,8 +1118,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     md['starttime'] = "%s" %starttime
     md['endtime'] = "%s" %endtime
     md['union_geojson'] = union_geojson
-    md['master_scenes'] = master_acquisitions 
-    md['slave_scenes'] = slave_acquisitions
+    md['master_scenes'] = master_slcs 
+    md['slave_scenes'] = slave_slcs
     md['orbitNumber'] = orbitNumber
     md['direction'] = direction
     md['platform'] = platform
@@ -1128,6 +1132,8 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     md['slave_end_time'] = slave_end_time
     md['master_orbit_file'] = os.path.basename(master_orbit_file)
     md['slave_orbit_file'] = os.path.basename(slave_orbit_file)
+    md['id_hash'] = id_hash[0:4]
+    md['full_id_hash'] = id_hash
 
  
     try:
@@ -1208,8 +1214,10 @@ def publish_result(reference_result, secondary_result, id_hash):
     logger.info("secondary_result.get('list_slave_dt', '') : %s" %secondary_result.get('list_slave_dt', ''))
     logger.info("%s : %s : %s" %( orbit_type, id_hash[0:4], reference_result.get('aoi', '')))
 
-    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{}-{}-{}-{}-{}"
-    id = ACQ_RESULT_ID_TMPL.format('M', secondary_result.get('master_count', 0), secondary_result.get('slave_count', 0), secondary_result.get('track', 0), update_dateformat2(secondary_result.get('list_master_dt', '')), update_dateformat2(secondary_result.get('list_slave_dt', '')), orbit_type, id_hash[0:4], reference_result.get('aoi', ''))
+    ACQ_RESULT_ID_TMPL = "S1-GUNW-acqlist-audit_trail-R{}-M{:d}S{:d}-TN{:03d}-{}-{}-{}-{}"
+    #id = ACQ_RESULT_ID_TMPL.format('M', secondary_result.get('master_count', 0), secondary_result.get('slave_count', 0), secondary_result.get('track', 0), update_dateformat2(secondary_result.get('list_master_dt', '')), update_dateformat2(secondary_result.get('list_slave_dt', '')), orbit_type, id_hash[0:4], reference_result.get('aoi', ''))
+
+    id = ACQ_RESULT_ID_TMPL.format('M', secondary_result.get('master_count', 0), secondary_result.get('slave_count', 0), secondary_result.get('track', 0), update_dateformat2(secondary_result.get('list_master_dt', '')), update_dateformat2(secondary_result.get('list_slave_dt', '')), orbit_type, id_hash[0:4])
    
     logger.info("publish_result : id : %s " %id)
     #id = "acq-list-%s" %id_hash[0:4]

@@ -16,10 +16,6 @@
       "destination": "positional"
     },
     {
-        "name": "project",
-        "destination": "context"
-    },
-    {
         "name": "dataset_version",
         "destination": "context"
     },

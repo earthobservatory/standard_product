@@ -362,10 +362,15 @@ def resolve_source(ctx_file):
     dem_type= ctx["input_metadata"]["dem_type"]
     track = ctx["input_metadata"]["track_number"]
 
+    master_acqs = ctx["input_metadata"]["master_acquisitions"]
+    slave_acqs = ctx["input_metadata"]["slave_acquisitions"]
+
     master_scene = ctx["input_metadata"]["master_scenes"]   
     slave_scene = ctx["input_metadata"]["slave_scenes"]
     logger.info("master_scene : %s" %master_scene)
     logger.info("slave_scene : %s" %slave_scene)
+    logger.info("master_acqs : %s" %master_acqs)
+    logger.info("slave_acqs : %s" %slave_acqs)
 
     starttime = ctx["input_metadata"]["starttime"]
     endtime = ctx["input_metadata"]["endtime"]
@@ -389,40 +394,34 @@ def resolve_source(ctx_file):
 
     acq_info = {}
    
-    master_slcs = []
-    slave_slcs = []
- 
-    for acq in master_scene:
+    for acq in master_acqs:
  	acq_type = "master"
         acq_info[acq]=get_acq_object(acq, acq_type)
 
     # Find out status of all Slave ACQs, create a ACQ object with that and update acq_info dictionary
-    for acq in slave_scene:
+    for acq in slave_acqs:
 	acq_type = "slave"
 	acq_info[acq]=get_acq_object(acq, acq_type)
 
-    return sling(acq_info, spyddder_sling_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox)
+    return sling(acq_info, spyddder_sling_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_acqs, slave_acqs, orbitNumber, direction, platform, union_geojson, bbox)
 
-def sling(acq_info, spyddder_sling_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox):
+def sling(acq_info, spyddder_sling_extract_version, multi_acquisition_localizer_version, project, job_priority, job_type, job_version, dem_type, track, starttime, endtime, master_acqs, slave_acqs, orbitNumber, direction, platform, union_geojson, bbox):
     '''
 	This function submits acquisition localizer jobs for mastrer and slaves.
     '''
     logger.info("%s : %s" %(type(spyddder_sling_extract_version), spyddder_sling_extract_version))
     job_info = {}
     
-    id_hash = get_id_hash(acq_info, job_priority, dem_type)
     acq_list = acq_info.keys()
 
-    logger.info("id_hash : %s" %id_hash)
-    logger.info("project : %s" %project)
     logger.info("spyddder_sling_extract_version : %s" %spyddder_sling_extract_version)
     logger.info("multi_acquisition_localizer_version : %s" %multi_acquisition_localizer_version)
-    logger.info("master_scene: %s" %master_scene)
-    logger.info("slave_scene : %s" %slave_scene)
+    logger.info("master_acqs: %s" %master_acqs)
+    logger.info("slave_acqs : %s" %slave_acqs)
     logger.info("job_priority : %s" %job_priority)
 
     logger.info("\nSubmitting acquisition localizer job for Masters : %s" %master_scene)
-    all_done, data  = submit_sling_job(id_hash, project, spyddder_sling_extract_version, multi_acquisition_localizer_version, master_scene, job_priority)
+    all_done, data  = submit_sling_job(spyddder_sling_extract_version, multi_acquisition_localizer_version, master_acqs, job_priority)
     if not all_done:
         err_str = "Failed to download following SLCs :"
         for failed_acq_id in data:
@@ -433,7 +432,7 @@ def sling(acq_info, spyddder_sling_extract_version, multi_acquisition_localizer_
             
 
     logger.info("\nSubmitting acquisition localizer job for Slaves : %s" %slave_scene)
-    all_done, data = submit_sling_job(id_hash, project, spyddder_sling_extract_version, multi_acquisition_localizer_version, slave_scene, job_priority)
+    all_done, data = submit_sling_job(spyddder_sling_extract_version, multi_acquisition_localizer_version, slave_acqs, job_priority)
     if not all_done:
         err_str = "Failed to download following SLCs :"
         for failed_acq_id in data:
@@ -559,7 +558,7 @@ def publish_localized_info( acq_info, project, job_priority, dem_type, track, ao
     for i in range(len(project)):
         publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], aoi_id[i],  starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], direction[i], platform[i], union_geojson[i], bbox[i])
 
-def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, starttime, endtime, master_scene, slave_scene, orbitNumber, direction, platform, union_geojson, bbox, wuid=None, job_num=None):
+def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, starttime, endtime, master_scene, slave_scene, master_acqs, slave_acqs, orbitNumber, direction, platform, union_geojson, bbox, ifg_hash, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
@@ -568,8 +567,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     logger.info("track : %s" %track)
     logger.info("aoi_id : %s" %aoi_id)
     logger.info("starttime, endtime, : %s : %s " %(starttime, endtime))
-    logger.info(" master_scene, slave_scene : %s, %s" %(master_scene, slave_scene))
-    logger.info(" union_geojson : %s, bbox : %s " %( union_geojson, bbox))
+    logger.info("master_scene, slave_scene : %s, %s" %(master_scene, slave_scene))
+    logger.info("union_geojson : %s, bbox : %s " %( union_geojson, bbox))
     logger.info("publish_data : orbitNumber : %s" %orbitNumber)
     #version = get_version()
     version = "v2.0.0"
@@ -585,15 +584,10 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     job_queue = "standard_product_s1ifg-slc_localizer"
     #job_type = "job-standard-product-ifg:%s" %standard_product_ifg_version
        
-    id_hash = util.get_ifg_hash(master_scene,  slave_scene, track, aoi_id)
-    #id_hash = get_id_hash(acq_info, job_priority, dem_type)
-    master_slcs = get_acq_data_from_list(master_scene)
-    slave_slcs = get_acq_data_from_list(slave_scene)
-
     # get metadata
-    master_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in master_slcs }
+    master_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in master_scene}
     #logger.info("master_md: {}".format(json.dumps(master_md, indent=2)))
-    slave_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in slave_slcs }
+    slave_md = { i:query_es(GRQ_ES_ENDPOINT, i) for i in slave_scene }
     #logger.info("slave_md: {}".format(json.dumps(slave_md, indent=2)))
 
     # get urls (prefer s3)
@@ -628,11 +622,11 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
 
 
 
-    logger.info(" master_scene : %s slave_slcs : %s" %(master_slcs, slave_slcs))
+    logger.info(" master_scene : %s slave_slcs : %s" %(master_scene, slave_scene))
     orbit_type = 'poeorb'
     logger.info("Publish IFG job: direction : %s, platform : %s" %(direction, platform))
 
-    id = IFG_CFG_ID_TMPL.format('M', len(master_scene), len(slave_scene), track, parser.parse(slc_master_dt.strftime('%Y%m%dT%H%M%S')), parser.parse(slc_slave_dt.strftime('%Y%m%dT%H%M%S')), orbit_type, id_hash[0:4])
+    id = IFG_CFG_ID_TMPL.format('M', len(master_scene), len(slave_scene), track, parser.parse(slc_master_dt.strftime('%Y%m%dT%H%M%S')), parser.parse(slc_slave_dt.strftime('%Y%m%dT%H%M%S')), orbit_type, ifg_hash[0:4])
 
     #id = "standard-product-ifg-cfg-%s" %id_hash[0:4]
     prod_dir =  id
@@ -661,8 +655,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     md['union_geojson'] = union_geojson
     md['master_scenes'] = master_scene
     md['slave_scenes'] = slave_scene
-    md['master_slcs'] = master_slcs
-    md['slave_slcs'] = slave_slcs
+    md["master_acquisitions"] = master_acqs
+    md["slave_acquisitions"] = slave_acqs
     md['orbitNumber'] = orbitNumber
     md['direction'] = direction
     md['platform'] = platform
@@ -677,6 +671,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     md["master_orbit_file"] = os.path.basename(master_orbit_url)
     md["slave_zip_file"] = [os.path.basename(i) for i in slave_zip_url]
     md["slave_orbit_file"] = os.path.basename(slave_orbit_url)
+    md["full_id_hash"] = ifg_hash
+    md["id_hash"] = ifg_hash[0:4]
 
     if bbox:
         md['bbox'] = bbox
@@ -690,7 +686,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     return prod_dir
 
 
-def submit_sling_job(id_hash, project, spyddder_sling_extract_version, multi_acquisition_localizer_version, acq_list, priority):
+def submit_sling_job(spyddder_sling_extract_version, multi_acquisition_localizer_version, acq_list, priority):
     esa_download_queue = "spyddder-sling-extract-scihub"
     asf_ngap_download_queue = "spyddder-sling-extract-asf"
     job_type = "job-acquisition_localizer_multi:{}".format(multi_acquisition_localizer_version)
