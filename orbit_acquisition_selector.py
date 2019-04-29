@@ -614,7 +614,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
                 result['orbit_quality_check_passed']=True
             else:
                 result['result'] = False
-                id_hash = util.get_ifg_hash([], [], track, aoi['id'])
+                id_hash = '0000'
                 result['orbit_quality_check_passed']=False
                 publish_result(result, id_hash)
             try:
