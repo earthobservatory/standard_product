@@ -420,7 +420,7 @@ def sling(acq_info, spyddder_sling_extract_version, multi_acquisition_localizer_
     logger.info("slave_acqs : %s" %slave_acqs)
     logger.info("job_priority : %s" %job_priority)
 
-    logger.info("\nSubmitting acquisition localizer job for Masters : %s" %master_scene)
+    logger.info("\nSubmitting acquisition localizer job for Masters : %s" %master_acqs)
     all_done, data  = submit_sling_job(spyddder_sling_extract_version, multi_acquisition_localizer_version, master_acqs, job_priority)
     if not all_done:
         err_str = "Failed to download following SLCs :"
@@ -431,7 +431,7 @@ def sling(acq_info, spyddder_sling_extract_version, multi_acquisition_localizer_
         logger.info("successfully completed localizing master slcs")
             
 
-    logger.info("\nSubmitting acquisition localizer job for Slaves : %s" %slave_scene)
+    logger.info("\nSubmitting acquisition localizer job for Slaves : %s" %slave_acqs)
     all_done, data = submit_sling_job(spyddder_sling_extract_version, multi_acquisition_localizer_version, slave_acqs, job_priority)
     if not all_done:
         err_str = "Failed to download following SLCs :"
