@@ -148,12 +148,12 @@ def get_acqlists_by_acqid(acq_id, acqlist_version):
                             "should": [
                                 {
                                     "term": {
-                                        "metadata.master_scenes.raw": acq_id
+                                        "metadata.master_acquisitions.raw": acq_id
                                     }
                                 },
                                 {
                                     "term": {
-                                        "metadata.slave_scenes.raw": acq_id
+                                        "metadata.slave_acquisitions.raw": acq_id
                                     }
                                 }
                             ]
