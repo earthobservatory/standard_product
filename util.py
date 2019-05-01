@@ -1713,7 +1713,7 @@ def get_overlapping_slaves_query(starttime, location, track, direction, platform
                 },
                 {
                 "term": {
-                    "metadata.tags": "depricated"
+                    "metadata.tags": "deprecated"
                     }
                 }
               ]
@@ -1807,7 +1807,7 @@ def get_overlapping_slaves_query_orbit(master, orbitnumber):
 			    ],
                         "must_not": [
                                 {"term": {"orbitNumber": master_orbitnumber}},
-                                {"term": {"metadata.tags": "depricated"}}
+                                {"term": {"metadata.tags": "deprecated"}}
                            ]
 			}
                     }

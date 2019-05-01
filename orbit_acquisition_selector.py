@@ -735,7 +735,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
                             ],
                             "must_not": {
                                 "term": {
-                                    "metadata.tags": "depricated"
+                                    "metadata.tags": "deprecated"
                                 }
                             }
                         }
