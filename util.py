@@ -1705,11 +1705,18 @@ def get_overlapping_slaves_query(starttime, location, track, direction, platform
                   }
                 }  
               ],
-              "must_not": {
+              "must_not": [
+                {
                 "term": {
                   "orbitNumber": master_orbitnumber
+                   } 
+                },
+                {
+                "term": {
+                    "metadata.tags": "depricated"
+                    }
                 }
-              }
+              ]
             }
           }
         }
@@ -1798,7 +1805,10 @@ def get_overlapping_slaves_query_orbit(master, orbitnumber):
                                 { "term": { "orbitNumber": orbitnumber }},
 				{ "term": { "direction": master.direction }}
 			    ],
-			"must_not": { "term": { "orbitNumber": master.orbitnumber }}
+                        "must_not": [
+                                {"term": {"orbitNumber": master_orbitnumber}},
+                                {"term": {"metadata.tags": "depricated"}}
+                           ]
 			}
                     }
                 }
