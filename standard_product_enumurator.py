@@ -1268,10 +1268,10 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['secondary_dropped_ids'] = secondary_result.get('slave_dropped_ids', [])
     md['reference_dropped_ids'] = reference_result.get('master_dropped_ids', [])
     md['full_id_hash']=secondary_result.get('full_id_hash', '')
-    md['master_acquisitions'] = secondary_result.get('master_acquisitions', [])
-    md['slave_acquisitions'] = secondary_result.get('slave_acquisitions', [])
-    md['master_scenes'] = secondary_result.get('master_scenes', [])
-    md['slave_scenes'] = secondary_result.get('slave_scenes', [])
+    md['reference_acquisitions'] = secondary_result.get('master_acquisitions', [])
+    md['secondary_acquisitions'] = secondary_result.get('slave_acquisitions', [])
+    md['reference_scenes'] = secondary_result.get('master_scenes', [])
+    md['secondary_scenes'] = secondary_result.get('slave_scenes', [])
 
 
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
