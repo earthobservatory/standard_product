@@ -502,6 +502,11 @@ def publish_result(reference_result, id_hash):
     md['reference_delta_area_pixel'] = reference_result.get('res', '')
     md['union_geojson'] = reference_result.get('union_geojson', '')
     md['reference_dropped_ids']=reference_result.get('master_dropped_ids', [])
+    md['full_id_hash']=reference_result.get('full_id_hash', '')
+    md['master_acquisitions'] = reference_result.get('master_acquisitions', [])
+    md['slave_acquisitions'] = reference_result.get('slave_acquisitions', [])
+    md['master_scenes'] = reference_result.get('master_scenes', [])
+    md['slave_scenes'] = reference_result.get('slave_scenes', [])
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 

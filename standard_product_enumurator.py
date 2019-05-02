@@ -1166,7 +1166,11 @@ def publish_initiator_pair(candidate_pair, publish_job_data, orbit_data, aoi_id,
     secondary_result['list_slave_dt'] = list_slave_dt
     secondary_result['master_count'] = len(master_acquisitions)
     secondary_result['slave_count'] = len(slave_acquisitions)
-
+    secondary_result['full_id_hash'] = id_hash
+    secondary_result['master_acquisitions'] = master_acquisitions
+    secondary_result['slave_acquisitions'] = slave_acquisitions
+    secondary_result['master_scenes'] = master_slcs
+    secondary_result['slave_scenes'] = slave_slcs
     publish_result(reference_result, secondary_result, id_hash)
 
 def update_dateformat(d):
@@ -1263,6 +1267,12 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['union_geojson'] = secondary_result.get('union_geojson', '')
     md['secondary_dropped_ids'] = secondary_result.get('slave_dropped_ids', [])
     md['reference_dropped_ids'] = reference_result.get('master_dropped_ids', [])
+    md['full_id_hash']=secondary_result.get('full_id_hash', '')
+    md['master_acquisitions'] = secondary_result.get('master_acquisitions', [])
+    md['slave_acquisitions'] = secondary_result.get('slave_acquisitions', [])
+    md['master_scenes'] = secondary_result.get('master_scenes', [])
+    md['slave_scenes'] = secondary_result.get('slave_scenes', [])
+
 
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
     logger.info("type(md['reference_date']) : %s:" %type(md['reference_date']))

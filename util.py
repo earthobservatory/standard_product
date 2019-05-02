@@ -546,6 +546,8 @@ def get_result_dict(aoi=None, track=None, track_dt=None):
     result['slave_orbit_file'] = ''
     result['master_dropped_ids'] = list()
     result['slave_dropped_ids'] = list()
+    result['full_id_hash'] = ''
+
     '''
     result['ACQ_POEORB_AOI_Intersection_primary'] = None
     result['ACQ_Union_POEORB_Land_primary'] = None
