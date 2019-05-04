@@ -230,7 +230,8 @@ def main():
                                     acqlist['metadata']['master_acquisitions'], acqlist['metadata']['slave_acquisitions'],
                                     acqlist['metadata']['orbitNumber'], acqlist['metadata']['direction'],
                                     acqlist['metadata']['platform'], acqlist['metadata']['union_geojson'],
-                                    acqlist['metadata']['bbox'], acqlist['metadata']['full_id_hash'])
+                                    acqlist['metadata']['bbox'], acqlist['metadata']['full_id_hash'],
+                                    acqlist['metadata']['master_orbit_file'], acqlist['metadata']['slave_orbit_file'])
             logger.info(
                 "Created ifg-cfg {} for acq-list {}.".format(prod_dir, acqlist['id']))
             if ifgcfg_exists(prod_dir, ifgcfg_version):

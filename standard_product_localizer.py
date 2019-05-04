@@ -74,6 +74,56 @@ def get_area(coords):
     #area = abs(area) / 2.0
     return area / 2
 
+def get_orbit_from_orbit_file(orbit_file):
+    logger.info("get_orbit_from_orbit_file : {}".format(orbit_file))
+    es_url = app.conf["GRQ_ES_URL"]
+    es_index = "grq"
+    query = {
+       "query": {
+            "bool": {
+                "must": [
+                    {
+                        "term": {
+                            "metadata.archive_filename.raw": orbit_file
+                         }
+                    }
+                ]
+            }
+        }
+    }
+
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    r = requests.post(search_url, data=json.dumps(query))
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    result = r.json()
+
+    if len(result["hits"]["hits"]) == 0:
+        raise ValueError("Couldn't find record with orbit file: %s, at ES: %s"%(orbit_file, es_url))
+        return
+
+    #LOGGER.debug("Got: {0}".format(json.dumps(result)))
+    h = result["hits"]["hits"][0]
+    fields = h['_source']
+    prod_url = fields['urls'][0]
+    if len(fields['urls']) > 1:
+        for u in fields['urls']:
+            if u.startswith('http://'):
+                prod_url = u
+                break
+
+    orbit_url = os.path.join(prod_url, orbit_file)
+    logger.info("get_orbit_from_orbit_file : orbit_url : {}".format(orbit_url))
+    return orbit_url
+
 def query_es(endpoint, doc_id):
     """
     This function queries ES
@@ -558,7 +608,7 @@ def publish_localized_info( acq_info, project, job_priority, dem_type, track, ao
     for i in range(len(project)):
         publish_data( acq_info[i], project[i], job_priority[i], dem_type[i], track[i], aoi_id[i],  starttime[i], endtime[i], master_scene[i], slave_scene[i], orbitNumber[i], direction[i], platform[i], union_geojson[i], bbox[i])
 
-def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, starttime, endtime, master_scene, slave_scene, master_acqs, slave_acqs, orbitNumber, direction, platform, union_geojson, bbox, ifg_hash, wuid=None, job_num=None):
+def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, starttime, endtime, master_scene, slave_scene, master_acqs, slave_acqs, orbitNumber, direction, platform, union_geojson, bbox, ifg_hash, in_master_orbit_file, in_slave_orbit_file, wuid=None, job_num=None):
     """Map function for create interferogram job json creation."""
 
     logger.info("\n\n\n PUBLISH IFG JOB!!!")
@@ -599,9 +649,22 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     logger.info("slave_ids: {}".format(slave_zip_url))
 
     # get orbits
+    master_orbit_file = None
     master_orbit_url = get_orbit_from_metadata(master_md)
     logger.info("master_orbit_url: {}".format(master_orbit_url))
+    if master_orbit_url:
+        master_orbit_file = os.path.basename(master_orbit_url)
+    else:
+        master_orbit_file = in_master_orbit_file
+        master_orbit_url = get_orbit_from_orbit_file(in_master_orbit_file)
+
+    slave_orbit_file = None
     slave_orbit_url = get_orbit_from_metadata(slave_md)
+    if slave_orbit_url:
+        slave_orbit_file = os.path.basename(slave_orbit_url)
+    else:
+        slave_orbit_file = in_slave_orbit_file
+        slave_orbit_url = get_orbit_from_orbit_file(in_slave_orbit_file)
     logger.info("slave_orbit_url: {}".format(slave_orbit_url))
 
     try:
@@ -668,9 +731,9 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     md['slc_master_dt'] = slc_master_dt.strftime('%Y%m%dT%H%M%S')
     md['slc_slave_dt'] = slc_slave_dt.strftime('%Y%m%dT%H%M%S')
     md["master_zip_file"] = [os.path.basename(i) for i in master_zip_url]
-    md["master_orbit_file"] = os.path.basename(master_orbit_url)
+    md["master_orbit_file"] = slave_orbit_file
     md["slave_zip_file"] = [os.path.basename(i) for i in slave_zip_url]
-    md["slave_orbit_file"] = os.path.basename(slave_orbit_url)
+    md["slave_orbit_file"] = slave_orbit_file
     md["full_id_hash"] = ifg_hash
     md["id_hash"] = ifg_hash[0:4]
 
