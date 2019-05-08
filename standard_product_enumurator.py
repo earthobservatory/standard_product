@@ -637,8 +637,10 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                     publish_result(master_result, result, id_hash)
                     logger.info("Existing as Water Mast Test Failed")
 
+                '''
                 if not valid_orbit:
                     raise InvalidOrbitException(valid_orbit_err)
+                '''
 
                 if not selected:
                     continue
@@ -654,8 +656,9 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 #id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
                 write_result_file(result_file, result)
                 publish_result(master_result, result, id_hash)
+                raise RuntimeError(err_msg)
 
-                continue
+                
             selected_slave_acqs =list()
             slave_ids= filtered_acd_ids
             for slave_id in slave_ids:

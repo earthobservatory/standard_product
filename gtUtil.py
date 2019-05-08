@@ -344,9 +344,9 @@ def water_mask_test1(result, track, orbit_or_track_dt, acq_info, acq_ids,  aoi_l
             isValidOrbit = groundTrack.isValidOrbit(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
             logger.info("gtUtil : isValidOrbit : %s" %isValidOrbit)
             if not isValidOrbit:
-                err_msg = "Invalid Orbit : %s" %orbit_file
+                err_msg = "Degraded Orbit : %s" %orbit_file
                 result['fail_reason'] = err_msg
-                raise InvalidOrbitException(err_msg)
+                #raise InvalidOrbitException(err_msg)
                 return False, result, removed_ids
             logger.info("ACQ_IDDDDD : %s" %acq_id)
             gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)
