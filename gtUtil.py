@@ -13,7 +13,7 @@ import groundTrack
 from osgeo import ogr, osr
 import lightweight_water_mask
 import util
-from util import ACQ, NoIntersectException
+from util import ACQ, InvalidOrbitException, NoIntersectException
 import urllib.request
 
 #logger = logging.getLogger(os.path.splitext(os.path.basename(__file__))[0])
@@ -82,6 +82,8 @@ def water_mask_check(track, orbit_or_track_dt, acq_info, grouped_matched_orbit_n
     try:
         passed, result, removed_ids = water_mask_test1(result, track, orbit_or_track_dt, acq_info, grouped_matched_orbit_number,  aoi_location, aoi_id, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
         return passed, result, removed_ids
+    except InvalidOrbitException as err:
+        raise
     except Exception as err:
         err_msg = "orbit quality test failed : %s" %str(err)
         logger.info(err_msg)
@@ -344,6 +346,7 @@ def water_mask_test1(result, track, orbit_or_track_dt, acq_info, acq_ids,  aoi_l
             if not isValidOrbit:
                 err_msg = "Invalid Orbit : %s" %orbit_file
                 result['fail_reason'] = err_msg
+                raise InvalidOrbitException(err_msg)
                 return False, result, removed_ids
             logger.info("ACQ_IDDDDD : %s" %acq_id)
             gt_geojson = get_groundTrack_footprint(get_time(acq.starttime), get_time(acq.endtime), mission, orbit_file, orbit_dir)

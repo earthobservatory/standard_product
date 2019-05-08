@@ -43,6 +43,9 @@ logging.basicConfig(format=log_format, level=logging.INFO)
 class NoIntersectException(Exception):
     pass
 
+class InvalidOrbitException(Exception):
+    pass
+
 class LogFilter(logging.Filter):
     def filter(self, record):
         if not hasattr(record, 'id'): record.id = '--'

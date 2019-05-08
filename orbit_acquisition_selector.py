@@ -5,7 +5,7 @@ from xml.etree import ElementTree
 from UrlUtils import UrlUtils
 import util
 import gtUtil
-from util import ACQ
+from util import ACQ, InvalidOrbitException
 import datetime  
 from datetime import datetime, timedelta
 import groundTrack
@@ -577,18 +577,24 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
         for track_dt in grouped_matched["grouped"][track]:
             filtered_acd_ids, dropped_ids = util.filter_acq_ids(grouped_matched["acq_info"], grouped_matched["grouped"][track][track_dt])
             logger.info("filtered_acd_ids : %s" %filtered_acd_ids)
-         
+            valid_orbit = False
+            valid_orbit_err = ''
 
-            selected, result, removed_ids = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], filtered_acd_ids,  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
-            orbit_name = orbit_file.split('.EOF')[0].strip()
-            if len(removed_ids)>0:
-                logger.info("Removed Acquisitions by WaterMaskTest : %s" %removed_ids)
-                for acq_id in removed_ids:
-                    logger.info("removing %s from filtered_acd_ids" %acq_id)
+            try:
+                selected, result, removed_ids = gtUtil.water_mask_check(track, track_dt, grouped_matched["acq_info"], filtered_acd_ids,  aoi['location'], aoi['id'], threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+                valid_orbit = True
+                orbit_name = orbit_file.split('.EOF')[0].strip()
+                if len(removed_ids)>0:
+                    logger.info("Removed Acquisitions by WaterMaskTest : %s" %removed_ids)
+                    for acq_id in removed_ids:
+                        logger.info("removing %s from filtered_acd_ids" %acq_id)
                                      
-                    filtered_acd_ids.remove(acq_id)
-            logger.info("filtered_acd_ids : %s:" %filtered_acd_ids)
-
+                        filtered_acd_ids.remove(acq_id)
+                logger.info("filtered_acd_ids : %s:" %filtered_acd_ids)
+            except InvalidOrbitException as err:
+                selected = False
+                valid_orbit = False
+                valid_orbit_err = err
             result['orbit_name']= orbit_name
             result['track'] = track
             result['master_dropped_ids'] = dropped_ids
@@ -622,6 +628,9 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
                 id_hash = '0000'
                 result['orbit_quality_check_passed']=False
                 publish_result(result, id_hash)
+           
+            if not valid_orbit:
+                 raise InvalidOrbitException(valid_orbit_err) 
             try:
                 with open(result_file, 'a') as fo:
                     cw = csv.writer(fo, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
