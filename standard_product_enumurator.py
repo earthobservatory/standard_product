@@ -558,6 +558,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
         logger.info("\n\n\nTRACK : %s" %track)
         rejected_slave_track_dt = []
         for slave_track_dt in sorted( slave_grouped_matched["grouped"][track], reverse=True):
+            logger.info("\n\nTesting Slave Dt : %s" %slave_track_dt)
             result['dt'] = slave_track_dt
             result['union_geojson'] = master_union_geojson
             result['list_slave_dt'] = slave_track_dt
@@ -591,25 +592,16 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 filtered_acd_ids, dropped_ids = util.filter_acq_ids(slave_grouped_matched["acq_info"], slave_grouped_matched["grouped"][track][slave_track_dt], 3)
                 logger.info("SLAVE filtered_acd_ids for track %s, track_dt : %s : %s" %(track, slave_track_dt, filtered_acd_ids))
 
-                valid_orbit = False
-                valid_orbit_err = ''
-                try:
-                    selected, result, removed_ids = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], filtered_acd_ids,  aoi_location, aoi, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
-                    valid_orbit = True
-                    if len(removed_ids)>0:
-                        logger.info("Removed Acquisitions by WaterMaskTest : %s" %removed_ids)
-                        for acq_id in removed_ids:
-                            logger.info("removing %s from filtered_acd_ids" %acq_id)
-                            filtered_acd_ids.remove(acq_id)
-                            #del filtered_acd_ids[acq_id]
-                        logger.info("filtered_acd_ids : %s:" %filtered_acd_ids)
+                selected, result, removed_ids = gtUtil.water_mask_check(track, slave_track_dt, slave_grouped_matched["acq_info"], filtered_acd_ids,  aoi_location, aoi, threshold_pixel, mission, orbit_type, orbit_file, orbit_dir)
+                if len(removed_ids)>0:
+                    logger.info("Removed Acquisitions by WaterMaskTest : %s" %removed_ids)
+                    for acq_id in removed_ids:
+                        logger.info("removing %s from filtered_acd_ids" %acq_id)
+                        filtered_acd_ids.remove(acq_id)
+                        #del filtered_acd_ids[acq_id]
+                    logger.info("filtered_acd_ids : %s:" %filtered_acd_ids)
 
-                except InvalidOrbitException as err:
-                    selected = False
-                    valid_orbit = False
-                    valid_orbit_err = err
-
-               
+                logger.info("selected : %s" %selected)
                 result['dt'] = slave_track_dt
                 result['union_geojson'] = master_union_geojson
                 result['list_slave_dt'] = slave_track_dt
@@ -627,6 +619,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 if selected:
                     result['orbit_quality_check_passed']=True
                 if not selected:
+                    logger.info("Publishing Audit Trail as %s NOT selcted" %slave_track_dt)
                     result['orbit_quality_check_passed']=False
                     logger.info("Removing the acquisitions of orbitnumber : %s for failing water mask test" %slave_track_dt)
                
@@ -635,15 +628,14 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                     result['union_geojson'] = master_union_geojson
                     #id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
                     publish_result(master_result, result, id_hash)
-                    logger.info("Existing as Water Mast Test Failed")
+                    logger.info("Skipping as Water Mast Test Failed")
+                    continue
 
                 '''
                 if not valid_orbit:
                     raise InvalidOrbitException(valid_orbit_err)
                 '''
 
-                if not selected:
-                    continue
             else:
                 logger.info("Orbit File NOT Exists, so NOT Running water_mask_check for slave on date %s" %slave_track_dt)
                 logger.info("Removing the acquisitions of orbitnumber for date : %s for failing water mask test" %slave_track_dt)
