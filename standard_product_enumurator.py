@@ -303,6 +303,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 err_msg = "CheckMatch Failed"
                 result['result'] = False
                 result['fail_reason'] = err_msg
+                result['failed_orbit'] = 'secondary'
                 id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
                 write_result_file(result_file, result)
                 publish_result(master_result, result, id_hash)
@@ -324,6 +325,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                     result['fail_reason'] = err_msg
                     id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
                     write_result_file(result_file, result)
+                    result['failed_orbit'] = 'secondary'
                     publish_result(master_result, result, id_hash)
                     return False, [], result
 
@@ -338,6 +340,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                 err_msg = "CheckMatch Failed"
                 result['result'] = False
                 result['fail_reason'] = err_msg
+                result['failed_orbit'] = 'secondary'
                 id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
                 write_result_file(result_file, result)
                 publish_result(master_result, result, id_hash)
@@ -356,6 +359,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
                     result['fail_reason'] = err_msg
                     id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
                     write_result_file(result_file, result)
+                    result['failed_orbit'] = 'secondary'
                     publish_result(master_result, result, id_hash)
 
                     return False, [], result
@@ -366,6 +370,7 @@ def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_cou
         result['fail_reason'] = err_msg
         id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(slave_acqs))
         write_result_file(result_file, result)
+        result['failed_orbit'] = 'secondary'
         publish_result(master_result, result, id_hash)
         logger.info("Candidate Pair NOT SELECTED")
 
@@ -495,6 +500,8 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
         except Exception as err:
             result['fail_reason'] = str(err)
+            result['failed_orbit'] = 'secondary'
+           
             logger.info(str(err))
             id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), [])
             publish_result(master_result, result, id_hash)
@@ -515,6 +522,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
         try:
             master_ipf_count = util.get_ipf_count(master_acqs)
         except Exception as err:
+            result['failed_orbit'] = 'secondary'
             result['fail_reason'] = str(err)
             logger.info(str(err))
             id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), [])
@@ -536,6 +544,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             result['result'] = False
             err_msg = "NO SLAVE FOUND for AOI %s and track %s and master track dt: %s" %(aoi_data['aoi_id'], track, track_dt)
             result['fail_reason'] = err_msg
+            result['failed_orbit'] = 'secondary'
             logger.info(err_msg)
             result['union_geojson'] = master_union_geojson
             id_hash = util.get_ifg_hash_from_acqs(master_acq_ids, [])
@@ -565,6 +574,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             result['list_master_dt'] = track_dt
             result['master_count'] = len(master_acqs)
             result['slave_count'] = len(slave_acqs)
+            result['failed_orbit'] = ''
 
             selected_slave_acqs=[]
             orbit_file = None
@@ -626,6 +636,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                     rejected_slave_track_dt.append(slave_track_dt)
                     write_result_file(result_file, result)
                     result['union_geojson'] = master_union_geojson
+                    result['failed_orbit'] = 'secondary'
                     #id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
                     publish_result(master_result, result, id_hash)
                     logger.info("Skipping as Water Mast Test Failed")
@@ -647,6 +658,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 result['union_geojson'] = master_union_geojson
                 #id_hash = util.get_ifg_hash(master_acq_ids, [], track, aoi)
                 write_result_file(result_file, result)
+                result['failed_orbit'] = 'secondary'
                 publish_result(master_result, result, id_hash)
                 raise RuntimeError(err_msg)
 
@@ -663,8 +675,9 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 result['fail_reason'] = str(err)
                 logger.info(str(err))
                 id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), slave_ids)
+                result['failed_orbit'] = 'secondary'
                 publish_result(master_result, result, id_hash)
-                raise RuntimeError("Error in Ipf Count : %s" %str(err))
+                raise RuntimeError("Error in Slave Ipf Count : %s" %str(err))
                 
             logger.info("slave_ipf_count : %s" %slave_ipf_count)
             selected_slave_acqs =list()
@@ -686,6 +699,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             if master_ipf_count==0 or slave_ipf_count==0:
                 err_msg = "ERROR : Either Master Ipf Count or Slave Ipf Count is 0 which is not correct" %(master_ipf_count, slave_ipf_count)
                 result['fail_reason'] = err_msg
+                result['failed_orbit'] = 'secondary'
                 logger.info(err_msg)
                 id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(selected_slave_acqs))
                 publish_result(master_result, result, id_hash)
@@ -1281,7 +1295,7 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['secondary_acquisitions'] = secondary_result.get('slave_acquisitions', [])
     md['reference_scenes'] = secondary_result.get('master_scenes', [])
     md['secondary_scenes'] = secondary_result.get('slave_scenes', [])
-
+    md['failed_orbit'] = secondary_result.get('failed_orbit', '')
 
     logger.info("type(md['starttime']) : %s:" %type(md['starttime']))
     logger.info("type(md['reference_date']) : %s:" %type(md['reference_date']))

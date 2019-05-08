@@ -507,6 +507,8 @@ def publish_result(reference_result, id_hash):
     md['secondary_acquisitions'] = reference_result.get('slave_acquisitions', [])
     md['reference_scenes'] = reference_result.get('master_scenes', [])
     md['secondary_scenes'] = reference_result.get('slave_scenes', [])
+    md['secondary_date'] = update_dateformat(reference_result.get('dt', ''))
+    md['failed_orbit'] = reference_result.get('failed_orbit', '')
 
     with open(met_file, 'w') as f: json.dump(md, f, indent=2)
 
@@ -627,6 +629,7 @@ def get_covered_acquisitions_by_track_date(aoi, acqs, threshold_pixel, orbit_fil
                 result['result'] = False
                 id_hash = '0000'
                 result['orbit_quality_check_passed']=False
+                result['failed_orbit'] = 'reference'
                 publish_result(result, id_hash)
            
             if not valid_orbit:
