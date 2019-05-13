@@ -752,7 +752,14 @@ def query_es(query, es_index=None):
         url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
     #print("url: {}".format(url))
     r = requests.post(url, data=json.dumps(query))
-    r.raise_for_status()
+
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    #r.raise_for_status()
     scan_result = r.json()
     #print("scan_result: {}".format(json.dumps(scan_result, indent=2)))
     count = scan_result['hits']['total']
@@ -764,6 +771,12 @@ def query_es(query, es_index=None):
     hits = []
     while True:
         r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        if r.status_code != 200:
+            print("Failed to query %s:\n%s" % (es_url, r.text))
+            print("query: %s" % json.dumps(query, indent=2))
+            print("returned: %s" % r.text)
+            r.raise_for_status()
+
         res = r.json()
         scroll_id = res['_scroll_id']
         if len(res['hits']['hits']) == 0: break
@@ -782,7 +795,13 @@ def query_es2(query, es_index=None):
         url = "{}/{}/_search?search_type=scan&scroll=60&size=100".format(rest_url, es_index)
     #print("url: {}".format(url))
     r = requests.post(url, data=json.dumps(query))
-    r.raise_for_status()
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    #r.raise_for_status()
     scan_result = r.json()
     #print("scan_result: {}".format(json.dumps(scan_result, indent=2)))
     count = scan_result['hits']['total']
@@ -797,6 +816,12 @@ def query_es2(query, es_index=None):
     hits = []
     while True:
         r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        if r.status_code != 200:
+            print("Failed to query %s:\n%s" % (es_url, r.text))
+            print("query: %s" % json.dumps(query, indent=2))
+            print("returned: %s" % r.text)
+            r.raise_for_status()
+
         res = r.json()
         scroll_id = res['_scroll_id']
         if len(res['hits']['hits']) == 0: break
@@ -1575,7 +1600,13 @@ def get_metadata(id, rest_url, url):
     }
     print("query: {}".format(json.dumps(query, indent=2)))
     r = requests.post(url, data=json.dumps(query))
-    r.raise_for_status()
+    if r.status_code != 200:
+        print("Failed to query %s:\n%s" % (es_url, r.text))
+        print("query: %s" % json.dumps(query, indent=2))
+        print("returned: %s" % r.text)
+        r.raise_for_status()
+
+    #r.raise_for_status()
     scan_result = r.json()
     
     count = scan_result['hits']['total']
@@ -1619,6 +1650,11 @@ def get_metadata_try_again(query, rest_url, url):
     hits = []
     while True:
         r = requests.post('%s/_search/scroll?scroll=60m' % rest_url, data=scroll_id)
+        if r.status_code != 200:
+            print("Failed to query %s:\n%s" % (es_url, r.text))
+            print("query: %s" % json.dumps(query, indent=2))
+            print("returned: %s" % r.text)
+            r.raise_for_status()
         res = r.json()
         scroll_id = res['_scroll_id']
         if len(res['hits']['hits']) == 0: break
