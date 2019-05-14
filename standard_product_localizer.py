@@ -655,16 +655,23 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     if master_orbit_url:
         master_orbit_file = os.path.basename(master_orbit_url)
     else:
+        raise RuntimeError("Reference Orbit File NOT Found")
+        '''
         master_orbit_file = in_master_orbit_file
         master_orbit_url = get_orbit_from_orbit_file(in_master_orbit_file)
+        '''
 
     slave_orbit_file = None
     slave_orbit_url = get_orbit_from_metadata(slave_md)
     if slave_orbit_url:
         slave_orbit_file = os.path.basename(slave_orbit_url)
     else:
+        raise RuntimeError("Secondery Orbit File NOT Found")
+    '''
+    else:
         slave_orbit_file = in_slave_orbit_file
         slave_orbit_url = get_orbit_from_orbit_file(in_slave_orbit_file)
+    '''
     logger.info("slave_orbit_url: {}".format(slave_orbit_url))
 
     try:

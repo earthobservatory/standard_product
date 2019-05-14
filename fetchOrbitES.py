@@ -175,14 +175,14 @@ def fetch(starttime, endtime, mission='S1A', outdir='.', dry_run=False):
             bestmatch = min(match, key = lambda x: x[1])[0]
             break
         else:
-            print('Failed to find {0} orbits for Time {1}'.format(oType, timeStamp))
+            raise RuntimeError('Failed to find {0} orbits for Time {1}'.format(oType, timeStamp))
 
     if bestmatch:
         if dry_run: print(bestmatch)
         else:
             res = download_file(bestmatch, outdir, session=session)
             if res is False:
-                print('Failed to download URL: ', bestmatch)
+                raise RuntimeError('Failed to download URL: ', bestmatch)
 
     session.close()
 
