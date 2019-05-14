@@ -738,7 +738,7 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     md['slc_master_dt'] = slc_master_dt.strftime('%Y%m%dT%H%M%S')
     md['slc_slave_dt'] = slc_slave_dt.strftime('%Y%m%dT%H%M%S')
     md["master_zip_file"] = [os.path.basename(i) for i in master_zip_url]
-    md["master_orbit_file"] = slave_orbit_file
+    md["master_orbit_file"] = master_orbit_file
     md["slave_zip_file"] = [os.path.basename(i) for i in slave_zip_url]
     md["slave_orbit_file"] = slave_orbit_file
     md["full_id_hash"] = ifg_hash
