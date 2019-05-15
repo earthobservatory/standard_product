@@ -704,7 +704,10 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
 
     met_file = os.path.join(prod_dir, "{}.met.json".format(id))
     ds_file = os.path.join(prod_dir, "{}.dataset.json".format(id))
-  
+ 
+    logger.info("master_orbit_file : %s" %master_orbit_file)
+    logger.info("slave_orbit_file : %s" %slave_orbit_file)
+ 
     #with open(met_file) as f: md = json.load(f)
     md = {}
     md['id'] = id
@@ -738,9 +741,9 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     md['slc_master_dt'] = slc_master_dt.strftime('%Y%m%dT%H%M%S')
     md['slc_slave_dt'] = slc_slave_dt.strftime('%Y%m%dT%H%M%S')
     md["master_zip_file"] = [os.path.basename(i) for i in master_zip_url]
-    md["master_orbit_file"] = master_orbit_file
+    md["master_orbit_file"] = os.path.basename(master_orbit_url)
     md["slave_zip_file"] = [os.path.basename(i) for i in slave_zip_url]
-    md["slave_orbit_file"] = slave_orbit_file
+    md["slave_orbit_file"] = os.path.basename(slave_orbit_url)
     md["full_id_hash"] = ifg_hash
     md["id_hash"] = ifg_hash[0:4]
 
