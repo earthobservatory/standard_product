@@ -76,9 +76,8 @@ def resolve_acq(slc_id, version):
     result = query_es(query, es_index)
 
     if len(result) == 0:
-        logger.info("query : \n%s\n" %query)
-        raise RuntimeError(
-            "Failed to resolve acquisition ID for SLC ID: {}".format(slc_id))
+        logger.info("query : \n%s\n" % query)
+        raise RuntimeError("Failed to resolve acquisition for SLC ID: {} and version: {}".format(slc_id, version))
 
     return result[0]['_id']
 
@@ -172,7 +171,8 @@ def get_acqlists_by_acqid(acq_id, acqlist_version):
     result = query_es(query, es_index)
 
     if len(result) == 0:
-        raise ValueError("Couldn't find acq-list containing acquisition ID: {}".format(acq_id))
+        logger.info("Couldn't find acq-list containing acquisition ID: {}".format(acq_id))
+        sys.exit(0)
 
     return [i['fields']['partial'][0] for i in result]
 
