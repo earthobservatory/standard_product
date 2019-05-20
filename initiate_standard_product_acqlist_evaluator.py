@@ -108,6 +108,9 @@ def all_slcs_exist(acq_ids, acq_version, slc_version):
     slc_ids = [row['fields']['metadata.identifier'][0] for row in result]  # extract slc ids
 
     if len(acq_ids) != len(acq_slc_mapper):
+        for acq_id in acq_ids:
+            if not acq_slc_mapper.get(acq_id):
+                acq_slc_mapper[acq_id] = None
         acq_slc_mapper_json = json.dumps(acq_slc_mapper, indent=2)
         error_string = "Failed to resolve SLC IDs given the acquisition IDs: \n{}".format(acq_slc_mapper_json)
         logger.error(error_string)
