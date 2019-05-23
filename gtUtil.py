@@ -57,6 +57,21 @@ def download_orbit_file(url, file_name):
         logger.debug(sys.exc_info())
     return downloaded
 
+def distance_between(lat1, long1, lat2, long2):
+    # Convert latitude and longitude to
+    # spherical coordinates in radians.
+    degrees_to_radians = math.pi/180.0
+    phi1 = (90.0 - lat1)*degrees_to_radians
+    phi2 = (90.0 - lat2)*degrees_to_radians
+    theta1 = long1*degrees_to_radians
+    theta2 = long2*degrees_to_radians
+    # Compute spherical distance from spherical
+    cos = (math.sin(phi1)*math.sin(phi2)*math.cos(theta1 - theta2) +
+           math.cos(phi1)*math.cos(phi2))
+    arc = math.acos( cos )
+ 
+    return arc * 6373.0
+
 
 def get_groundTrack_footprint(tstart, tend, mission, orbit_file, orbit_dir):
     #mission = MISSION
@@ -297,8 +312,9 @@ def water_mask_test1(result, track, orbit_or_track_dt, acq_info, acq_ids,  aoi_l
     else:
         result['secondary_track_dt'] = orbit_or_track_dt
     '''
-    v = sqrt((2874.997595**2) +(4621.900513**2)+(-5292.166241**2))/1000.0
-    logger.info("velocity of the satelite : %s" %v)
+    #v = sqrt((2874.997595**2) +(4621.900513**2)+(-5292.166241**2))/1000.0
+    v = 6.7
+    logger.info("velocity of the satelite : %s km/s" %v)
 
     acq_area_array = []
     gt_area_array = []
