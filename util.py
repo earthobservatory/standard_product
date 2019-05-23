@@ -1260,6 +1260,10 @@ def get_intersection_area(cord1, cord2):
     
     p1=Polygon(cord1)
     p2=Polygon(cord2)
+    p1_land_area = lightweight_water_mask.get_land_area(p1)
+    p2_land_area = lightweight_water_mask.get_land_area(p2)
+    if not p1_land_area> 0 or not p2_land_area >0:
+        return 0
     if p1.intersects(p2):
         intersection = p1.intersection(p2)
         print("intersection : %s" %intersection)
