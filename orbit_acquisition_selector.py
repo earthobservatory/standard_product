@@ -38,7 +38,7 @@ MISSION = 'S1A'
 
 
 def query_es(query, es_index=None):
-    logger.info("query: %s" %query)
+    logger.info("query: %s" % json.dumps(query, indent=2))
     """Query ES."""
     uu = UrlUtils()
     es_url = uu.rest_url
@@ -777,7 +777,7 @@ def query_aoi_acquisitions(starttime, endtime, platform, orbit_file, orbit_dir, 
                 }
             }
         }
-        logger.info(query)
+        logger.info("query: %s" % json.dumps(query, indent=2))
         acqs = [i['fields']['partial'][0] for i in query_es(query, es_index)]
         logger.info("Found {} acqs for {}: {}".format(len(acqs), aoi['id'],
                     json.dumps([i['id'] for i in acqs], indent=2)))

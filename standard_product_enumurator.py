@@ -18,7 +18,7 @@ import pickle
 import csv
 import time
 import random
-from util import InvalidOrbitException
+from util import InvalidOrbitException, InadequateCoverageException
 
 #import osaka.main
 
@@ -197,7 +197,8 @@ def process_query(query):
 
 def get_aoi_blacklist_data(aoi):
     logger.info("get_aoi_blacklist_data %s" %aoi)
-    es_index = "grq_*_blacklist"
+    #es_index = "grq_*_blacklist"
+    es_index = "grq_*_s1-gunw-blacklist"
     query = {
        "query": {
         "filtered": {
@@ -275,7 +276,7 @@ def print_groups(grouped_matched):
         for day_dt in sorted(grouped_matched["grouped"][track], reverse=True):
             logger.info("\tDate : %s" %day_dt)
             for acq in grouped_matched["grouped"][track][day_dt]:
-                logger.info("\t\t %s" %acq[0])
+                logger.info("\t\t %s" %acq)
 
 
 def black_list_check(candidate_pair, black_list):
@@ -293,11 +294,12 @@ def black_list_check(candidate_pair, black_list):
         passed = False
     return passed
 
-def process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi, result_file, master_result):
+def process_enumeration(slave_track_dt, master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi, result_file, master_result):
     matched = False
     candidate_pair_list = []
     result['matched'] = matched
 
+    logger.info("process_enumeration for slave date : %s" %slave_track_dt)
     logger.info("Master IPF Count : %s and Slave IPF Count : %s" %(master_ipf_count, slave_ipf_count)) 
     ref_type = None
 
@@ -489,7 +491,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
     logger.info("skip_days : %s" %skip_days)
 
     for track_dt in sorted(selected_track_acqs.keys(), reverse=True):
-        logger.info(track_dt)
+        logger.info("\n\nPROCESSING SLAVES for track_dt : %s" %track_dt)
   
         result = util.get_result_dict(aoi, track) 
         slaves_track = {}
@@ -547,8 +549,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
         es_index = "grq_%s_acquisition-s1-iw_slc/acquisition-S1-IW_SLC/" %(acquisition_version)
         logger.info("es_index : %s" %es_index) 
         acqs = [i['fields']['partial'][0] for i in util.query_es2(query, es_index)]
-        logger.info("Found {} slave acqs : {}".format(len(acqs),
-        json.dumps([i['id'] for i in acqs], indent=2)))
+        logger.info("SLAVE TRack DT : {} Found {} slave acqs : {}".format(track_dt, len(acqs), json.dumps([i['id'] for i in acqs], indent=2)))
 
 
         if len(acqs) == 0:
@@ -571,7 +572,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
 
 
         slave_grouped_matched = util.group_acqs_by_track_multi_date(slave_acqs)        
-        logger.info("Priniting Slaves")
+        logger.info("Priniting Slaves for track_dt : %s" %track_dt)
         print_groups(slave_grouped_matched)
         track_dt_pv = {}
         selected_slave_acqs_by_track_dt = {}
@@ -715,23 +716,28 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(selected_slave_acqs))
                 publish_result(master_result, result, id_hash)
                 continue
+            try:
+                matched, orbit_candidate_pair, result = process_enumeration(slave_track_dt, master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file, master_result)            
+                result['matched'] = matched
+                result['candidate_pairs'] = orbit_candidate_pair
+                write_result_file(result_file, result)
+                if matched:
+                    for candidate_pair in orbit_candidate_pair:
+                        candidate_pair["master_track_dt"] = track_dt
+                        candidate_pair["slave_trck_dt"] = slave_track_dt
+                        publish_initiator_pair(candidate_pair, job_data, orbit_data, aoi_id, master_orbit_file, orbit_file, master_result, result)   
+                        candidate_pair_list.append(orbit_candidate_pair)
 
-            matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file, master_result)            
-            result['matched'] = matched
-            result['candidate_pairs'] = orbit_candidate_pair
-            write_result_file(result_file, result)
-            if matched:
-                for candidate_pair in orbit_candidate_pair:
-                    candidate_pair["master_track_dt"] = track_dt
-                    candidate_pair["slave_trck_dt"] = slave_track_dt
-                    publish_initiator_pair(candidate_pair, job_data, orbit_data, aoi_id, master_orbit_file, orbit_file, master_result, result)   
-                    candidate_pair_list.append(orbit_candidate_pair)
-
-                min_max_count = min_max_count + 1
-                logger.info("MIN-MATCH matched for slave date: %s. Present Min-Match : %s" %(slave_track_dt, min_max_count))
-                if min_max_count>=MIN_MATCH:
-                    logger.info("Completing Enumeration as Min Match is : %s" %min_max_count)
-                    return min_max_count, candidate_pair_list
+                    min_max_count = min_max_count + 1
+                    logger.info("MIN-MATCH matched for slave date: %s. Present Min-Match : %s" %(slave_track_dt, min_max_count))
+                    if min_max_count>=MIN_MATCH:
+                        logger.info("Completing Enumeration as Min Match is : %s" %min_max_count)
+                        return min_max_count, candidate_pair_list
+            except InadequateCoverageException as err:
+                err_msg = "InadequateCoverageException for master dt: %s slave dt: %s track : %s aoi : %s master_acqs: %s, selected_slave_acqs : %s: " %(track_dt, slave_track_dt, track, aoi, get_acq_ids(master_acqs), get_acq_ids(selected_slave_acqs)) 
+                err_msg = err_msg+"\n"+str(err)
+                logger.info(err_msg)
+                raise RuntimeError(err_msg)
     return min_max_count, candidate_pair_list
 
 def write_result_file(result_file, result):
@@ -809,7 +815,7 @@ def get_candidate_pair_list_by_orbitnumber(track, selected_track_acqs, aoi_data,
             result['secondary_ipf_count'] = slave_ipf_count
             
 
-            matched, orbit_candidate_pair = process_enumeration(master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file, master_result)            
+            matched, orbit_candidate_pair = process_enumeration(slave_track_dt, master_acqs, master_ipf_count, slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file, master_result)            
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             write_result_file(result_file, result)
@@ -896,11 +902,19 @@ def check_match(ref_acq, matched_acqs, aoi_location, direction, ref_type = "mast
     orbitNumber = []
 
     overlapped_matches, total_cover_pct = util.find_overlap_match(ref_acq, matched_acqs)
-    
+    logger.info("check_match: ref_acq : %s" %ref_acq)
+    logger.info("check_match: matched_acqs : %s" %matched_acqs)
+    logger.info("check_match: aoi_location : %s" %aoi_location)
+    logger.info("check_match: ref_type : %s" %ref_type)
+ 
     logger.info("overlapped_matches count : %s with coverage pct : %s" %(len(overlapped_matches), total_cover_pct))
     if len(overlapped_matches)>0:
+     
+        if total_cover_pct<0.95:
+            logger.info("\n\nTOTAL COVERAGE PERCENTAGE is only : %s" %total_cover_pct)
+            #raise InadequateCoverageException("total coverage percentage is only : %s" %total_cover_pct) 
         overlapped_acqs = []
-        logger.info("Overlapped Acq exists")
+        logger.info("check_match : Overlapped Acq exists : %s" %overlapped_matches)
         
         #logger.info("Overlapped Acq exists for track: %s orbit_number: %s process version: %s. Now checking coverage." %(track, orbitnumber, pv))
         union_loc = get_union_geometry(overlapped_matches)
