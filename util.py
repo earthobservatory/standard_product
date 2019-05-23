@@ -368,6 +368,11 @@ def get_env_box(env):
     print("get_env_box box : %s" %bbox)
     return bbox
 
+def get_minmax(geojson):
+    '''returns the minmax tuple of a geojson'''
+    lats = [x[1] for x in geojson['coordinates'][0]]
+    return min(lats), max(lats)
+
 def isTrackSelected(acqs_land, total_land):
     selected = False
     sum_of_acq_land = 0
