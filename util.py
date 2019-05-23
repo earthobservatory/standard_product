@@ -2128,7 +2128,10 @@ def get_date_from_metadata(mds):
         print("day_dt : %s, start_dt : %s, end_dt : %s, mission : %s" %(day_dt, start_dt, end_dt, mission))
         day_dts.setdefault(day_dt, []).extend([start_dt, end_dt])
     if len(day_dts) > 1:
-        raise RuntimeError("Found data for more than 1 day.")
+        print("Found data for more than 1 day : %s" %day_dts)
+        day_dt = sorted(day_dts)[0]
+        print("selected : %s" %day_dt)
+
     all_dts = day_dts[day_dt]
     print("all_dts : %s" %all_dts)
 
