@@ -662,7 +662,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 logger.info("Orbit File NOT Exists, so NOT Running water_mask_check for slave on date %s" %slave_track_dt)
                 logger.info("Removing the acquisitions of orbitnumber for date : %s for failing water mask test" %slave_track_dt)
                 rejected_slave_track_dt.append(slave_track_dt)
-                err_msg = "Failed because orbit file : %s  NOT FOUND" %orbit_file
+                err_msg = "Failed because orbit file : %s  NOT FOUND for Orbit Date : %s and platform : %s" %(orbit_file, orbit_dt, slave_platform)
                 result['result'] = False
                 result['fail_reason'] = err_msg
                 result['dt'] = slave_track_dt 
