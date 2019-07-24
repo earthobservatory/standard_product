@@ -713,8 +713,8 @@ def publish_data( acq_info, project, job_priority, dem_type, track, aoi_id, star
     md['id'] = id
     md['project'] =  project,
     md['priority'] = job_priority
-    md['azimuth_looks'] = 19
-    md['range_looks'] = 7
+    md['azimuth_looks'] = 7
+    md['range_looks'] = 19
     md['filter_strength'] =  0.5
     md['precise_orbit_only'] = 'true'
     md['auto_bbox'] = 'true'
