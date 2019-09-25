@@ -71,6 +71,8 @@ def create_acq_obj_from_metadata(acq):
     sensingStop = acq_data['metadata']['sensingStop']
     sensingStart = acq_data['metadata']['sensingStart']
     ingestiondate = acq_data['metadata']['ingestiondate']
+    pol_mode = util.get_polarisation(acq_data['metadata']['polarisationmode'])
+    print("Polarisation : {} with Modes : {}".format(pol_mode, acq_data['metadata']['polarisationmode']))
     pv = None
     if "processing_version" in  acq_data['metadata']:
         pv = acq_data['metadata']['processing_version']
@@ -81,7 +83,7 @@ def create_acq_obj_from_metadata(acq):
         #pv = util.get_processing_version(identifier)
         #logger.info("ASF returned pv : %s" %pv)
         #util.update_acq_pv(acq_id, pv) 
-    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform)
+    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pol_mode, pv, sensingStart, sensingStop, ingestiondate, platform)
 
 def create_acqs_from_metadata(frames):
     acqs = []
@@ -529,7 +531,21 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
         result['union_geojson'] = master_union_geojson
         result['master_orbit_file'] = master_orbit_file
         result['skip_days'] = skip_days
+
+        master_pol = None
         master_ipf_count = None
+
+        try:
+            master_pol = util.get_pol_data_from_acqs(master_acqs)
+        except Exception as err:
+            result['failed_orbit'] = 'secondary'
+            result['fail_reason'] = "master_pol Error : "+ str(err)
+            logger.info(str(err))
+            id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), [])
+            publish_result(master_result, result, id_hash)
+            continue
+
+
         try:
             master_ipf_count = util.get_ipf_count(master_acqs)
         except Exception as err:
@@ -715,6 +731,28 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(selected_slave_acqs))
                 publish_result(master_result, result, id_hash)
                 continue
+
+            slave_pol = None
+            try:
+                slave_pol = util.get_pol_data_from_acqs(selected_slave_acqs)
+            except Exception as err:
+                result['failed_orbit'] = 'secondary'
+                result['fail_reason'] = "slave_pol Error: " +str(err)
+                logger.info(str(err))
+                id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(selected_slave_acqs))
+                publish_result(master_result, result, id_hash)
+                continue
+
+            if master_pol != slave_pol:
+                err_msg = "ERROR : Polarization Mismatch : Master Pol : %s Slave Polarization : %s" %(master_pol, slave_pol)
+                result['fail_reason'] = err_msg
+                result['failed_orbit'] = 'secondary'
+                logger.info(err_msg)
+                id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), get_acq_ids(selected_slave_acqs))
+                publish_result(master_result, result, id_hash)
+                continue
+
+            logger.info("Master Pol : %s Slave Polarization : %s" %(master_pol, slave_pol))
 
             matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file, master_result)            
             result['matched'] = matched

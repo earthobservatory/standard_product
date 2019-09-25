@@ -87,7 +87,7 @@ MISSION = 'S1A'
 
 
 class ACQ:
-    def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform = None  ):
+    def __init__(self, acq_id, download_url, tracknumber, location, starttime, endtime, direction, orbitnumber, identifier, pol_mode, pv, sensingStart, sensingStop, ingestiondate, platform = None  ):
         print("ACQ : %s %s %s" %(acq_id, starttime, endtime))
         if isinstance(acq_id, tuple) or isinstance(acq_id, list):
             acq_id = acq_id[0]
@@ -98,6 +98,7 @@ class ACQ:
         self.starttime = get_time_str(starttime)
         self.endtime = get_time_str(endtime)
         self.pv = pv
+        self.pol_mode = pol_mode
         self.direction = direction
         self.orbitnumber = orbitnumber
         self.identifier = identifier
@@ -133,7 +134,7 @@ MOZART_ES_ENDPOINT = "MOZART"
 GRQ_ES_ENDPOINT = "GRQ"
 
 def print_acq(acq):
-    print("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq.acq_id, acq.download_url, acq.tracknumber, acq.location, acq.starttime, acq.endtime, acq.direction, acq.orbitnumber, acq.identifier, acq.pv))
+    print("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s" %(acq.acq_id, acq.download_url, acq.tracknumber, acq.location, acq.starttime, acq.endtime, acq.direction, acq.orbitnumber, acq.identifier, acq.pol_mode, acq.pv))
 
 def group_acqs_by_orbit_number_from_metadata(frames):
     print("group_acqs_by_orbit_number_from_metadata")
@@ -164,6 +165,15 @@ def group_acqs_by_track_date(acqs):
         bisect.insort(grouped.setdefault(acq.tracknumber, {}).setdefault(day_dt, []), acq.acq_id)
     return {"grouped": grouped, "acq_info" : acqs_info}
 
+def get_polarisation(pol_mode):
+    modes = pol_mode.strip().split(' ')
+    if "VV" in modes or "vv" in modes:
+        return "vv"
+    elif "HH" in modes or "hh" in modes:
+        return "hh"
+    else:
+        raise RunTimeError("Invalid Polarization for the acquisition : {}".format(pol_mode)) 
+       
 def group_acqs_by_track_multi_date(acqs):
     print("\ngroup_acqs_by_track_multi_date")
     grouped = {}
@@ -410,6 +420,21 @@ def get_ipf_count_by_acq_id(acq_ids, acq_info):
         acqs.append(acq)
     return get_ipf_count(acqs)
 
+def get_pol_data_from_acqs(acqs):
+    pol_data = []
+    for acq in acqs:
+        pol = acq.pol_mode.strip().lower()
+        if pol not in pol_data:
+            pol_data.append(pol)
+
+    if len(pol_data)==0 or len(pol_data)>1:
+        err_msg = "Found Multiple Polarization or No Polarization : {}".format(pol_data)
+        raise RuntimeError(err_msg)
+
+    return pol_data[0]
+
+
+
 
 def get_union_data_from_acqs(acqs):
     starttimes = []
@@ -481,6 +506,9 @@ def create_acq_obj_from_metadata(acq):
     orbitnumber = acq_data['metadata']['orbitNumber']
     platform = acq_data['metadata']['platform']
     identifier = acq_data['metadata']['identifier']
+    pol_mode = get_polarisation(acq_data['metadata']['polarisationmode'])
+    print("Polarisation : {} with Modes : {}".format(pol_mode, acq_data['metadata']['polarisationmode']))
+
     pv = None
     if "processing_version" in  acq_data['metadata']:
         pv = acq_data['metadata']['processing_version']
@@ -499,7 +527,25 @@ def create_acq_obj_from_metadata(acq):
         print("ASF returned pv : %s" %pv)
         if pv:
             update_acq_pv(acq_id, pv) 
-    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform)
+    return ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pol_mode, pv, sensingStart, sensingStop, ingestiondate, platform)
+    
+
+    '''
+    host_ip = get_container_host_ip()
+    print(host_ip)
+
+    gateway_ip = get_gateway_ip()
+    print(gateway_ip)
+
+    in_container = running_in_container()
+    print(in_container)
+
+    ip_routes_output = check_output(["ip", "route", "show", "default", "0.0.0.0/0"])
+    assert type(ip_routes_output) == bytes
+
+    ip_routes_output_str = ip_routes_output.decode('utf-8')
+    assert type(ip_routes_output_str) == str
+    '''
 
 
 def create_acqs_from_metadata(frames):
@@ -1015,11 +1061,13 @@ def group_acqs_by_track(frames):
         sensingStop = acq_data['metadata']['sensingStop']
         sensingStart = acq_data['metadata']['sensingStart']
         ingestiondate = acq_data['metadata']['ingestiondate']
+        pol_mode = get_polarisation(acq_data['metadata']['polarisationmode'])
+        print("Polarisation : {} with Modes : {}".format(pol_mode, acq_data['metadata']['polarisationmode']))
 
         pv = None
         if "processing_version" in  acq_data['metadata']:
             pv = acq_data['metadata']['processing_version']
-        this_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, sensingStart, sensingStop, ingestiondate, platform)
+        this_acq = ACQ(acq_id, download_url, track, location, starttime, endtime, direction, orbitnumber, identifier, pv, pol_mode, sensingStart, sensingStop, ingestiondate, platform)
         acq_info[acq_id] = this_acq
 
         #print("Adding %s : %s : %s : %s" %(track, orbitnumber, pv, acq_id))
