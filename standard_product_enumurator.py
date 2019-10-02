@@ -509,6 +509,22 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
         if len(master_acqs)==0:
             logger.info("ERROR: master acq list %s empty for track dt: %s" %(master_acqs, track_dt))
         master_result = result_track_acqs[track_dt]
+
+        master_pol = None
+
+        try:
+            master_pol = util.get_pol_data_from_acqs(master_acqs)
+        except Exception as err:
+            result['failed_orbit'] = 'secondary'
+            result['fail_reason'] = "master_pol Error : "+ str(err)
+            logger.info(str(err))
+            id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), [])
+            publish_result(master_result, result, id_hash)
+            continue
+
+        result['reference_polarisation'] = master_pol
+
+
         try:
             master_ipf_count, master_starttime, master_endtime, master_location, master_track, direction, master_orbitnumber = util.get_union_data_from_acqs(master_acqs)
         except Exception as err:
@@ -532,19 +548,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
         result['master_orbit_file'] = master_orbit_file
         result['skip_days'] = skip_days
 
-        master_pol = None
         master_ipf_count = None
-
-        try:
-            master_pol = util.get_pol_data_from_acqs(master_acqs)
-        except Exception as err:
-            result['failed_orbit'] = 'secondary'
-            result['fail_reason'] = "master_pol Error : "+ str(err)
-            logger.info(str(err))
-            id_hash = util.get_ifg_hash_from_acqs(get_acq_ids(master_acqs), [])
-            publish_result(master_result, result, id_hash)
-            continue
-
 
         try:
             master_ipf_count = util.get_ipf_count(master_acqs)
@@ -713,6 +717,10 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
                 selected_slave_acqs.append(slave_grouped_matched["acq_info"][slave_id])
             track_dt_pv[slave_track_dt] = slave_ipf_count
             selected_slave_acqs_by_track_dt[slave_track_dt] =  selected_slave_acqs
+
+
+
+            logger.info("selected_slave_acqs  : {}".format(selected_slave_acqs))
 
             logger.info("Processing Slaves with date : %s" %slave_track_dt)
             result['list_slave_dt'] = slave_track_dt
