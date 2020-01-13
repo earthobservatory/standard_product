@@ -763,6 +763,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
             logger.info("Master Pol : %s Slave Polarization : %s" %(master_pol, slave_pol))
 
             matched, orbit_candidate_pair, result = process_enumeration(master_acqs, master_ipf_count, selected_slave_acqs, slave_ipf_count, direction, aoi_location, aoi_blacklist, job_data, result, track, aoi_id, result_file, master_result)            
+            logger.info("{} : {} : {}".format(matched, orbit_candidate_pair, result))
             result['matched'] = matched
             result['candidate_pairs'] = orbit_candidate_pair
             write_result_file(result_file, result)
@@ -1310,14 +1311,27 @@ def publish_result(reference_result, secondary_result, id_hash):
 
     met_file = os.path.join(prod_dir, "{}.met.json".format(id))
     ds_file = os.path.join(prod_dir, "{}.dataset.json".format(id))
+    aoi = []
+    track = []
+    full_id_hash = secondary_result.get('full_id_hash', None)
+    this_aoi =  reference_result.get('aoi', None)
+    if this_aoi:
+        aoi.append(this_aoi)
     
+    this_track = reference_result.get('track', None)
+    if this_track:
+        track.append(this_track)
 
+    if full_id_hash:
+        aoi, track = util.get_complete_track_aoi_by_hash(full_id_hash, track, aoi)
+        
+    logger.info("publish_result : Final AOI : {}, Final Track : {}".format(aoi, track))   
 
     logger.info("\n\npublish_result: PUBLISHING %s : " %id)  
     #with open(met_file) as f: md = json.load(f)
     md = {}
     md['id'] = id
-    md['aoi'] =  reference_result.get('aoi', '')
+    md['aoi'] =  aoi
     md['reference_orbit'] = reference_result.get('orbit_name', '')
     md['reference_unique_ipf_count'] = secondary_result.get('primary_ipf_count', '')
     md['secondary_unique_ipf_count'] = secondary_result.get('secondary_ipf_count', '')
@@ -1331,7 +1345,7 @@ def publish_result(reference_result, secondary_result, id_hash):
     md['reference_area_delta_in_resolution']=reference_result.get('res', '')
     md['secondary_area_delta_in_resolution']=secondary_result.get('res', '')
     md['pair_created'] = secondary_result.get('result', '')
-    md['track_number'] = reference_result.get('track', '')
+    md['track_number'] = track
     md['result'] = secondary_result.get('result', '')
     md['failure_reason'] = secondary_result.get('fail_reason', '')
     md['comment'] = secondary_result.get('comment', '')

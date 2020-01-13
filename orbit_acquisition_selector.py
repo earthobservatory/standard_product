@@ -484,19 +484,34 @@ def publish_result(reference_result, id_hash):
     met_file = os.path.join(prod_dir, "{}.met.json".format(id))
     ds_file = os.path.join(prod_dir, "{}.dataset.json".format(id))
     
+    aoi = []
+    track = []
+    full_id_hash = reference_result.get('full_id_hash', None)
+    this_aoi =  reference_result.get('aoi', None)
+    if this_aoi:
+        aoi.append(this_aoi)
+
+    this_track = reference_result.get('track', None)
+    if this_track:
+        track.append(this_track)
+
+    if full_id_hash:
+        aoi, track = util.get_complete_track_aoi_by_hash(full_id_hash, track, aoi)
+
+    logger.info("publish_result : Final AOI : {}, Final Track : {}".format(aoi, track))
 
 
     logger.info("\n\npublish_result: PUBLISHING %s : " %id)  
     #with open(met_file) as f: md = json.load(f)
     md = {}
     md['id'] = id
-    md['aoi'] =  reference_result.get('aoi', '')
+    md['aoi'] =  aoi
     md['reference_orbit'] = reference_result.get('orbit_name', '')
     md['reference_orbit_quality_passed'] = reference_result.get('orbit_quality_check_passed', '')
     md['reference_tract_land'] = reference_result.get('Track_POEORB_Land', '')
     md['reference_total_acqusition_land'] = reference_result.get('ACQ_Union_POEORB_Land', '')
     md['pair_created'] = reference_result.get('result', '')
-    md['track_number'] = reference_result.get('track', '')
+    md['track_number'] = track
     md['failure_reason'] = reference_result.get('fail_reason', '')
     md['comment'] = reference_result.get('comment', '')
     md['starttime'] = update_dateformat(reference_result.get('starttime', ''))

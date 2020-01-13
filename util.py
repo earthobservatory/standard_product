@@ -748,6 +748,72 @@ def get_dataset(id, index_suffix):
     print(result['hits']['total'])
     return result
 
+def get_dataset_by_hash(ifg_hash, es_index="grq"):
+    """Query for existence of dataset by ID."""
+
+    uu = UrlUtils()
+    es_url = uu.rest_url
+    #es_index = "{}_{}_s1-ifg".format(uu.grq_index_prefix, version)
+
+    # query
+    query = {
+        "query":{
+            "bool":{
+                "must":[
+                    { "term":{"metadata.full_id_hash.raw": ifg_hash} },
+                    { "term":{"dataset.raw": "S1-GUNW"} }
+                ]
+            }
+        }
+        
+    }
+
+    logger.info(query)
+
+    if es_url.endswith('/'):
+        search_url = '%s%s/_search' % (es_url, es_index)
+    else:
+        search_url = '%s/%s/_search' % (es_url, es_index)
+    logger.info("search_url : %s" %search_url)
+
+    r = requests.post(search_url, data=json.dumps(query))
+    r.raise_for_status()
+
+    if r.status_code != 200:
+        logger.info("Failed to query %s:\n%s" % (es_url, r.text))
+        logger.info("query: %s" % json.dumps(query, indent=2))
+        logger.info("returned: %s" % r.text)
+        raise RuntimeError("Failed to query %s:\n%s" % (es_url, r.text))
+    result = r.json()
+    logger.info(result['hits']['total'])
+    return result
+
+
+def get_complete_track_aoi_by_hash(new_ifg_hash, track, aoi):
+    es_index="grq_*_s1-gunw"
+    result = get_dataset_by_hash(new_ifg_hash, es_index)
+    total = result['hits']['total']
+    logger.info("check_slc_status_by_hash : total : %s" %total)
+    if total>0:
+        for i in range(total):
+            found_id  = result['hits']['hits'][i]["_id"]
+            logger.info("Duplicate dataset found: %s" %found_id)
+            metadata = result['hits']['hits'][i]["_source"]["metadata"]
+            this_track = metadata["track_number"]
+            this_aoi = metadata["aoi"]
+            logger.info("With Track and AOI : %s, %s" %(this_track, this_aoi))
+            if isinstance(this_track, list):
+                track.extend(this_track)
+            else:
+                track.append(this_track)
+            if isinstance(this_aoi, list):
+                aoi.extend(this_aoi)
+            else:
+                aoi.append(this_aoi)
+
+    return list(set(track)), list(set(aoi))
+
+
 def get_dataset(id):
     """Query for existence of dataset by ID."""
 
