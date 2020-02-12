@@ -25,7 +25,7 @@ RUN pip install --upgrade pip
 RUN pip3 install 'pyproj==1.9.6'
 RUN pip install 'pyproj==1.9.6'
 RUN pip install --upgrade --ignore-installed 'geopandas'
-RUN pip3 install --upgrade --ignore-installed 'geopandas'
+#RUN pip3 install --upgrade --ignore-installed 'geopandas'
 RUN pip install shapely
 RUN pip3 install shapely
 
