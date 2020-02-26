@@ -29,7 +29,8 @@ RUN pip install 'fiona==1.7.13'
 RUN pip3 install 'fiona==1.7.13'
 RUN pip3 install 'pyproj==1.9.6'
 RUN pip install 'pyproj==1.9.6'
-RUN sudo pip3 install 'geopandas'
+RUN pip3 install 'pandas==0.25.3'
+RUN sudo pip3 install 'geopandas==0.6.3'
 RUN pip3 install elasticsearch
 RUN pip install elasticsearch
 
