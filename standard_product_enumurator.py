@@ -1323,7 +1323,7 @@ def publish_result(reference_result, secondary_result, id_hash):
         track.append(this_track)
 
     if full_id_hash:
-        aoi, track = util.get_complete_track_aoi_by_hash(full_id_hash, track, aoi)
+        track, aoi = util.get_complete_track_aoi_by_hash(full_id_hash, track, aoi)
         
     logger.info("publish_result : Final AOI : {}, Final Track : {}".format(aoi, track))   
 
