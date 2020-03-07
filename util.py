@@ -748,7 +748,7 @@ def get_dataset(id, index_suffix):
     print(result['hits']['total'])
     return result
 
-def get_dataset_by_hash(ifg_hash, es_index="grq"):
+def get_dataset_by_hash(ifg_hash, dataset_type, es_index="grq"):
     """Query for existence of dataset by ID."""
 
     uu = UrlUtils()
@@ -761,7 +761,7 @@ def get_dataset_by_hash(ifg_hash, es_index="grq"):
             "bool":{
                 "must":[
                     { "term":{"metadata.full_id_hash.raw": ifg_hash} },
-                    { "term":{"dataset.raw": "S1-GUNW"} }
+                    { "term":{"dataset.raw": dataset_type} }
                 ]
             }
         }
@@ -789,9 +789,10 @@ def get_dataset_by_hash(ifg_hash, es_index="grq"):
     return result
 
 
+
 def get_complete_track_aoi_by_hash(new_ifg_hash, track, aoi):
-    es_index="grq_*_s1-gunw"
-    result = get_dataset_by_hash(new_ifg_hash, es_index)
+    es_index="grq_*_s1-gunw-acqlist-audit_trail"
+    result = get_dataset_by_hash(new_ifg_hash, "S1-GUNW-acqlist-audit_trail", es_index)
     total = result['hits']['total']
     logger.info("check_slc_status_by_hash : total : %s" %total)
     if total>0:
@@ -826,6 +827,7 @@ def get_dataset(id):
     # query
     query = {
         "query":{
+
             "bool":{
                 "must":[
                     { "term":{ "_id": id } }
