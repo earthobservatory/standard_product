@@ -791,7 +791,7 @@ def get_dataset_by_hash(ifg_hash, dataset_type, es_index="grq"):
 
 
 def get_complete_track_aoi_by_hash(new_ifg_hash, track, aoi):
-    logger.info("get_complete_track_aoi_by_hash : new_ifg_hash {} track {} aoi {}" %(new_ifg_hash, track, aoi))
+    logger.info("get_complete_track_aoi_by_hash : new_ifg_hash {} track {} aoi {}".format(new_ifg_hash, track, aoi))
     es_index="grq_*_s1-gunw-acqlist-audit_trail"
     result = get_dataset_by_hash(new_ifg_hash, "S1-GUNW-acqlist-audit_trail", es_index)
     total = result['hits']['total']
