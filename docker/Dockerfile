@@ -32,7 +32,8 @@ RUN pip install 'pyproj==1.9.6'
 #RUN pip3 install 'pandas==0.25.3'
 #RUN sudo pip3 install 'geopandas==0.6.3'
 RUN pip install 'pandas==0.25.3'
-RUN sudo pip install 'geopandas==0.6.3'
+#RUN sudo pip install 'geopandas==0.6.3'
+RUN pip install 'geopandas==0.6.3'
 #RUN pip3 install elasticsearch
 RUN pip install elasticsearch
 
