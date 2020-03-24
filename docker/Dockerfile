@@ -7,8 +7,8 @@ ARG git_oauth_token
 ARG id
 ARG gid
 
-# provision
-USER root
+# as ops user
+USER ops
 #RUN set -ex && \
  # usermod -u ${id} ops && \
   #groupmod -g ${gid} ops && \
@@ -23,16 +23,11 @@ USER root
 COPY . /home/ops/verdi/ops/standard_product
 
 RUN pip install shapely
-#RUN pip3 install shapely
-
 RUN pip install 'fiona==1.7.13'
 RUN pip install 'pyproj==1.9.6'
 RUN pip install 'pandas==0.25.3'
 RUN pip install 'geopandas==0.6.3'
 RUN pip install elasticsearch
-
-# as ops user
-USER ops
 
 # create work directory
 RUN set -ex \
