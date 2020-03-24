@@ -1,4 +1,4 @@
-FROM hysds/pge-isce_giant
+FROM hysds/isce2
 
 MAINTAINER mkarim "Mohammed.R.Karim@jpl.nasa.gov"
 LABEL description="standard_product"
@@ -26,15 +26,9 @@ RUN pip install shapely
 #RUN pip3 install shapely
 
 RUN pip install 'fiona==1.7.13'
-#RUN pip3 install 'fiona==1.7.13'
-#RUN pip3 install 'pyproj==1.9.6'
 RUN pip install 'pyproj==1.9.6'
-#RUN pip3 install 'pandas==0.25.3'
-#RUN sudo pip3 install 'geopandas==0.6.3'
 RUN pip install 'pandas==0.25.3'
-#RUN sudo pip install 'geopandas==0.6.3'
 RUN pip install 'geopandas==0.6.3'
-#RUN pip3 install elasticsearch
 RUN pip install elasticsearch
 
 # as ops user
