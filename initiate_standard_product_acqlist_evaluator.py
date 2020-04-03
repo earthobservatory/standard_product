@@ -140,8 +140,9 @@ def all_slcs_exist(acq_ids, acq_version, slc_version):
     existing_slc_ids = []
     if len(result) > 0:
         for hit in result:
-            slc_id = slc_id.split("-pds")[0] if "-pds" in slc_id else slc_id
-            existing_slc_ids.append(hit['_id'])
+            raw_slc_id = hit['_id']
+            slc_id = raw_slc_id.split("-pds")[0] if "-pds" in raw_slc_id else raw_slc_id
+            existing_slc_ids.append(slc_id)
     logger.info("slc_ids: {}".format(slc_ids))
     logger.info("existing_slc_ids: {}".format(set(existing_slc_ids)))
     if len(set(slc_ids)) != len(set(existing_slc_ids)):
