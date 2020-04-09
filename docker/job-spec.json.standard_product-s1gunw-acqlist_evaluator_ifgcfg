@@ -7,6 +7,7 @@
     "/home/ops/verdi/etc/settings.conf": "/home/ops/ariamh/conf/settings.conf",
     "/home/ops/verdi/etc/settings.conf": "/home/ops/verdi/ops/standard_product/settings.conf"
   },
+  "disk_usage":"100GB",
   "soft_time_limit": 600,
   "time_limit": 900,
   "recommended-queues": [ "standard_product-s1gunw-acqlist_evaluator_ifgcfg" ],
