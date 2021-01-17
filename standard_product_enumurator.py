@@ -102,10 +102,7 @@ def get_group_starttime(acq_ids, acq_info):
         if not starttime:
             starttime = acq.starttime
             logger.info("get_group_starttime : starttime : %s" %starttime)
-        else:
-            if starttime != acq.starttime:
-                raise RuntimeError("Platform Mismatch in same group : %s and %s" %(starttime, acq.starttime))
-    return starttime
+            return starttime
 
 
 def get_group_platform(acq_ids, acq_info):
