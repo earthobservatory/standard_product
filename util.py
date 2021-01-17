@@ -2025,10 +2025,41 @@ def get_orbit_file(orbit_dt, platform):
             
             orbit_url = "%s/%s" % (url, hit['metadata']['archive_filename'])
             return True, id, orbit_url,  hit['metadata']['archive_filename']
+
+    print("get_orbit_file (resorb): %s : %s" %(orbit_dt, platform))
+    hits = query_orbit_file(orbit_dt, orbit_dt, platform,orbit_type='S1-AUX_RESORB')
+    #print("get_orbit_file : hits : \n%s\n" %hits)
+    print("get_orbit_file (resorb) returns %s result " %len(hits))
+    #return hits
+
+    for hit in hits:
+        metadata = hit["metadata"]
+
+        id = hit['id']
+        orbit_platform = metadata["platform"]
+        print(orbit_platform)
+        if orbit_platform == platform:
+            if "urls" in hit:
+                urls = hit["urls"]
+                url = urls[0]
+                if len(urls) > 1:
+                    for u in urls:
+                        if u.startswith('http://') or u.startswith('https://'):
+                            url = u
+                            break
+            else:
+                url = metadata["context"]["localize_urls"][0]["url"]
+
+            if url.startswith('s3://'):
+                url = metadata["context"]["localize_urls"][0]["url"]
+
+            orbit_url = "%s/%s" % (url, hit['metadata']['archive_filename'])
+            return True, id, orbit_url, hit['metadata']['archive_filename']
+
     return False, None, None, None
 
 
-def query_orbit_file(starttime, endtime, platform):
+def query_orbit_file(starttime, endtime, platform, orbit_type="S1-AUX_POEORB"):
     """Query ES for active AOIs that intersect starttime and endtime."""
     print("query_orbit_file: %s, %s, %s" %(starttime, endtime, platform))
     es_index = "grq_*_s1-aux_poeorb"
@@ -2055,7 +2086,7 @@ def query_orbit_file(starttime, endtime, platform):
                   },
                   {
                     "match": {
-                      "metadata.dataset": "S1-AUX_POEORB"
+                      "metadata.dataset": orbit_type
                     }
                   },
                   {
@@ -2065,7 +2096,7 @@ def query_orbit_file(starttime, endtime, platform):
                   },
                   {
                     "match": {
-                      "_type": "S1-AUX_POEORB"
+                      "_type": orbit_type
                     }
                   }
                 ]  
