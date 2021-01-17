@@ -95,6 +95,17 @@ def create_acqs_from_metadata(frames):
             acqs.append(acq_obj)
     return acqs
 
+def get_group_starttime(acq_ids, acq_info):
+    starttime = None
+    for acq_id in acq_ids:
+        acq = acq_info[acq_id]
+        if not starttime:
+            starttime = acq.starttime
+            logger.info("get_group_starttime : starttime : %s" %starttime)
+        else:
+            if starttime != acq.starttime:
+                raise RuntimeError("Platform Mismatch in same group : %s and %s" %(starttime, acq.starttime))
+    return starttime
 
 
 def get_group_platform(acq_ids, acq_info):
@@ -609,7 +620,7 @@ def get_candidate_pair_list(aoi, track, selected_track_acqs, aoi_data, skip_days
 
             selected_slave_acqs=[]
             orbit_file = None
-            orbit_dt = slave_track_dt.replace(minute=0, hour=12, second=0).isoformat()
+            orbit_dt = get_group_starttime(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
             logger.info("\n\n\nProcessing AOI: %s Track : %s  orbit_dt : %s" %(aoi, track, orbit_dt))
             slave_platform = get_group_platform(slave_grouped_matched["grouped"][track][slave_track_dt], slave_grouped_matched["acq_info"])
             logger.info("slave_platform : %s" %slave_platform)
